@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  cpf       String   @unique
+  profession String
+  phone     String
+  address   String
+  city      String
+  state     String
+  zip_code  String
+  role      String   @default("SEGURADO") // Add this field
+  policy_id Int?
+  policy    Policy?  @relation(fields: [policy_id], references: [id])
+  processes Process[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Policy {
+  id            Int      @id @default(autoincrement())
+  policy_number String   @unique
+  start_date    DateTime
+  end_date      DateTime
+  total_insured Int
+  total_value   Float
+  is_extended   Boolean  @default(false)
+  new_policy_id Int?
+  new_policy    Policy?  @relation("PolicyExtension", fields: [new_policy_id], references: [id])
+  extended_policies Policy[] @relation("PolicyExtension") // Add this line
+  users         User[]
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
+
+model Process {
+  id                  Int      @id @default(autoincrement())
+  user_id             Int
+  user                User     @relation(fields: [user_id], references: [id])
+  lawyer_id           Int
+  lawyer              Lawyer   @relation(fields: [lawyer_id], references: [id])
+  case_number         String   @unique
+  plaintiff           String
+  defendant           String
+  location            String
+  status              String
+  accident_date       DateTime
+  contract_date       DateTime
+  case_value          Float
+  is_covered          Boolean  @default(false)
+  probability_of_loss Int
+  total_cost          Float
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+}
+
+model Lawyer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  cpf       String   @unique
+  phone     String
+  address   String
+  city      String
+  state     String
+  zip_code  String
+  processes Process[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Broker {
+  id              Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  cpf             String   @unique
+  phone           String
+  address         String
+  city            String
+  state           String
+  zip_code        String
+  commission_rules Json
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model LegalAction {
+  id        Int      @id @default(autoincrement())
+  name      String
+  cost      Float
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
