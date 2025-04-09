@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,47 +8,60 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  cpf       String   @unique
-  profession String
-  phone     String
-  address   String
-  city      String
-  state     String
-  zip_code  String
-  role      String   @default("SEGURADO") // Add this field
-  policy_id Int?
-  policy    Policy?  @relation(fields: [policy_id], references: [id])
-  processes Process[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id             Int             @id @default(autoincrement())
+  name           String
+  email          String          @unique
+  cpf            String          @unique
+  profession     String
+  phone          String
+  address        String
+  city           String
+  state          String
+  zip_code       String
+  policy_id      Int?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  password       String
+  role           String          @default("SEGURADO")
+  asaasCustomerId String?        @unique @map("asaas_customer_id")
+  insurance      Insurance?
+  paymentMethods PaymentMethod[]
+  processes      Process[]
+  transactions   Transaction[]
+  policy         Policy?         @relation(fields: [policy_id], references: [id])
+}
+
+model Insurance {
+  id           Int           @id @default(autoincrement())
+  userId       Int           @unique
+  plan         String
+  status       String
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
 }
 
 model Policy {
-  id            Int      @id @default(autoincrement())
-  policy_number String   @unique
-  start_date    DateTime
-  end_date      DateTime
-  total_insured Int
-  total_value   Float
-  is_extended   Boolean  @default(false)
-  new_policy_id Int?
-  new_policy    Policy?  @relation("PolicyExtension", fields: [new_policy_id], references: [id])
-  extended_policies Policy[] @relation("PolicyExtension") // Add this line
-  users         User[]
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  policy_number     String   @unique
+  start_date        DateTime
+  end_date          DateTime
+  total_insured     Int
+  total_value       Float
+  is_extended       Boolean  @default(false)
+  new_policy_id     Int?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  new_policy        Policy?  @relation("PolicyExtension", fields: [new_policy_id], references: [id])
+  extended_policies Policy[] @relation("PolicyExtension")
+  users             User[]
 }
 
 model Process {
   id                  Int      @id @default(autoincrement())
   user_id             Int
-  user                User     @relation(fields: [user_id], references: [id])
   lawyer_id           Int
-  lawyer              Lawyer   @relation(fields: [lawyer_id], references: [id])
   case_number         String   @unique
   plaintiff           String
   defendant           String
@@ -68,42 +75,89 @@ model Process {
   total_cost          Float
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
+  lawyer              Lawyer   @relation(fields: [lawyer_id], references: [id])
+  user                User     @relation(fields: [user_id], references: [id])
 }
 
 model Lawyer {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  cpf       String   @unique
-  phone     String
-  address   String
-  city      String
-  state     String
-  zip_code  String
-  processes Process[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id         Int       @id @default(autoincrement())
+  name       String
+  email      String    @unique
+  cpf        String    @unique
+  phone      String
+  address    String
+  city       String
+  state      String
+  zip_code   String
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  processes  Process[]
 }
 
 model Broker {
-  id              Int      @id @default(autoincrement())
-  name            String
-  email           String   @unique
-  cpf             String   @unique
-  phone           String
-  address         String
-  city            String
-  state           String
-  zip_code        String
+  id               Int      @id @default(autoincrement())
+  name             String
+  email            String   @unique
+  cpf              String   @unique
+  phone            String
+  address          String
+  city             String
+  state            String
+  zip_code         String
   commission_rules Json
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 }
 
 model LegalAction {
-  id        Int      @id @default(autoincrement())
-  name      String
-  cost      Float
+  id         Int      @id @default(autoincrement())
+  name       String
+  cost       Float
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  type         String
+  lastFour     String?
+  brand        String?
+  holderName   String?
+  expiryMonth  String?
+  expiryYear   String?
+  isDefault    Boolean       @default(false)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id              Int            @id @default(autoincrement())
+  userId          Int
+  paymentMethodId Int?
+  amount          Int
+  status          String
+  type            String
+  transactionId   String?
+  boletoUrl       String?
+  boletoCode      String?
+  insuranceId     Int?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  insurance       Insurance?     @relation(fields: [insuranceId], references: [id])
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  user            User           @relation(fields: [userId], references: [id])
+}
+
+model ServiceBox {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  imageUrl    String
+  link        String
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

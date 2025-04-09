@@ -12,6 +12,9 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        amelia: ['"Amelia UP W03 Regular"', 'sans-serif'],
+      },
     },
   },
   plugins: [],

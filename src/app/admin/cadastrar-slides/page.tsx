@@ -60,49 +60,49 @@ export default function SlidesAdminPage() {
     <>
       <Navbar />
       <div className="p-8 mt-24">
-        <h1 className="text-3xl font-bold mb-8">Manage Slides</h1>
+        <h1 className="text-3xl font-bold mb-8">Cadastro de Slides</h1>
         <div className="space-y-6">
           {slides.map((slide, index) => (
             <div key={index} className="border p-4 rounded-lg">
               <h2 className="text-xl font-bold mb-4">Slide {index + 1}</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Image</label>
+                  <label className="block text-sm font-medium mb-2">Imagem</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleImageUpload(index, e.target.files[0])}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded text-black"
                   />
                   {slide.image && (
                     <img src={slide.image} alt={`Slide ${index + 1}`} className="mt-2 w-32 h-auto" />
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Title</label>
+                  <label className="block text-sm font-medium mb-2">Título</label>
                   <input
                     type="text"
                     value={slide.title}
                     onChange={(e) => handleInputChange(index, 'title', e.target.value)}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded text-black"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Description</label>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
                   <textarea
                     value={slide.description}
                     onChange={(e) => handleInputChange(index, 'description', e.target.value)}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded text-black"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Button Link</label>
+                  <label className="block text-sm font-medium mb-2">Link do Botão</label>
                   <input
                     type="text"
                     value={slide.buttonLink}
                     onChange={(e) => handleInputChange(index, 'buttonLink', e.target.value)}
-                    className="w-full p-2 border rounded"
-                    placeholder="Enter the URL for the 'Saiba Mais' button"
+                    className="w-full p-2 border rounded text-black"
+                    placeholder="Cadastre uma URL para o botão 'Saiba Mais'"
                   />
                 </div>
               </div>
@@ -113,7 +113,7 @@ export default function SlidesAdminPage() {
           onClick={handleSave}
           className="mt-8 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
         >
-          Save Slides
+          Salvar Slides
         </button>
       </div>
     </>

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Layout from '../components/Layout';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -94,7 +95,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const url = isLogin ? '/api/login' : '/api/register';
@@ -119,8 +120,8 @@ export default function AuthPage() {
   };
 
   return (
-    <>
-      <div className="flex flex-col justify-center items-center h-[100svh] gap-4 text-center">
+    <Layout>
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-130px)] gap-4 text-center">
         <div
           className="h-[70%] bg-slate-300 items-center justify-center py-20 px-20 rounded-md text-black"
           style={{ background: 'rgba(0,0,0,.3)' }}
@@ -243,6 +244,6 @@ export default function AuthPage() {
           </button>
         </div>
       </div>
-    </>
+    </Layout>
   );
 }

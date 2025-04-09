@@ -1,3 +1,4 @@
+@import url(https://db.onlinewebfonts.com/c/37b99ed52ede6870ccabc482e9d9fd1a?family=Amelia+UP+W03+Regular);
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,6 +6,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,7 +34,13 @@ input, select {
 
 button:hover {
   background: yellow;
-  transition: 0.5s all;
+  transition: all 0.5s;
   transform: scale(1.1);
+  -webkit-transform: scale(1.1);
+  -moz-transform: scale(1.1);
   color: black;
+}
+
+.font-amelia {
+  font-family: "Amelia UP W03 Regular";
 }

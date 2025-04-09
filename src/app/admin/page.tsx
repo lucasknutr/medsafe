@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link';
-import Navbar from '../components/Navbar';
+import Layout from '../components/Layout';
 
 export default function AdminPage() {
   const options = [
@@ -12,23 +12,24 @@ export default function AdminPage() {
     { id: 8, title: 'Cadastro de Processo pelo Usuário', href: '/admin/cadastro-processo-usuario' },
     { id: 11, title: 'Gerenciamento Financeiro', href: '/admin/gerenciamento-financeiro' },
     { id: 12, title: 'Cadastro de Palestras e Eventos', href: '/admin/cadastro-eventos' },
+    { id: 13, title: 'Alterar Slides da Página Inicial', href: '/admin/cadastrar-slides' },
+    { id: 14, title: 'Gerenciamento de Usuários', href: '/admin/users' },
   ];
 
   return (
-    <>
-        <Navbar />
-        <div className='min-h-screen p-8 pt-40'>
+    <Layout>
+      <div className='min-h-screen p-8'>
         <h1 className='text-3xl font-bold mb-8 text-center'>Painel Administrativo</h1>
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {options.map((option) => (
+          {options.map((option) => (
             <Link key={option.id} href={option.href}>
-                <div className='bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer hover:bg-slate-400'>
+              <div className='bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer hover:bg-slate-400'>
                 <h2 className='text-xl font-semibold text-gray-800'>{option.title}</h2>
-                </div>
+              </div>
             </Link>
-            ))}
+          ))}
         </div>
-        </div>
-    </>
+      </div>
+    </Layout>
   );
 }

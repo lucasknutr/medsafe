@@ -1,25 +1,46 @@
-import { PrismaClient } from '@prisma/client';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+/**
+ * GET /api/users
+ * Fetches all registered users, excluding their passwords.
+ */
+export async function GET() {
+  try {
+    const users = await prisma.user.findMany({
+      // Select all fields except password for security
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        cpf: true,
+        profession: true,
+        phone: true,
+        address: true,
+        city: true,
+        state: true,
+        zip_code: true,
+        policy_id: true,
+        createdAt: true,
+        updatedAt: true,
+        role: true,
+        asaasCustomerId: true,
+        // Example of including a relation selectively:
+        // insurance: {
+        //   select: { id: true, plan: true, status: true }
+        // }
+      },
+      orderBy: {
+        createdAt: 'desc', // Order by newest first
+      },
+    });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { method } = req;
-
-  switch (method) {
-    case 'GET':
-      const users = await prisma.user.findMany();
-      res.status(200).json(users);
-      break;
-    case 'POST':
-      const { name, email, cpf, profession, phone, address, city, state, zip_code } = req.body;
-      const newUser = await prisma.user.create({
-        data: { name, email, cpf, profession, phone, address, city, state, zip_code },
-      });
-      res.status(201).json(newUser);
-      break;
-    default:
-      res.setHeader('Allow', ['GET', 'POST']);
-      res.status(405).end(`Method ${method} Not Allowed`);
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error('[API Users GET] Error fetching users:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch users' },
+      { status: 500 }
+    );
   }
-}
+} 

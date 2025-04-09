@@ -6,21 +6,31 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.8.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.6",
     "@mui/material": "^6.4.6",
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "^6.6.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/nodemailer": "^6.4.17",
+    "axios": "^1.8.3",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "next": "15.1.7",
+    "next-auth": "^4.24.11",
+    "nodemailer": "^6.10.0",
     "react": "^19.0.0",
+    "react-cookie": "^8.0.1",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
     "react-icons": "^5.5.0",
-    "react-material-ui-carousel": "^3.4.2"
+    "react-material-ui-carousel": "^3.4.2",
+    "react-modal": "^3.16.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -28,11 +38,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-modal": "^3.16.3",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
     "prisma": "^6.4.1",
     "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

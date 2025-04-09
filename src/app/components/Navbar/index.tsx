@@ -1,40 +1,28 @@
-import * as React from 'react';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import Menu from '@mui/material/Menu';
-import MenuIcon from '@mui/icons-material/Menu';
-import Container from '@mui/material/Container';
-import Avatar from '@mui/material/Avatar';
-import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
-import MenuItem from '@mui/material/MenuItem';
-import AdbIcon from '@mui/icons-material/Adb';
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCookies } from 'react-cookie';
 import Image from 'next/image';
-import navbarLogo from '../../assets/navbar-logo.png';
 import Link from 'next/link';
+import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, Button, Container, Tooltip } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import PersonIcon from '@mui/icons-material/Person';
+import logo from '../../assets/navbar-logo.png';
 
-const pages = [
-  { name: 'Seguros', path: '/seguros' },
-  { name: 'Reportar', path: '/comunicar-processo' },
-  { name: 'Administrador', path: '/admin' },
-];
+const Navbar = () => {
+  const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  const [cookies, , removeCookie] = useCookies(['role']);
+  const router = useRouter();
 
-const settings = [
-  { name: 'Minha Conta', path: '/meu-cadastro' },
-  { name: 'Plano', path: '/meu-cadastro' },
-  { name: 'Sair', path: '/login' },
-];
-
-function Navbar() {
-  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
-  const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+  // Debug log to check the role cookie value
+  console.log('Current role from cookie:', cookies.role);
 
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
   };
+
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
   };
@@ -47,8 +35,40 @@ function Navbar() {
     setAnchorElUser(null);
   };
 
+  const handleLogout = () => {
+    removeCookie('role');
+    router.push('/login');
+  };
+
+  const handleUserIconClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (cookies.role) {
+      handleOpenUserMenu(event);
+    } else {
+      router.push('/login');
+    }
+  };
+
+  const basePages = [
+    { name: 'Sobre Nós', path: '/sobre-nos' },
+    { name: 'Serviços', path: '/seguros', requireAuth: true },
+    { name: 'Fale Conosco', path: '/#contact-section' },
+  ];
+
+  const adminPages = [
+    { name: 'Área do Administrador', path: '/admin' },
+  ];
+
   return (
-    <AppBar position="fixed" style={{ background: 'rgba(0,0,0,.2)' }}>
+    <AppBar 
+      position="fixed" 
+      sx={{ 
+        background: 'rgba(0,0,0,.2)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        zIndex: (theme) => theme.zIndex.drawer + 1
+      }}
+    >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <Typography
@@ -60,14 +80,20 @@ function Navbar() {
               mr: 8,
               my: 4,
               display: { xs: 'none', md: 'flex' },
-              fontFamily: 'monospace',
+              fontFamily: '"Amelia UP W03 Regular", monospace',
               fontWeight: 700,
               letterSpacing: '.3rem',
               color: 'inherit',
               textDecoration: 'none',
             }}
           >
-            <Image src={navbarLogo} width={300} alt="MEDSAFE" />
+            <Image 
+              src={logo} 
+              width={300} 
+              alt="MEDSAFE" 
+              priority 
+              style={{ width: 'auto', height: 'auto' }}
+            />
           </Typography>
 
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -95,18 +121,35 @@ function Navbar() {
               }}
               open={Boolean(anchorElNav)}
               onClose={handleCloseNavMenu}
-              sx={{ display: { xs: 'block', md: 'none' } }}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+              }}
             >
-              {pages.map((page) => (
+              {basePages.map((page) => (
+                <MenuItem 
+                  key={page.name} 
+                  onClick={handleCloseNavMenu}
+                  sx={{ display: page.requireAuth && !cookies.role ? 'none' : 'block' }}
+                >
+                  <Link href={page.path} passHref>
+                    <Typography sx={{ textAlign: 'center', fontFamily: '"Amelia UP W03 Regular", sans-serif' }}>
+                      {page.name}
+                    </Typography>
+                  </Link>
+                </MenuItem>
+              ))}
+              {cookies.role === 'ADMIN' && adminPages.map((page) => (
                 <MenuItem key={page.name} onClick={handleCloseNavMenu}>
                   <Link href={page.path} passHref>
-                    <Typography sx={{ textAlign: 'center' }}>{page.name}</Typography>
+                    <Typography sx={{ textAlign: 'center', fontFamily: '"Amelia UP W03 Regular", sans-serif' }}>
+                      {page.name}
+                    </Typography>
                   </Link>
                 </MenuItem>
               ))}
             </Menu>
           </Box>
-          <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
+
           <Typography
             variant="h5"
             noWrap
@@ -116,63 +159,100 @@ function Navbar() {
               mr: 2,
               display: { xs: 'flex', md: 'none' },
               flexGrow: 1,
-              fontFamily: 'monospace',
+              fontFamily: '"Amelia UP W03 Regular", monospace',
               fontWeight: 700,
               letterSpacing: '.3rem',
               color: 'inherit',
               textDecoration: 'none',
             }}
           >
-            <Image src={navbarLogo} width={500} height={500} alt="Picture of the author" />
+            <Image 
+              src={logo} 
+              width={200} 
+              alt="MEDSAFE" 
+              priority
+              style={{ width: 'auto', height: 'auto' }}
+            />
           </Typography>
+
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {pages.map((page) => (
-              <Link key={page.name} href={page.path} passHref>
-                <Button
-                  onClick={handleCloseNavMenu}
-                  sx={{ my: 2, color: 'white', display: 'block', fontSize: '1.3rem' }}
-                  className="hover:scale-[1] hover:bg-white hover:border-blue-500"
-                >
-                  {page.name}
-                </Button>
-              </Link>
+            {basePages.map((page) => (
+              <Button
+                key={page.name}
+                component={Link}
+                href={page.path}
+                onClick={handleCloseNavMenu}
+                sx={{
+                  my: 2,
+                  color: 'white',
+                  display: page.requireAuth && !cookies.role ? 'none' : 'block',
+                  fontSize: '1.3rem',
+                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                  textTransform: 'none',
+                  mx: 2,
+                  textDecoration: 'none'
+                }}
+              >
+                {page.name}
+              </Button>
+            ))}
+            {cookies.role === 'ADMIN' && adminPages.map((page) => (
+              <Button
+                key={page.name}
+                component={Link}
+                href={page.path}
+                onClick={handleCloseNavMenu}
+                sx={{
+                  my: 2,
+                  color: 'white',
+                  display: 'block',
+                  fontSize: '1.3rem',
+                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                  textTransform: 'none',
+                  mx: 2,
+                  textDecoration: 'none'
+                }}
+              >
+                {page.name}
+              </Button>
             ))}
           </Box>
+
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Abrir configuracoes">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Lucas Canuto" src="/static/images/avatar/2.jpg" style={{ height: '3.5rem', width: '3.5rem' }} />
+            <Tooltip title={cookies.role ? "Abrir configurações" : "Fazer login"}>
+              <IconButton onClick={handleUserIconClick} sx={{ p: 0 }}>
+                <PersonIcon sx={{ color: 'white', fontSize: '2.5rem' }} />
               </IconButton>
             </Tooltip>
-            <Menu
-              sx={{ mt: '45px' }}
-              id="menu-appbar"
-              anchorEl={anchorElUser}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              open={Boolean(anchorElUser)}
-              onClose={handleCloseUserMenu}
-            >
-              {settings.map((setting) => (
-                <MenuItem key={setting.name} onClick={handleCloseUserMenu}>
-                  <Link href={setting.path} passHref>
-                    <Typography sx={{ textAlign: 'center' }}>{setting.name}</Typography>
-                  </Link>
+            {cookies.role && (
+              <Menu
+                sx={{ mt: '45px' }}
+                id="menu-appbar"
+                anchorEl={anchorElUser}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(anchorElUser)}
+                onClose={handleCloseUserMenu}
+              >
+                <MenuItem onClick={handleLogout}>
+                  <Typography sx={{ textAlign: 'center', fontFamily: '"Amelia UP W03 Regular", sans-serif' }}>
+                    Sair
+                  </Typography>
                 </MenuItem>
-              ))}
-            </Menu>
+              </Menu>
+            )}
           </Box>
         </Toolbar>
       </Container>
     </AppBar>
   );
-}
+};
 
 export default Navbar;
