@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "npm install --legacy-peer-deps && next build",
     "start": "next start",
     "lint": "next lint",
-    "install": "npm install --legacy-peer-deps",
     "prisma:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
