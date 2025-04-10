@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Navbar from '@/app/components/Navbar';
+import Navbar from '../../../components/Navbar';
 
 export default function SlidesAdminPage() {
   // Initialize slides with unique objects, including a buttonLink field
