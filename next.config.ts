@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
+  },
   webpack: (config) => {
     // Add PostCSS loader configuration
     config.module.rules.push({
@@ -20,6 +28,7 @@ const nextConfig: NextConfig = {
             postcssOptions: {
               plugins: [
                 'postcss-import',
+                'postcss-nesting',
                 'tailwindcss',
                 'autoprefixer',
               ],
