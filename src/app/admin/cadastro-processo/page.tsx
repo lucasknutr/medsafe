@@ -1,9 +1,27 @@
 'use client'
-import { useState } from 'react';
-import Navbar from '../../../components/Navbar';
+import { useState, ChangeEvent, FormEvent } from 'react';
+import Navbar from '../../components/Navbar';
+
+interface FormData {
+  parteAutora: string;
+  parteRe: string;
+  localTramite: string;
+  situacaoProcesso: string;
+  dataAcidente: string;
+  dataContratoSeguro: string;
+  advogadoResponsavel: string;
+  numeroProcesso: string;
+  valorCausa: string;
+  cobertoSeguro: string;
+  probabilidadePerda: number;
+  atosPraticados: any[];
+  arquivosAnexados: File | null;
+  custoPericia: string;
+  custoTotal: number;
+}
 
 export default function CadastroProcesso() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     parteAutora: '',
     parteRe: '',
     localTramite: '',
@@ -21,16 +39,16 @@ export default function CadastroProcesso() {
     custoTotal: 0,
   });
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === 'arquivosAnexados') {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (name === 'arquivosAnexados' && files) {
       setFormData({ ...formData, [name]: files[0] });
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Add logic to handle form submission (e.g., API call)
     console.log('Form Data:', formData);

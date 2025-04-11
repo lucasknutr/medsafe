@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '../../../components/Navbar';
+import Navbar from '../../components/Navbar';
 
 interface ServiceBox {
   id: number;

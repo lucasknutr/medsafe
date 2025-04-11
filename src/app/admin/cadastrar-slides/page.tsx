@@ -1,10 +1,17 @@
 'use client';
 import { useState } from 'react';
-import Navbar from '../../../components/Navbar';
+import Navbar from '../../components/Navbar';
+
+interface Slide {
+  image: string;
+  title: string;
+  description: string;
+  buttonLink: string;
+}
 
 export default function SlidesAdminPage() {
   // Initialize slides with unique objects, including a buttonLink field
-  const [slides, setSlides] = useState(
+  const [slides, setSlides] = useState<Slide[]>(
     Array.from({ length: 6 }, () => ({ 
       image: '', 
       title: '', 
@@ -13,14 +20,14 @@ export default function SlidesAdminPage() {
     }))
   );
 
-  const handleInputChange = (index, field, value) => {
+  const handleInputChange = (index: number, field: keyof Slide, value: string) => {
     const updatedSlides = [...slides];
     updatedSlides[index] = { ...updatedSlides[index], [field]: value }; // Create a new object for the updated slide
     setSlides(updatedSlides);
     console.log(`Updated slide ${index}:`, updatedSlides[index]); // Debugging
   };
 
-  const handleImageUpload = async (index, file) => {
+  const handleImageUpload = async (index: number, file: File | null) => {
     if (!file) {
       alert('No file selected');
       return;
@@ -71,7 +78,11 @@ export default function SlidesAdminPage() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleImageUpload(index, e.target.files[0])}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleImageUpload(index, e.target.files[0]);
+                      }
+                    }}
                     className="w-full p-2 border rounded text-black"
                   />
                   {slide.image && (

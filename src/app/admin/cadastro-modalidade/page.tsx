@@ -1,21 +1,28 @@
 'use client'
-import { useState } from 'react';
-import Navbar from '../../../components/Navbar';
+import { useState, ChangeEvent, FormEvent } from 'react';
+import Navbar from '../../components/Navbar';
+
+interface FormData {
+  nomeModalidade: string;
+  cobertura: string;
+  premio: string;
+  termos: string;
+}
 
 export default function CadastroModalidade() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     nomeModalidade: '',
     cobertura: '',
     premio: '',
     termos: '',
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Add logic to handle form submission (e.g., API call)
     console.log('Form Data:', formData);

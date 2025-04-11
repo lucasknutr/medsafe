@@ -1,9 +1,22 @@
 'use client'
-import { useState } from 'react';
-import Navbar from '../../../components/Navbar';
+import { useState, ChangeEvent, FormEvent } from 'react';
+import Navbar from '../../components/Navbar';
+
+interface FormData {
+  numeroApolice: string;
+  valorGlobal: string;
+  copiaDocumento: File | null;
+  dataInicio: string;
+  dataFinalizacao: string;
+  quantidadeSegurados: string;
+  segurados: any[];
+  somaApolices: string;
+  prorrogada: string;
+  novaApolice: string;
+}
 
 export default function CadastroApolice() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     numeroApolice: '',
     valorGlobal: '',
     copiaDocumento: null,
@@ -16,16 +29,16 @@ export default function CadastroApolice() {
     novaApolice: '',
   });
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === 'copiaDocumento') {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+    if (name === 'copiaDocumento' && files) {
       setFormData({ ...formData, [name]: files[0] });
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Add logic to handle form submission (e.g., API call)
     console.log('Form Data:', formData);

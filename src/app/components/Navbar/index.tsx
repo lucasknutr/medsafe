@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, Button, Container, Tooltip } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import PersonIcon from '@mui/icons-material/Person';
-import logo from '../../assets/navbar-logo.png';
+import logo from '@/app/assets/navbar-logo.png';
 
 const Navbar = () => {
   const [anchorElNav, setAnchorElNav] = useState<null | HTMLElement>(null);
