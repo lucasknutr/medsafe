@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
@@ -20,7 +19,7 @@ const nextConfig: NextConfig = {
           options: {
             postcssOptions: {
               plugins: [
-                'tailwindcss/nesting',
+                'postcss-import',
                 'tailwindcss',
                 'autoprefixer',
               ],
