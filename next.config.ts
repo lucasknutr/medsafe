@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
               plugins: [
                 'postcss-import',
                 'postcss-nesting',
-                'tailwindcss',
+                '@tailwindcss/postcss',
                 'autoprefixer',
               ],
             },
