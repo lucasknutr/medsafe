@@ -1,12 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-  },
+/** @type {import('next').NextConfig} */
+const config = {
   images: {
     remotePatterns: [
       {
@@ -16,7 +9,6 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config) => {
-    // Add PostCSS loader configuration
     config.module.rules.push({
       test: /\.css$/,
       use: [
@@ -41,4 +33,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default config; 
