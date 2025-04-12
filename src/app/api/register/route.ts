@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 const ALLOWED_ROLES = ['SEGURADO', 'ADMIN', 'CORRETOR', 'ADVOGADO'];
 
@@ -38,7 +36,7 @@ export async function POST(request: Request) {
     // Return success response
     return NextResponse.json({ message: 'Usuário cadastrado com sucesso!', user }, { status: 201 });
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('Registration error:', error);
 
     // Return error response
     return NextResponse.json({ message: 'Usuário já existe.', error: error.message }, { status: 400 });

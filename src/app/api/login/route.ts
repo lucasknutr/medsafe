@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +28,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json({ message: 'Opa... Parece que algo deu errado. Tente novamente em instantes.', error: error.message }, { status: 500 });
   }
 }
