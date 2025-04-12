@@ -23,48 +23,22 @@ export async function POST(request: Request) {
     try {
       // Create customer in Asaas
       console.log('Creating customer in Asaas');
-      const asaasCustomer = await asaasClient.customers.create({
+      const asaasCustomer = await asaasClient.createCustomer({
         name: customerData.name,
         email: customerData.email,
         phone: customerData.phone,
-        cpfCnpj: customerData.cpfCnpj,
-        postalCode: customerData.postalCode,
-        address: customerData.address,
-        addressNumber: customerData.addressNumber,
-        complement: customerData.complement,
-        neighborhood: customerData.neighborhood,
-        city: customerData.city,
-        state: customerData.state
+        cpfCnpj: customerData.cpfCnpj
       });
       console.log('Customer created in Asaas:', asaasCustomer);
 
       // Create payment in Asaas
       console.log('Creating payment in Asaas');
-      const payment = await asaasClient.payments.create({
+      const payment = await asaasClient.createPayment({
         customer: asaasCustomer.id,
         billingType: 'CREDIT_CARD',
         value: amount,
         dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        creditCard: {
-          holderName: creditCard.holderName,
-          number: creditCard.number,
-          expiryMonth: creditCard.expiryMonth,
-          expiryYear: creditCard.expiryYear,
-          ccv: creditCard.ccv
-        },
-        creditCardHolderInfo: {
-          name: customerData.name,
-          email: customerData.email,
-          cpfCnpj: customerData.cpfCnpj,
-          postalCode: customerData.postalCode,
-          address: customerData.address,
-          addressNumber: customerData.addressNumber,
-          complement: customerData.complement,
-          neighborhood: customerData.neighborhood,
-          city: customerData.city,
-          state: customerData.state,
-          phone: customerData.phone
-        }
+        description: `Insurance payment for ${insuranceId}`
       });
       console.log('Payment created in Asaas:', payment);
 
@@ -75,10 +49,9 @@ export async function POST(request: Request) {
           userId: customerData.userId,
           amount,
           status: payment.status,
-          paymentMethod: 'CREDIT_CARD',
+          type: 'CREDIT_CARD',
           transactionId: payment.id,
-          insuranceId,
-          metadata: payment
+          insuranceId
         }
       });
       console.log('Transaction created in database:', transaction);
