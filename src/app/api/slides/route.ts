@@ -8,13 +8,11 @@ export async function GET() {
         order: 'asc',
       },
     });
-    return NextResponse.json(slides);
+    return NextResponse.json(slides || []);
   } catch (error) {
     console.error('Error fetching slides:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch slides' },
-      { status: 500 }
-    );
+    // Return an empty array instead of an error
+    return NextResponse.json([]);
   }
 }
 
@@ -29,7 +27,7 @@ export async function POST(request: Request) {
         title,
         description,
         buttonLink,
-        order,
+        order: order || 0,
       },
     });
 
@@ -55,7 +53,7 @@ export async function PUT(request: Request) {
         title,
         description,
         buttonLink,
-        order,
+        order: order || 0,
       },
     });
 
@@ -73,6 +71,12 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+
+    if (id === 'all') {
+      // Delete all slides
+      await prisma.slide.deleteMany({});
+      return NextResponse.json({ message: 'All slides deleted successfully' });
+    }
 
     if (!id) {
       return NextResponse.json(

@@ -4,14 +4,9 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 10, 42, 119; /* #0A2A77 */
-  --background-end-rgb: 6, 158, 166; /* #069EA6 */
-  text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,11 +20,16 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
-      90deg,
-      rgb(var(--background-start-rgb)) 0%,
-      rgb(var(--background-end-rgb)) 100%
-    );
-  font-family: Arial, Helvetica, sans-serif;
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   min-height: 100vh;
 }
 
@@ -49,4 +49,28 @@ button:hover {
 
 .font-amelia {
   font-family: "Amelia UP W03 Regular";
+}
+
+/* Custom font family */
+@font-face {
+  font-family: 'Amelia UP W03 Regular';
+  src: url('/fonts/AmeliaUPW03-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Custom button styles */
+button {
+  @apply bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors;
+}
+
+/* Custom input styles */
+input, textarea {
+  @apply w-full p-2 border rounded text-black;
+}
+
+/* Custom select styles */
+select {
+  @apply w-full p-2 border rounded text-black;
 }

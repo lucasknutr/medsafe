@@ -11,9 +11,19 @@ interface Slide {
   order: number;
 }
 
+const defaultSlide: Slide = {
+  image: '',
+  title: '',
+  description: '',
+  buttonLink: '',
+  order: 1
+};
+
 export default function SlidesAdminPage() {
-  const [slides, setSlides] = useState<Slide[]>([]);
+  const [slides, setSlides] = useState<Slide[]>([defaultSlide]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchSlides();
@@ -21,18 +31,24 @@ export default function SlidesAdminPage() {
 
   const fetchSlides = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch('/api/slides');
+      if (!response.ok) {
+        throw new Error('Failed to fetch slides');
+      }
       const data = await response.json();
-      setSlides(data);
+      setSlides(data.length > 0 ? data : [defaultSlide]);
     } catch (error) {
       console.error('Error fetching slides:', error);
-      alert('Failed to fetch slides');
+      setError('Failed to fetch slides. Please try again.');
+      setSlides([defaultSlide]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (index: number, field: keyof Slide, value: string) => {
+  const handleInputChange = (index: number, field: keyof Slide, value: string | number) => {
     const updatedSlides = [...slides];
     updatedSlides[index] = { ...updatedSlides[index], [field]: value };
     setSlides(updatedSlides);
@@ -52,6 +68,11 @@ export default function SlidesAdminPage() {
         method: 'POST',
         body: formData,
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
       const data = await response.json();
 
       if (!data.imageUrl) {
@@ -63,29 +84,41 @@ export default function SlidesAdminPage() {
       setSlides(updatedSlides);
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image');
+      alert('Failed to upload image. Please try again.');
     }
   };
 
   const handleSave = async () => {
     try {
+      setSaving(true);
+      setError(null);
+
       // Delete all existing slides
-      await fetch('/api/slides?id=all', { method: 'DELETE' });
+      const deleteResponse = await fetch('/api/slides?id=all', { method: 'DELETE' });
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete existing slides');
+      }
 
       // Create new slides
       for (const slide of slides) {
-        await fetch('/api/slides', {
+        const response = await fetch('/api/slides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(slide),
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to create slide');
+        }
       }
 
       alert('Slides saved successfully!');
       fetchSlides(); // Refresh the slides
     } catch (error) {
       console.error('Error saving slides:', error);
-      alert('Failed to save slides');
+      setError('Failed to save slides. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -94,7 +127,29 @@ export default function SlidesAdminPage() {
       <>
         <Navbar />
         <div className="p-8 mt-24">
-          <p>Loading...</p>
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Navbar />
+        <div className="p-8 mt-24">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+          <button
+            onClick={fetchSlides}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Try Again
+          </button>
         </div>
       </>
     );
@@ -153,25 +208,25 @@ export default function SlidesAdminPage() {
                     className="w-full p-2 border rounded text-black"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Ordem</label>
-                  <input
-                    type="number"
-                    value={slide.order}
-                    onChange={(e) => handleInputChange(index, 'order', e.target.value)}
-                    className="w-full p-2 border rounded text-black"
-                  />
-                </div>
               </div>
             </div>
           ))}
+          <div className="flex justify-between items-center mt-6">
+            <button
+              onClick={() => setSlides([...slides, { ...defaultSlide, order: slides.length + 1 }])}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Adicionar Slide
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            >
+              {saving ? 'Salvando...' : 'Salvar Slides'}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleSave}
-          className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Salvar Slides
-        </button>
       </div>
     </>
   );

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "prisma:migrate:prod": "prisma migrate deploy"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
