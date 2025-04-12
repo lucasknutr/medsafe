@@ -1,28 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.css$/,
-      use: [
-        'style-loader',
-        'css-loader',
-        {
-          loader: 'postcss-loader',
-          options: {
-            postcssOptions: {
-              plugins: [
-                'postcss-import',
-                'postcss-nesting',
-                'tailwindcss',
-                'autoprefixer',
-              ],
-            },
-          },
-        },
-      ],
-    });
-    return config;
-  },
+  // Remove custom webpack configuration to use Next.js defaults
 }
 
 export default nextConfig 
