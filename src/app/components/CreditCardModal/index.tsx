@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import Modal from 'react-modal';
-import styles from './styles.module.css';
 
 interface CreditCardModalProps {
   isOpen: boolean;
@@ -39,8 +38,8 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onRequestClos
       isOpen={isOpen}
       onRequestClose={onRequestClose}
       contentLabel="Cadastrar Cartão de Crédito"
-      className={styles.modal}
-      overlayClassName={styles.overlay}
+      className="absolute top-1/2 left-1/2 right-auto bottom-auto mr-[-50%] transform translate-x-[-50%] translate-y-[-50%] bg-white p-8 rounded-lg max-w-[500px] w-[90%] shadow-lg"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[1000]"
     >
       <h2 className="text-xl font-bold mb-4">Cadastrar Cartão de Crédito</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -98,7 +97,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onRequestClos
             type="submit"
             className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
           >
-            Confirmar
+            Salvar
           </button>
         </div>
       </form>
