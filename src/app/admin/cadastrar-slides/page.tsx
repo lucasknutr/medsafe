@@ -94,9 +94,16 @@ export default function SlidesAdminPage() {
       setError(null);
 
       // Delete all existing slides
-      const deleteResponse = await fetch('/api/slides?id=all', { method: 'DELETE' });
+      const deleteResponse = await fetch('/api/slides?id=all', { 
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!deleteResponse.ok) {
-        throw new Error('Failed to delete existing slides');
+        const deleteError = await deleteResponse.json();
+        throw new Error(deleteError.error || 'Failed to delete existing slides');
       }
 
       // Create new slides
@@ -108,7 +115,8 @@ export default function SlidesAdminPage() {
         });
         
         if (!response.ok) {
-          throw new Error('Failed to create slide');
+          const createError = await response.json();
+          throw new Error(createError.error || 'Failed to create slide');
         }
       }
 
@@ -116,7 +124,7 @@ export default function SlidesAdminPage() {
       fetchSlides(); // Refresh the slides
     } catch (error) {
       console.error('Error saving slides:', error);
-      setError('Failed to save slides. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to save slides. Please try again.');
     } finally {
       setSaving(false);
     }

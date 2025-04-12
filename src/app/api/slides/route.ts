@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -11,7 +11,6 @@ export async function GET() {
     return NextResponse.json(slides || []);
   } catch (error) {
     console.error('Error fetching slides:', error);
-    // Return an empty array instead of an error
     return NextResponse.json([]);
   }
 }
@@ -20,6 +19,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { image, title, description, buttonLink, order } = body;
+
+    if (!image || !title || !description || !buttonLink) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
 
     const slide = await prisma.slide.create({
       data: {
@@ -46,8 +52,15 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, image, title, description, buttonLink, order } = body;
 
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Slide ID is required' },
+        { status: 400 }
+      );
+    }
+
     const slide = await prisma.slide.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
         image,
         title,
@@ -74,8 +87,11 @@ export async function DELETE(request: Request) {
 
     if (id === 'all') {
       // Delete all slides
-      await prisma.slide.deleteMany({});
-      return NextResponse.json({ message: 'All slides deleted successfully' });
+      const deleteResult = await prisma.slide.deleteMany({});
+      return NextResponse.json({ 
+        message: 'All slides deleted successfully',
+        count: deleteResult.count 
+      });
     }
 
     if (!id) {
@@ -85,11 +101,14 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.slide.delete({
+    const slide = await prisma.slide.delete({
       where: { id: parseInt(id) },
     });
 
-    return NextResponse.json({ message: 'Slide deleted successfully' });
+    return NextResponse.json({ 
+      message: 'Slide deleted successfully',
+      slide 
+    });
   } catch (error) {
     console.error('Error deleting slide:', error);
     return NextResponse.json(
