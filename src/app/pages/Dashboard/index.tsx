@@ -147,7 +147,7 @@ const Dashboard = () => {
   };
 
   return (
-    <>
+    <div className="w-full">
       <div className='first-banner w-full max-w-[85svw] my-0 mx-auto font-amelia pt-4'>
         {slides.length > 0 && (
           <Carousel className="h-[70svh] mb-8">
@@ -180,7 +180,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-8 mx-40 mb-8 text-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mx-4 md:mx-10 lg:mx-40 mb-8 text-lg">
         {stats.map((stat, index) => (
           <div key={index} className="bg-white p-6 rounded-lg shadow-lg">
             <h1 className="text-3xl font-bold text-blue-900">{stat.value}</h1>
@@ -188,9 +188,9 @@ const Dashboard = () => {
           </div>
         ))}
       </div>
-      <div className='second-banner py-8 bg-slate-200 h-[100svh] grid grid-cols-3 text-black items-center px-40 gap-8'>
+      <div className='second-banner py-8 bg-slate-200 min-h-[100svh] grid grid-cols-1 md:grid-cols-3 text-black items-center px-4 md:px-10 lg:px-40 gap-8'>
         <div className='flex flex-col gap-16 text-xl'>
-          <h1 className='text-6xl font-bold'>Sobre</h1>
+          <h1 className='text-4xl md:text-6xl font-bold'>Sobre</h1>
           <p>Uma solução para simplificar o seu dia a dia. A sua plataforma completa para gerenciar seguros, processos jurídicos e muito mais, de forma simples e eficiente.</p>
           <button className='mr-auto px-6 py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Saiba mais</button>
         </div>
@@ -201,103 +201,117 @@ const Dashboard = () => {
           <Image src={hosp2} alt="Imagem de Hospital" className='rounded-xl' />
         </div>
       </div>
-
-      <div className='w-[100svw] h-[100svh] text-center text-slate-800 px-8 flex flex-col items-center justify-center gap-20' style={{ background: "#1bb4ad" }}>
-        <h1 className='text-6xl font-bold'>Serviços</h1>
-        <div className='grid grid-cols-4 gap-8'>
-          {serviceBoxes.map((box) => (
-            <div
-              key={box.id}
-              onClick={() => handleBoxClick(box.link)}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300"
-            >
-              <div className="relative h-48">
-                <img
-                  src={box.imageUrl}
-                  alt={box.title}
-                  className="w-full h-full object-cover"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-4 md:mx-10 lg:mx-40 my-8">
+        {serviceBoxes.map((box) => (
+          <div
+            key={box.id}
+            className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300"
+            onClick={() => handleBoxClick(box.link)}
+          >
+            <div className="relative h-48">
+              <Image
+                src={box.imageUrl}
+                alt={box.title}
+                layout="fill"
+                objectFit="cover"
+              />
+            </div>
+            <div className="p-6">
+              <h3 className="text-xl font-bold mb-2">{box.title}</h3>
+              <p className="text-gray-600">{box.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div id="contact-section" className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">Entre em Contato</h2>
+              <p className="text-gray-600 mb-8">
+                Tem alguma dúvida ou precisa de ajuda? Preencha o formulário abaixo e entraremos em contato o mais breve possível.
+              </p>
+              <div className="relative h-64 rounded-lg overflow-hidden">
+                <Image
+                  src={contactImage}
+                  alt="Contato"
+                  layout="fill"
+                  objectFit="cover"
                 />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">{box.title}</h3>
-                <p className="text-gray-600">{box.description}</p>
               </div>
             </div>
-          ))}
-        </div>
-        <button className='mx-auto px-6 py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Todos os serviços</button>
-      </div>
-
-      <div id="contact-section" className='h-[100svh] w-[100svw] bg-slate-300 flex justify-center items-center'>
-        <div className='flex justify-center items-center w-[80%] max-w-6xl'>
-          {/* Form Section */}
-          <div className='bg-white p-8 rounded-lg shadow-lg w-1/2 h-[87svh]' style={{ background: "rgba(255,255,255,.5)" }}>
-            <h2 className='text-5xl font-bold mb-6 text-center text-slate-700'>Contato</h2>
-            <form onSubmit={handleSubmit} className='space-y-4'>
-              <div>
-                <label className='block text-xl font-medium text-gray-700'>Nome</label>
-                <input
-                  type='text'
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black'
-                />
-              </div>
-              <div>
-                <label className='block text-xl font-medium text-gray-700'>E-mail</label>
-                <input
-                  type='email'
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black'
-                />
-              </div>
-              <div>
-                <label className='block text-xl font-medium text-gray-700'>Telefone</label>
-                <input
-                  type='tel'
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                  className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black'
-                />
-              </div>
-              <div>
-                <label className='block text-xl font-medium text-gray-700'>Mensagem</label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  required
-                  rows={4}
-                  className='mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black'
-                ></textarea>
-              </div>
-              <button
-                type='submit'
-                className='w-full font-bold bg-blue-400 text-white py-2 px-4 rounded-md hover:scale-[1] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:text-white'
-              >
-                Enviar
-              </button>
-            </form>
-          </div>
-
-          {/* Image Section */}
-          <div className='w-1/2 flex justify-center items-center rounded-lg lg:block hidden'>
-            <Image
-              src={contactImage}
-              alt="Medica"
-              className='w-full h-full object-cover rounded-lg'
-            />
+            <div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                    Telefone
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                    Mensagem
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows={4}
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Enviar Mensagem
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

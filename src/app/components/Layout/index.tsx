@@ -10,13 +10,13 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   return (
-    <>
+    <div className="min-h-screen">
       <Navbar />
       <Sidebar />
-      <main style={{ paddingTop: '130px', minHeight: '100vh' }}>
+      <main className="pt-[130px] min-h-screen">
         {children}
       </main>
-    </>
+    </div>
   );
 };
 

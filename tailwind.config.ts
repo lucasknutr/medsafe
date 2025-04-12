@@ -11,6 +11,8 @@ const config: Config = {
       colors: {
         primary: '#1976d2',
         secondary: '#dc004e',
+        background: 'rgb(var(--background-start-rgb))',
+        foreground: 'rgb(var(--foreground-rgb))',
       },
       fontFamily: {
         amelia: ['"Amelia UP W03 Regular"', 'sans-serif'],
