@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export async function GET() {
   try {
@@ -62,6 +63,61 @@ export async function GET() {
         details: error?.message || 'Unknown error',
         code: error?.code
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { name, email, password, cpf, profession, phone, address, city, state, zip_code } = body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the user with admin role
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        cpf,
+        profession,
+        phone,
+        address,
+        city,
+        state,
+        zip_code,
+        role: 'ADMIN',
+      },
+    });
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
+    return NextResponse.json(userWithoutPassword);
+  } catch (error: any) {
+    console.error('Error creating user:', error);
+    
+    // Handle unique constraint violations
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'User already exists with this email or CPF' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create user', details: error.message },
       { status: 500 }
     );
   }

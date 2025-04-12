@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'medsafeconsultoria.com.br'],
   },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
