@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,8 +9,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        primary: '#1976d2',
+        secondary: '#dc004e',
       },
       fontFamily: {
         amelia: ['"Amelia UP W03 Regular"', 'sans-serif'],
@@ -18,4 +18,9 @@ export default {
     },
   },
   plugins: [],
-} satisfies Config;
+  corePlugins: {
+    preflight: false, // Disable Tailwind's base styles to prevent conflicts with MUI
+  },
+};
+
+export default config;
