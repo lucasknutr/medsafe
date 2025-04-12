@@ -1,11 +1,14 @@
 'use client'
+import { Suspense } from 'react';
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 
 export default function Home() {
   return (
     <Layout>
-      <Dashboard />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Dashboard />
+      </Suspense>
     </Layout>
   );
 }
