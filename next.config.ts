@@ -12,6 +12,7 @@ const nextConfig = {
             postcssOptions: {
               plugins: [
                 'postcss-import',
+                'postcss-nesting',
                 'tailwindcss',
                 'autoprefixer',
               ],

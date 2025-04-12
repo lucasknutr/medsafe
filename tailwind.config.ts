@@ -18,9 +18,6 @@ const config: Config = {
     },
   },
   plugins: [],
-  corePlugins: {
-    preflight: false, // Disable Tailwind's base styles to prevent conflicts with MUI
-  },
 };
 
 export default config;
