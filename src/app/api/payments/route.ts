@@ -69,24 +69,21 @@ export async function POST(request: Request) {
         description: description
       });
 
-      // Save payment record in database
-      const savedPayment = await prisma.payment.create({
+      // Save transaction record in database
+      const savedTransaction = await prisma.transaction.create({
         data: {
           userId: user.id,
           amount: value,
-          description: description,
           status: payment.status,
-          externalId: payment.id,
-          dueDate: dueDate
+          type: 'BOLETO',
+          transactionId: payment.id,
+          boletoUrl: payment.invoiceUrl
         }
       });
 
       return NextResponse.json({
         success: true,
-        payment: {
-          ...savedPayment,
-          invoiceUrl: payment.invoiceUrl
-        }
+        transaction: savedTransaction
       });
     } catch (error: any) {
       console.error('Error creating payment:', error);
