@@ -47,6 +47,19 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Error updating user role:', error);
+    
+    // Check for specific database connection errors
+    if (error?.code === 'P1001' || error?.message?.includes('connection')) {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed', 
+          details: 'Could not connect to the database. Please check your DATABASE_URL environment variable.',
+          code: error?.code
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to update user role', details: error?.message },
       { status: 500 }

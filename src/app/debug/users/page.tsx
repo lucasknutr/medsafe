@@ -35,15 +35,26 @@ export default function DebugUsersPage() {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const response = await fetch('/api/debug-users');
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to fetch users');
+      }
+      
       setUsers(data.users);
       setRoleCounts(data.roleCounts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching users:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching users');
+      setSnackbar({
+        open: true,
+        message: err instanceof Error ? err.message : 'An error occurred while fetching users',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }

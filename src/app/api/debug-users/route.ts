@@ -5,10 +5,6 @@ export async function GET() {
   try {
     console.log('Attempting to fetch all users for debugging...');
     
-    // Try to connect to the database first
-    await prisma.$connect();
-    console.log('Database connected successfully');
-
     // Fetch all users with their roles
     const users = await prisma.user.findMany({
       select: {
@@ -48,6 +44,18 @@ export async function GET() {
       cause: error?.cause
     });
     
+    // Check for specific database connection errors
+    if (error?.code === 'P1001' || error?.message?.includes('connection')) {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed', 
+          details: 'Could not connect to the database. Please check your DATABASE_URL environment variable.',
+          code: error?.code
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to fetch users', 
@@ -56,9 +64,5 @@ export async function GET() {
       },
       { status: 500 }
     );
-  } finally {
-    // Always disconnect from the database
-    await prisma.$disconnect();
-    console.log('Database disconnected');
   }
 } 
