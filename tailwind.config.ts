@@ -6,6 +6,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  important: true,
   theme: {
     extend: {
       colors: {
@@ -20,7 +21,6 @@ const config: Config = {
     },
   },
   plugins: [],
-  important: true, // This ensures Tailwind classes override MUI styles
-}
+};
 
 export default config;
