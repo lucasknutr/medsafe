@@ -66,6 +66,8 @@ export default function SlidesAdminPage() {
     formData.append('image', file);
 
     try {
+      console.log(`Uploading image for slide ${index + 1}, file size: ${file.size} bytes`);
+      
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -73,18 +75,23 @@ export default function SlidesAdminPage() {
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Upload error response:', errorData);
         throw new Error(errorData.error || 'Failed to upload image');
       }
       
       const data = await response.json();
+      console.log('Upload response:', data);
 
       if (!data.imageUrl) {
         throw new Error('No image URL returned');
       }
 
+      // Update the slide with the new image URL
       const updatedSlides = [...slides];
       updatedSlides[index] = { ...updatedSlides[index], image: data.imageUrl };
       setSlides(updatedSlides);
+      
+      console.log(`Image uploaded successfully for slide ${index + 1}:`, data.imageUrl);
     } catch (error) {
       console.error('Error uploading image:', error);
       alert(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
@@ -97,6 +104,19 @@ export default function SlidesAdminPage() {
     try {
       setSaving(true);
       setError(null);
+
+      // Debug: Log the current slides state
+      console.log('Current slides state:', slides);
+
+      // Validate all slides have required fields
+      const invalidSlides = slides.filter(slide => 
+        !slide.image || !slide.title || !slide.description || !slide.buttonLink
+      );
+      
+      if (invalidSlides.length > 0) {
+        console.error('Invalid slides:', invalidSlides);
+        throw new Error('Please fill in all required fields for each slide');
+      }
 
       // Instead of deleting all slides first, we'll update existing ones and create new ones
       // First, fetch existing slides to get their IDs
@@ -111,10 +131,6 @@ export default function SlidesAdminPage() {
       // Process each slide in our state
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i];
-        
-        if (!slide.image || !slide.title || !slide.description || !slide.buttonLink) {
-          throw new Error('Please fill in all required fields for each slide');
-        }
         
         // Validate image URL
         try {

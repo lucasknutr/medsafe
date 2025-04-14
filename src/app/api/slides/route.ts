@@ -41,15 +41,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate image URL format
-    try {
-      new URL(image);
-    } catch (e) {
-      console.error('Invalid image URL:', image);
-      return NextResponse.json(
-        { error: 'Invalid image URL format' },
-        { status: 400 }
-      );
+    // Validate image URL format - allow base64 data URLs
+    if (!image.startsWith('data:') && !image.startsWith('http')) {
+      try {
+        new URL(image);
+      } catch (e) {
+        console.error('Invalid image URL:', image);
+        return NextResponse.json(
+          { error: 'Invalid image URL format' },
+          { status: 400 }
+        );
+      }
     }
 
     // Create the slide with a try-catch block for better error handling
