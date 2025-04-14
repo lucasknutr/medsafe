@@ -57,27 +57,48 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create the slide with a try-catch block for better error handling
-    try {
-      const slide = await prisma.slide.create({
-        data: {
-          image,
-          title,
-          description,
-          buttonLink,
-          order: order || 0,
-        },
-      });
+    // Create the slide with a retry mechanism for prepared statement errors
+    let retries = 3;
+    let lastError = null;
+    
+    while (retries > 0) {
+      try {
+        const slide = await prisma.slide.create({
+          data: {
+            image,
+            title,
+            description,
+            buttonLink,
+            order: order || 0,
+          },
+        });
 
-      console.log('Slide created successfully:', { id: slide.id, title: slide.title });
-      return NextResponse.json(slide);
-    } catch (dbError) {
-      console.error('Database error creating slide:', dbError);
-      return NextResponse.json(
-        { error: 'Database error creating slide', details: dbError instanceof Error ? dbError.message : 'Unknown error' },
-        { status: 500 }
-      );
+        console.log('Slide created successfully:', { id: slide.id, title: slide.title });
+        return NextResponse.json(slide);
+      } catch (dbError) {
+        lastError = dbError;
+        console.error(`Database error creating slide (attempt ${4 - retries}/3):`, dbError);
+        
+        // Check if it's a prepared statement error
+        const errorMessage = dbError instanceof Error ? dbError.message : '';
+        if (errorMessage.includes('prepared statement') && errorMessage.includes('already exists')) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries--;
+          continue;
+        }
+        
+        // If it's not a prepared statement error, break the retry loop
+        break;
+      }
     }
+    
+    // If we've exhausted all retries or encountered a different error
+    console.error('Failed to create slide after retries:', lastError);
+    return NextResponse.json(
+      { error: 'Database error creating slide', details: lastError instanceof Error ? lastError.message : 'Unknown error' },
+      { status: 500 }
+    );
   } catch (error) {
     console.error('Error in POST endpoint:', error);
     return NextResponse.json(
@@ -99,22 +120,52 @@ export async function PUT(request: Request) {
       );
     }
 
-    const slide = await prisma.slide.update({
-      where: { id: parseInt(id) },
-      data: {
-        image,
-        title,
-        description,
-        buttonLink,
-        order: order || 0,
-      },
-    });
+    // Update the slide with a retry mechanism for prepared statement errors
+    let retries = 3;
+    let lastError = null;
+    
+    while (retries > 0) {
+      try {
+        const slide = await prisma.slide.update({
+          where: { id },
+          data: {
+            image,
+            title,
+            description,
+            buttonLink,
+            order,
+          },
+        });
 
-    return NextResponse.json(slide);
-  } catch (error) {
-    console.error('Error updating slide:', error);
+        return NextResponse.json(slide);
+      } catch (dbError) {
+        lastError = dbError;
+        console.error(`Database error updating slide (attempt ${4 - retries}/3):`, dbError);
+        
+        // Check if it's a prepared statement error
+        const errorMessage = dbError instanceof Error ? dbError.message : '';
+        if (errorMessage.includes('prepared statement') && errorMessage.includes('already exists')) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries--;
+          continue;
+        }
+        
+        // If it's not a prepared statement error, break the retry loop
+        break;
+      }
+    }
+    
+    // If we've exhausted all retries or encountered a different error
+    console.error('Failed to update slide after retries:', lastError);
     return NextResponse.json(
-      { error: 'Failed to update slide' },
+      { error: 'Database error updating slide', details: lastError instanceof Error ? lastError.message : 'Unknown error' },
+      { status: 500 }
+    );
+  } catch (error) {
+    console.error('Error in PUT endpoint:', error);
+    return NextResponse.json(
+      { error: 'Failed to update slide', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -124,27 +175,6 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
-    if (id === 'all') {
-      // Delete all slides
-      try {
-        await prisma.slide.deleteMany({});
-        return NextResponse.json({ 
-          message: 'All slides deleted successfully'
-        });
-      } catch (deleteError) {
-        console.error('Error deleting all slides:', deleteError);
-        // If deletion fails, try to fetch existing slides
-        const existingSlides = await prisma.slide.findMany();
-        if (existingSlides.length === 0) {
-          // If no slides exist, consider it a success
-          return NextResponse.json({ 
-            message: 'No slides to delete'
-          });
-        }
-        throw deleteError;
-      }
-    }
 
     if (!id) {
       return NextResponse.json(
@@ -153,34 +183,45 @@ export async function DELETE(request: Request) {
       );
     }
 
-    try {
-      await prisma.slide.delete({
-        where: { id: parseInt(id) },
-      });
-
-      return NextResponse.json({ 
-        message: 'Slide deleted successfully'
-      });
-    } catch (deleteError) {
-      console.error(`Error deleting slide with ID ${id}:`, deleteError);
-      // Check if the slide exists
-      const slide = await prisma.slide.findUnique({
-        where: { id: parseInt(id) },
-      });
-      
-      if (!slide) {
-        // If slide doesn't exist, consider it a success
-        return NextResponse.json({ 
-          message: 'Slide not found, nothing to delete'
+    // Delete the slide with a retry mechanism for prepared statement errors
+    let retries = 3;
+    let lastError = null;
+    
+    while (retries > 0) {
+      try {
+        await prisma.slide.delete({
+          where: { id: parseInt(id) },
         });
+
+        return NextResponse.json({ success: true });
+      } catch (dbError) {
+        lastError = dbError;
+        console.error(`Database error deleting slide (attempt ${4 - retries}/3):`, dbError);
+        
+        // Check if it's a prepared statement error
+        const errorMessage = dbError instanceof Error ? dbError.message : '';
+        if (errorMessage.includes('prepared statement') && errorMessage.includes('already exists')) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries--;
+          continue;
+        }
+        
+        // If it's not a prepared statement error, break the retry loop
+        break;
       }
-      
-      throw deleteError;
     }
+    
+    // If we've exhausted all retries or encountered a different error
+    console.error('Failed to delete slide after retries:', lastError);
+    return NextResponse.json(
+      { error: 'Database error deleting slide', details: lastError instanceof Error ? lastError.message : 'Unknown error' },
+      { status: 500 }
+    );
   } catch (error) {
     console.error('Error in DELETE endpoint:', error);
     return NextResponse.json(
-      { error: 'Failed to delete slide' },
+      { error: 'Failed to delete slide', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
