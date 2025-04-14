@@ -87,10 +87,23 @@ export async function DELETE(request: Request) {
     
     if (id === 'all') {
       // Delete all slides
-      await prisma.slide.deleteMany({});
-      return NextResponse.json({ 
-        message: 'All slides deleted successfully'
-      });
+      try {
+        await prisma.slide.deleteMany({});
+        return NextResponse.json({ 
+          message: 'All slides deleted successfully'
+        });
+      } catch (deleteError) {
+        console.error('Error deleting all slides:', deleteError);
+        // If deletion fails, try to fetch existing slides
+        const existingSlides = await prisma.slide.findMany();
+        if (existingSlides.length === 0) {
+          // If no slides exist, consider it a success
+          return NextResponse.json({ 
+            message: 'No slides to delete'
+          });
+        }
+        throw deleteError;
+      }
     }
 
     if (!id) {
@@ -100,15 +113,32 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.slide.delete({
-      where: { id: parseInt(id) },
-    });
+    try {
+      await prisma.slide.delete({
+        where: { id: parseInt(id) },
+      });
 
-    return NextResponse.json({ 
-      message: 'Slide deleted successfully'
-    });
+      return NextResponse.json({ 
+        message: 'Slide deleted successfully'
+      });
+    } catch (deleteError) {
+      console.error(`Error deleting slide with ID ${id}:`, deleteError);
+      // Check if the slide exists
+      const slide = await prisma.slide.findUnique({
+        where: { id: parseInt(id) },
+      });
+      
+      if (!slide) {
+        // If slide doesn't exist, consider it a success
+        return NextResponse.json({ 
+          message: 'Slide not found, nothing to delete'
+        });
+      }
+      
+      throw deleteError;
+    }
   } catch (error) {
-    console.error('Error deleting slide:', error);
+    console.error('Error in DELETE endpoint:', error);
     return NextResponse.json(
       { error: 'Failed to delete slide' },
       { status: 500 }

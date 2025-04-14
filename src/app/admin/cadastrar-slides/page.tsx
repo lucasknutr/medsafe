@@ -103,9 +103,18 @@ export default function SlidesAdminPage() {
         method: 'DELETE',
       });
 
+      const deleteResult = await deleteResponse.json();
+      
       if (!deleteResponse.ok) {
-        const deleteError = await deleteResponse.json();
-        throw new Error(deleteError.error || 'Failed to delete existing slides');
+        console.error('Delete response error:', deleteResult);
+        // If the error is that there are no slides to delete, we can continue
+        if (deleteResult.message === 'No slides to delete') {
+          console.log('No slides to delete, continuing with creation');
+        } else {
+          throw new Error(deleteResult.error || 'Failed to delete existing slides');
+        }
+      } else {
+        console.log('Delete response success:', deleteResult);
       }
 
       // Create new slides
@@ -123,10 +132,14 @@ export default function SlidesAdminPage() {
           }),
         });
         
+        const result = await response.json();
+        
         if (!response.ok) {
-          const createError = await response.json();
-          throw new Error(createError.error || 'Failed to create slide');
+          console.error('Create slide error:', result);
+          throw new Error(result.error || 'Failed to create slide');
         }
+        
+        console.log('Slide created successfully:', result);
       }
 
       alert('Slides saved successfully!');
