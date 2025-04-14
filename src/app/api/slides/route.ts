@@ -18,30 +18,65 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('Received slide data:', {
+      imageLength: body.image ? body.image.length : 0,
+      title: body.title,
+      description: body.description ? body.description.substring(0, 50) + '...' : '',
+      buttonLink: body.buttonLink,
+      order: body.order
+    });
+
     const { image, title, description, buttonLink, order } = body;
 
     if (!image || !title || !description || !buttonLink) {
+      console.error('Missing required fields:', { 
+        hasImage: !!image, 
+        hasTitle: !!title, 
+        hasDescription: !!description, 
+        hasButtonLink: !!buttonLink 
+      });
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    const slide = await prisma.slide.create({
-      data: {
-        image,
-        title,
-        description,
-        buttonLink,
-        order: order || 0,
-      },
-    });
+    // Validate image URL format
+    try {
+      new URL(image);
+    } catch (e) {
+      console.error('Invalid image URL:', image);
+      return NextResponse.json(
+        { error: 'Invalid image URL format' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(slide);
+    // Create the slide with a try-catch block for better error handling
+    try {
+      const slide = await prisma.slide.create({
+        data: {
+          image,
+          title,
+          description,
+          buttonLink,
+          order: order || 0,
+        },
+      });
+
+      console.log('Slide created successfully:', { id: slide.id, title: slide.title });
+      return NextResponse.json(slide);
+    } catch (dbError) {
+      console.error('Database error creating slide:', dbError);
+      return NextResponse.json(
+        { error: 'Database error creating slide', details: dbError instanceof Error ? dbError.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error('Error creating slide:', error);
+    console.error('Error in POST endpoint:', error);
     return NextResponse.json(
-      { error: 'Failed to create slide' },
+      { error: 'Failed to create slide', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

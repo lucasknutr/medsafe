@@ -116,6 +116,13 @@ export default function SlidesAdminPage() {
           throw new Error('Please fill in all required fields for each slide');
         }
         
+        // Validate image URL
+        try {
+          new URL(slide.image);
+        } catch (e) {
+          throw new Error(`Invalid image URL for slide ${i + 1}`);
+        }
+        
         // If this slide has an ID, update it
         if (slide.id) {
           const response = await fetch('/api/slides', {
@@ -140,6 +147,8 @@ export default function SlidesAdminPage() {
           console.log('Slide updated successfully:', await response.json());
         } else {
           // If this slide doesn't have an ID, create it
+          console.log(`Creating new slide ${i + 1} with image URL length: ${slide.image.length}`);
+          
           const response = await fetch('/api/slides', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

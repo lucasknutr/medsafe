@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
@@ -12,13 +15,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Convert the file to a base64 string
+    // Generate a unique filename
+    const uniqueId = uuidv4();
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${uniqueId}.${fileExtension}`;
+    
+    // Convert the file to a buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64String = `data:${file.type};base64,${buffer.toString('base64')}`;
     
-    // Return the base64 string as the image URL
-    return NextResponse.json({ imageUrl: base64String });
+    // Save the file to the public directory
+    const publicDir = join(process.cwd(), 'public', 'uploads');
+    const filePath = join(publicDir, fileName);
+    
+    try {
+      await writeFile(filePath, buffer);
+    } catch (error) {
+      console.error('Error writing file:', error);
+      return NextResponse.json(
+        { error: 'Failed to save image' },
+        { status: 500 }
+      );
+    }
+    
+    // Return the URL to the saved image
+    const imageUrl = `/uploads/${fileName}`;
+    return NextResponse.json({ imageUrl });
   } catch (error) {
     console.error('Error processing image:', error);
     return NextResponse.json(
