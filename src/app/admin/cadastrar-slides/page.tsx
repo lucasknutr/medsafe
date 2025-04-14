@@ -62,6 +62,7 @@ export default function SlidesAdminPage() {
 
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('slideIndex', (index + 1).toString());
 
     try {
       const response = await fetch('/api/upload', {
