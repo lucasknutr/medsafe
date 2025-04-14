@@ -26,10 +26,12 @@ interface ServiceBox {
 }
 
 interface Slide {
+  id?: number;
   image: string;
   title: string;
   description: string;
   buttonLink: string;
+  order?: number;
 }
 
 const Dashboard = () => {
@@ -52,28 +54,8 @@ const Dashboard = () => {
   ];
 
   useEffect(() => {
-    // Load slides from localStorage only on client side
-    try {
-      const storedSlides = localStorage.getItem('slides');
-      if (storedSlides) {
-        setSlides(JSON.parse(storedSlides));
-      } else {
-        setSlides(Array(6).fill({
-          image: '',
-          title: 'Default Title',
-          description: 'Default Description',
-          buttonLink: '',
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading slides from localStorage:', error);
-      setSlides(Array(6).fill({
-        image: '',
-        title: 'Default Title',
-        description: 'Default Description',
-        buttonLink: '',
-      }));
-    }
+    // Fetch slides from the API
+    fetchSlides();
   }, []);
 
   useEffect(() => {
@@ -92,6 +74,47 @@ const Dashboard = () => {
       }
     }
   }, []);
+
+  const fetchSlides = async () => {
+    try {
+      console.log('Fetching slides from API...');
+      const response = await fetch('/api/slides');
+      console.log('Slides response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received slides:', data);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setSlides(data);
+      } else {
+        console.log('No slides found or invalid data format');
+        // Set default slides if none are found
+        setSlides([
+          {
+            image: doctorBanner.src,
+            title: 'Proteção Jurídica para Profissionais de Saúde',
+            description: 'Oferecemos consultoria especializada para médicos e profissionais de saúde.',
+            buttonLink: '/register',
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching slides:', error);
+      // Set default slides on error
+      setSlides([
+        {
+          image: doctorBanner.src,
+          title: 'Proteção Jurídica para Profissionais de Saúde',
+          description: 'Oferecemos consultoria especializada para médicos e profissionais de saúde.',
+          buttonLink: '/register',
+        }
+      ]);
+    }
+  };
 
   const fetchServiceBoxes = async () => {
     try {
