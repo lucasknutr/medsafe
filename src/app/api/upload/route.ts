@@ -1,8 +1,4 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { existsSync } from 'fs';
 
 export async function POST(request: Request) {
   try {
@@ -16,51 +12,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate a unique filename
-    const uniqueId = uuidv4();
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${uniqueId}.${fileExtension}`;
+    console.log('Processing image upload, file size:', file.size, 'bytes');
     
-    // Convert the file to a buffer
+    // Convert the file to a base64 string
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64String = `data:${file.type};base64,${buffer.toString('base64')}`;
     
-    // Ensure the uploads directory exists
-    const publicDir = join(process.cwd(), 'public');
-    const uploadsDir = join(publicDir, 'uploads');
+    console.log('Image converted to base64, length:', base64String.length);
     
-    if (!existsSync(uploadsDir)) {
-      console.log('Creating uploads directory:', uploadsDir);
-      try {
-        await mkdir(uploadsDir, { recursive: true });
-        console.log('Uploads directory created successfully');
-      } catch (mkdirError) {
-        console.error('Error creating uploads directory:', mkdirError);
-        return NextResponse.json(
-          { error: 'Failed to create uploads directory' },
-          { status: 500 }
-        );
-      }
-    }
-    
-    // Save the file to the public directory
-    const filePath = join(uploadsDir, fileName);
-    
-    try {
-      await writeFile(filePath, buffer);
-      console.log('File saved successfully:', filePath);
-    } catch (error) {
-      console.error('Error writing file:', error);
-      return NextResponse.json(
-        { error: 'Failed to save image' },
-        { status: 500 }
-      );
-    }
-    
-    // Return the URL to the saved image
-    const imageUrl = `/uploads/${fileName}`;
-    console.log('Returning image URL:', imageUrl);
-    return NextResponse.json({ imageUrl });
+    // Return the base64 string as the image URL
+    return NextResponse.json({ imageUrl: base64String });
   } catch (error) {
     console.error('Error processing image:', error);
     return NextResponse.json(

@@ -61,6 +61,13 @@ export default function SlidesAdminPage() {
       return;
     }
 
+    // Check file size - warn if it's too large
+    if (file.size > 2 * 1024 * 1024) { // 2MB
+      if (!confirm('This image is quite large. Uploading large images may cause performance issues. Continue anyway?')) {
+        return;
+      }
+    }
+
     setUploading(index);
     const formData = new FormData();
     formData.append('image', file);
@@ -80,7 +87,7 @@ export default function SlidesAdminPage() {
       }
       
       const data = await response.json();
-      console.log('Upload response:', data);
+      console.log('Upload response received, image URL length:', data.imageUrl ? data.imageUrl.length : 0);
 
       if (!data.imageUrl) {
         throw new Error('No image URL returned');
@@ -91,7 +98,7 @@ export default function SlidesAdminPage() {
       updatedSlides[index] = { ...updatedSlides[index], image: data.imageUrl };
       setSlides(updatedSlides);
       
-      console.log(`Image uploaded successfully for slide ${index + 1}:`, data.imageUrl);
+      console.log(`Image uploaded successfully for slide ${index + 1}`);
     } catch (error) {
       console.error('Error uploading image:', error);
       alert(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');

@@ -18,8 +18,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    
+    // Log the size of the image data
+    const imageLength = body.image ? body.image.length : 0;
     console.log('Received slide data:', {
-      imageLength: body.image ? body.image.length : 0,
+      imageLength,
       title: body.title,
       description: body.description ? body.description.substring(0, 50) + '...' : '',
       buttonLink: body.buttonLink,
