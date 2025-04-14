@@ -24,6 +24,7 @@ export default function SlidesAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<number | null>(null);
 
   useEffect(() => {
     fetchSlides();
@@ -60,9 +61,9 @@ export default function SlidesAdminPage() {
       return;
     }
 
+    setUploading(index);
     const formData = new FormData();
     formData.append('image', file);
-    formData.append('slideIndex', (index + 1).toString());
 
     try {
       const response = await fetch('/api/upload', {
@@ -71,7 +72,8 @@ export default function SlidesAdminPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload image');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload image');
       }
       
       const data = await response.json();
@@ -85,7 +87,9 @@ export default function SlidesAdminPage() {
       setSlides(updatedSlides);
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -97,9 +101,6 @@ export default function SlidesAdminPage() {
       // Delete all existing slides
       const deleteResponse = await fetch('/api/slides?id=all', { 
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!deleteResponse.ok) {
@@ -171,52 +172,67 @@ export default function SlidesAdminPage() {
         <h1 className="text-3xl font-bold mb-8">Cadastro de Slides</h1>
         <div className="space-y-6">
           {slides.map((slide, index) => (
-            <div key={index} className="border p-4 rounded-lg">
-              <h2 className="text-xl font-bold mb-4">Slide {index + 1}</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Imagem</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        handleImageUpload(index, e.target.files[0]);
-                      }
-                    }}
-                    className="w-full p-2 border rounded text-black"
-                  />
+            <div key={index} className="mb-8 p-6 bg-white rounded-lg shadow-md">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Imagem {index + 1}
+                </label>
+                <div className="flex items-center space-x-4">
                   {slide.image && (
-                    <img src={slide.image} alt={`Slide ${index + 1}`} className="mt-2 w-32 h-auto" />
+                    <img
+                      src={slide.image}
+                      alt={`Slide ${index + 1}`}
+                      className="w-32 h-32 object-cover rounded"
+                    />
                   )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(index, file);
+                      }}
+                      className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100"
+                      disabled={uploading === index}
+                    />
+                    {uploading === index && (
+                      <p className="mt-2 text-sm text-blue-600">Uploading image...</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Título</label>
-                  <input
-                    type="text"
-                    value={slide.title}
-                    onChange={(e) => handleInputChange(index, 'title', e.target.value)}
-                    className="w-full p-2 border rounded text-black"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Descrição</label>
-                  <textarea
-                    value={slide.description}
-                    onChange={(e) => handleInputChange(index, 'description', e.target.value)}
-                    className="w-full p-2 border rounded text-black"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Link do Botão</label>
-                  <input
-                    type="text"
-                    value={slide.buttonLink}
-                    onChange={(e) => handleInputChange(index, 'buttonLink', e.target.value)}
-                    className="w-full p-2 border rounded text-black"
-                  />
-                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Título</label>
+                <input
+                  type="text"
+                  value={slide.title}
+                  onChange={(e) => handleInputChange(index, 'title', e.target.value)}
+                  className="w-full p-2 border rounded text-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Descrição</label>
+                <textarea
+                  value={slide.description}
+                  onChange={(e) => handleInputChange(index, 'description', e.target.value)}
+                  className="w-full p-2 border rounded text-black"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Link do Botão</label>
+                <input
+                  type="text"
+                  value={slide.buttonLink}
+                  onChange={(e) => handleInputChange(index, 'buttonLink', e.target.value)}
+                  className="w-full p-2 border rounded text-black"
+                />
               </div>
             </div>
           ))}

@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server';
-import { writeFile, unlink } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('image') as File;
-    const slideIndex = formData.get('slideIndex') as string;
     
     if (!file) {
       return NextResponse.json(
@@ -16,30 +12,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Convert the file to a base64 string
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Use a simple naming convention: slide1.jpg, slide2.jpg, etc.
-    const fileName = `slide${slideIndex}.${file.name.split('.').pop()}`;
-    const publicDir = join(process.cwd(), 'public', 'slides');
-    const filePath = join(publicDir, fileName);
+    const base64String = `data:${file.type};base64,${buffer.toString('base64')}`;
     
-    // Delete existing file if it exists
-    if (existsSync(filePath)) {
-      await unlink(filePath);
-    }
-    
-    // Save the new file
-    await writeFile(filePath, buffer);
-    
-    // Return the URL for the uploaded file
-    const imageUrl = `/slides/${fileName}`;
-    
-    return NextResponse.json({ imageUrl });
+    // Return the base64 string as the image URL
+    return NextResponse.json({ imageUrl: base64String });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error processing image:', error);
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { error: 'Failed to process image' },
       { status: 500 }
     );
   }

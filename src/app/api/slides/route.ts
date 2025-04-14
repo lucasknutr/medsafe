@@ -85,36 +85,27 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
-    console.log('DELETE request received with id:', id);
-
     if (id === 'all') {
-      console.log('Deleting all slides');
       // Delete all slides
-      const deleteResult = await prisma.slide.deleteMany({});
-      console.log('Delete result:', deleteResult);
+      await prisma.slide.deleteMany({});
       return NextResponse.json({ 
-        message: 'All slides deleted successfully',
-        count: deleteResult.count 
+        message: 'All slides deleted successfully'
       });
     }
 
     if (!id) {
-      console.log('No ID provided for deletion');
       return NextResponse.json(
         { error: 'Slide ID is required' },
         { status: 400 }
       );
     }
 
-    console.log('Deleting slide with ID:', id);
-    const slide = await prisma.slide.delete({
+    await prisma.slide.delete({
       where: { id: parseInt(id) },
     });
-    console.log('Slide deleted:', slide);
 
     return NextResponse.json({ 
-      message: 'Slide deleted successfully',
-      slide 
+      message: 'Slide deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting slide:', error);
