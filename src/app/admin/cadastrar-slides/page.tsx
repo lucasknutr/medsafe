@@ -110,10 +110,17 @@ export default function SlidesAdminPage() {
 
       // Create new slides
       for (const slide of slides) {
+        if (!slide.image || !slide.title || !slide.description || !slide.buttonLink) {
+          throw new Error('Please fill in all required fields for each slide');
+        }
+
         const response = await fetch('/api/slides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(slide),
+          body: JSON.stringify({
+            ...slide,
+            order: slide.order || 0
+          }),
         });
         
         if (!response.ok) {
