@@ -34,8 +34,44 @@ interface Slide {
   order?: number;
 }
 
+// Hardcoded service boxes
+const hardcodedServiceBoxes: ServiceBox[] = [
+  {
+    id: 1,
+    title: "Contrate Agora",
+    description: "Proteção completa para profissionais de saúde contra reclamações e processos.",
+    imageUrl: "/images/contract.jpg",
+    link: "https://medsafeconsultoria.com.br/seguros",
+    order: 1
+  },
+  {
+    id: 2,
+    title: "Reportar Ocorrência",
+    description: "Reportar ocorrência em detalhes para que possamos agir de forma adequada.",
+    imageUrl: "/images/plans.jpg",
+    link: "https://medsafeconsultoria.com.br/comunicar-processo",
+    order: 2
+  },
+  {
+    id: 3,
+    title: "Planos e Valores",
+    description: "Verifique os planos e valores de cada seguro.",
+    imageUrl: "/images/report.jpg",
+    link: "https://medsafeconsultoria.com.br/seguros",
+    order: 3
+  },
+  {
+    id: 4,
+    title: "Trabalhe Conosco",
+    description: "Entre em contato para saber mais sobre as vagas disponíveis.",
+    imageUrl: "/images/work.jpg",
+    link: "https://medsafeconsultoria.com.br/#contact-section",
+    order: 4
+  }
+];
+
 const Dashboard = () => {
-  const [serviceBoxes, setServiceBoxes] = useState<ServiceBox[]>([]);
+  const [serviceBoxes, setServiceBoxes] = useState<ServiceBox[]>(hardcodedServiceBoxes);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [cookies] = useCookies(['role']);
   const router = useRouter();
@@ -56,10 +92,6 @@ const Dashboard = () => {
   useEffect(() => {
     // Fetch slides from the API
     fetchSlides();
-  }, []);
-
-  useEffect(() => {
-    fetchServiceBoxes();
   }, []);
 
   // Check for scroll parameter in URL
@@ -113,28 +145,6 @@ const Dashboard = () => {
           buttonLink: '/register',
         }
       ]);
-    }
-  };
-
-  const fetchServiceBoxes = async () => {
-    try {
-      console.log('Fetching service boxes...');
-      const response = await fetch('/api/service-boxes');
-      console.log('Response status:', response.status);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Received service boxes:', data);
-      if (!Array.isArray(data)) {
-        console.error('Expected array of service boxes but got:', data);
-        setServiceBoxes([]);
-        return;
-      }
-      setServiceBoxes(data);
-    } catch (error) {
-      console.error('Error fetching service boxes:', error);
-      setServiceBoxes([]);
     }
   };
 
