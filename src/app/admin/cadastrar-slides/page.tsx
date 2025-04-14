@@ -98,48 +98,84 @@ export default function SlidesAdminPage() {
       setSaving(true);
       setError(null);
 
-      // Delete all existing slides
-      const deleteResponse = await fetch('/api/slides?id=all', { 
-        method: 'DELETE',
-      });
-
-      const deleteResult = await deleteResponse.json();
-      
-      if (!deleteResponse.ok) {
-        console.error('Delete response error:', deleteResult);
-        // If the error is that there are no slides to delete, we can continue
-        if (deleteResult.message === 'No slides to delete') {
-          console.log('No slides to delete, continuing with creation');
-        } else {
-          throw new Error(deleteResult.error || 'Failed to delete existing slides');
-        }
-      } else {
-        console.log('Delete response success:', deleteResult);
+      // Instead of deleting all slides first, we'll update existing ones and create new ones
+      // First, fetch existing slides to get their IDs
+      const existingSlidesResponse = await fetch('/api/slides');
+      if (!existingSlidesResponse.ok) {
+        throw new Error('Failed to fetch existing slides');
       }
-
-      // Create new slides
-      for (const slide of slides) {
+      
+      const existingSlides = await existingSlidesResponse.json();
+      console.log('Existing slides:', existingSlides);
+      
+      // Process each slide in our state
+      for (let i = 0; i < slides.length; i++) {
+        const slide = slides[i];
+        
         if (!slide.image || !slide.title || !slide.description || !slide.buttonLink) {
           throw new Error('Please fill in all required fields for each slide');
         }
-
-        const response = await fetch('/api/slides', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...slide,
-            order: slide.order || 0
-          }),
+        
+        // If this slide has an ID, update it
+        if (slide.id) {
+          const response = await fetch('/api/slides', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: slide.id,
+              image: slide.image,
+              title: slide.title,
+              description: slide.description,
+              buttonLink: slide.buttonLink,
+              order: i
+            }),
+          });
+          
+          if (!response.ok) {
+            const result = await response.json();
+            console.error('Error updating slide:', result);
+            throw new Error(result.error || 'Failed to update slide');
+          }
+          
+          console.log('Slide updated successfully:', await response.json());
+        } else {
+          // If this slide doesn't have an ID, create it
+          const response = await fetch('/api/slides', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: slide.image,
+              title: slide.title,
+              description: slide.description,
+              buttonLink: slide.buttonLink,
+              order: i
+            }),
+          });
+          
+          if (!response.ok) {
+            const result = await response.json();
+            console.error('Error creating slide:', result);
+            throw new Error(result.error || 'Failed to create slide');
+          }
+          
+          console.log('Slide created successfully:', await response.json());
+        }
+      }
+      
+      // Delete any existing slides that are not in our current state
+      const currentSlideIds = slides.map(slide => slide.id).filter(id => id !== undefined);
+      const slidesToDelete = existingSlides.filter(slide => !currentSlideIds.includes(slide.id));
+      
+      for (const slideToDelete of slidesToDelete) {
+        const response = await fetch(`/api/slides?id=${slideToDelete.id}`, {
+          method: 'DELETE',
         });
         
-        const result = await response.json();
-        
         if (!response.ok) {
-          console.error('Create slide error:', result);
-          throw new Error(result.error || 'Failed to create slide');
+          console.warn(`Failed to delete slide ${slideToDelete.id}, but continuing...`);
+        } else {
+          console.log(`Slide ${slideToDelete.id} deleted successfully`);
         }
-        
-        console.log('Slide created successfully:', result);
       }
 
       alert('Slides saved successfully!');
