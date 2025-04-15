@@ -112,6 +112,7 @@ const steps = [
 export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
