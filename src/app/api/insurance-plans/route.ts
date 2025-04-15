@@ -40,16 +40,42 @@ export async function POST(request: Request) {
   try {
     const { name, description, price, features, is_active } = await request.json();
 
-    // Validate required fields
-    if (!name || !description || !price || !features) {
+    // Validate required fields with specific error messages
+    if (!name) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Nome do plano é obrigatório' },
+        { status: 400 }
+      );
+    }
+    if (!description) {
+      return NextResponse.json(
+        { error: 'Descrição do plano é obrigatória' },
+        { status: 400 }
+      );
+    }
+    if (!price) {
+      return NextResponse.json(
+        { error: 'Preço do plano é obrigatório' },
+        { status: 400 }
+      );
+    }
+    if (!features || !Array.isArray(features) || features.length === 0) {
+      return NextResponse.json(
+        { error: 'Pelo menos uma característica do plano é obrigatória' },
         { status: 400 }
       );
     }
 
+    console.log('Creating plan in Supabase with data:', {
+      name,
+      description,
+      price,
+      features,
+      is_active: is_active ?? true,
+    });
+
     // Create plan in Supabase
-    const { data: plan, error } = await supabase
+    const { data: plan, error: supabaseError } = await supabase
       .from('insurance_plans')
       .insert({
         name,
@@ -61,18 +87,24 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error) {
-      throw error;
+    if (supabaseError) {
+      console.error('Supabase error:', supabaseError);
+      throw new Error(`Erro ao criar plano no banco de dados: ${supabaseError.message}`);
     }
+
+    console.log('Plan created in Supabase:', plan);
 
     // Create corresponding plan in Asaas
     try {
+      console.log('Creating plan in Asaas...');
       const asaasPlan = await createAsaasPlan({
         name,
         description,
         price,
         features,
       });
+
+      console.log('Plan created in Asaas:', asaasPlan);
 
       // Update the Supabase record with the Asaas plan ID
       const { error: updateError } = await supabase
@@ -81,7 +113,8 @@ export async function POST(request: Request) {
         .eq('id', plan.id);
 
       if (updateError) {
-        throw updateError;
+        console.error('Error updating Asaas plan ID:', updateError);
+        throw new Error(`Erro ao atualizar ID do plano Asaas: ${updateError.message}`);
       }
 
       // Get the updated plan
@@ -92,23 +125,25 @@ export async function POST(request: Request) {
         .single();
 
       if (fetchError) {
-        throw fetchError;
+        console.error('Error fetching updated plan:', fetchError);
+        throw new Error(`Erro ao buscar plano atualizado: ${fetchError.message}`);
       }
 
       return NextResponse.json(updatedPlan);
     } catch (asaasError) {
+      console.error('Asaas error:', asaasError);
       // If Asaas creation fails, delete the Supabase record
       await supabase
         .from('insurance_plans')
         .delete()
         .eq('id', plan.id);
 
-      throw asaasError;
+      throw new Error(`Erro ao criar plano no Asaas: ${asaasError.message}`);
     }
   } catch (error) {
     console.error('Error creating insurance plan:', error);
     return NextResponse.json(
-      { error: 'Failed to create insurance plan' },
+      { error: error instanceof Error ? error.message : 'Falha ao criar plano de seguro' },
       { status: 500 }
     );
   }
