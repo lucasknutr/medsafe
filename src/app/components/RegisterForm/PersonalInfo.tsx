@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface PersonalInfoProps {
   formData: {
@@ -41,7 +41,82 @@ const profissoes = [
   'OUTRA'
 ];
 
+const paises = [
+  { value: 'BR', label: 'Brasil' },
+  { value: 'AR', label: 'Argentina' },
+  { value: 'BO', label: 'Bolívia' },
+  { value: 'CL', label: 'Chile' },
+  { value: 'CO', label: 'Colômbia' },
+  { value: 'EC', label: 'Equador' },
+  { value: 'GY', label: 'Guiana' },
+  { value: 'PY', label: 'Paraguai' },
+  { value: 'PE', label: 'Peru' },
+  { value: 'SR', label: 'Suriname' },
+  { value: 'UY', label: 'Uruguai' },
+  { value: 'VE', label: 'Venezuela' }
+];
+
+const estados = [
+  { value: 'AC', label: 'Acre' },
+  { value: 'AL', label: 'Alagoas' },
+  { value: 'AP', label: 'Amapá' },
+  { value: 'AM', label: 'Amazonas' },
+  { value: 'BA', label: 'Bahia' },
+  { value: 'CE', label: 'Ceará' },
+  { value: 'DF', label: 'Distrito Federal' },
+  { value: 'ES', label: 'Espírito Santo' },
+  { value: 'GO', label: 'Goiás' },
+  { value: 'MA', label: 'Maranhão' },
+  { value: 'MT', label: 'Mato Grosso' },
+  { value: 'MS', label: 'Mato Grosso do Sul' },
+  { value: 'MG', label: 'Minas Gerais' },
+  { value: 'PA', label: 'Pará' },
+  { value: 'PB', label: 'Paraíba' },
+  { value: 'PR', label: 'Paraná' },
+  { value: 'PE', label: 'Pernambuco' },
+  { value: 'PI', label: 'Piauí' },
+  { value: 'RJ', label: 'Rio de Janeiro' },
+  { value: 'RN', label: 'Rio Grande do Norte' },
+  { value: 'RS', label: 'Rio Grande do Sul' },
+  { value: 'RO', label: 'Rondônia' },
+  { value: 'RR', label: 'Roraima' },
+  { value: 'SC', label: 'Santa Catarina' },
+  { value: 'SP', label: 'São Paulo' },
+  { value: 'SE', label: 'Sergipe' },
+  { value: 'TO', label: 'Tocantins' }
+];
+
 export default function PersonalInfo({ formData, onInputChange }: PersonalInfoProps) {
+  const fetchAddressFromCEP = async (cep: string) => {
+    if (cep.length !== 8) return;
+    
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        alert('CEP não encontrado');
+        return;
+      }
+
+      // Update form fields
+      onInputChange('endereco', data.logradouro);
+      onInputChange('bairro', data.bairro);
+      onInputChange('cidade', data.localidade);
+      onInputChange('estado', data.uf);
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error);
+      alert('Erro ao buscar CEP');
+    }
+  };
+
+  // Watch for CEP changes
+  useEffect(() => {
+    if (formData.cep) {
+      fetchAddressFromCEP(formData.cep.replace(/\D/g, ''));
+    }
+  }, [formData.cep]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold mb-6">DADOS PESSOAIS</h2>
@@ -101,7 +176,7 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            RG E ÓRGÃO EXPEDIDOR
+            RG E ÓRGÃO EXPEDIDOR *
           </label>
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -110,6 +185,7 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
               onChange={(e) => onInputChange('rg', e.target.value)}
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               placeholder="RG"
+              required
             />
             <input
               type="text"
@@ -117,6 +193,7 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
               onChange={(e) => onInputChange('orgaoExpedidor', e.target.value)}
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               placeholder="Órgão"
+              required
             />
           </div>
         </div>
@@ -264,15 +341,21 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            PAÍS
+            PAÍS *
           </label>
-          <input
-            type="text"
+          <select
             value={formData.pais}
             onChange={(e) => onInputChange('pais', e.target.value)}
             className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-            disabled
-          />
+            required
+          >
+            <option value="">Selecione um país...</option>
+            {paises.map((pais) => (
+              <option key={pais.value} value={pais.value}>
+                {pais.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -286,9 +369,11 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
             required
           >
             <option value="">Selecione um estado...</option>
-            <option value="AC">Acre</option>
-            <option value="AL">Alagoas</option>
-            {/* Add all other Brazilian states */}
+            {estados.map((estado) => (
+              <option key={estado.value} value={estado.value}>
+                {estado.label}
+              </option>
+            ))}
           </select>
         </div>
 

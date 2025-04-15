@@ -66,4 +66,43 @@ else
   echo "Slide table created successfully"
 fi
 
+# Check if the insurance_plans table exists
+echo "Checking if insurance_plans table exists..."
+TABLE_EXISTS=$(run_psql "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'insurance_plans');")
+TABLE_EXISTS=$(echo "$TABLE_EXISTS" | tr -d ' ')
+
+if [ "$TABLE_EXISTS" = "t" ]; then
+  echo "insurance_plans table already exists, checking for asaas_plan_id column..."
+  COLUMN_EXISTS=$(run_psql "SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'insurance_plans' AND column_name = 'asaas_plan_id');")
+  COLUMN_EXISTS=$(echo "$COLUMN_EXISTS" | tr -d ' ')
+
+  if [ "$COLUMN_EXISTS" = "t" ]; then
+    echo "asaas_plan_id column already exists"
+  else
+    echo "Adding asaas_plan_id column to insurance_plans table..."
+    if ! run_psql "ALTER TABLE \"public\".\"insurance_plans\" ADD COLUMN \"asaas_plan_id\" TEXT;"; then
+      echo "Error: Failed to add asaas_plan_id column"
+      exit 1
+    fi
+    echo "asaas_plan_id column added successfully"
+  fi
+else
+  echo "insurance_plans table does not exist, creating it..."
+  if ! run_psql "CREATE TABLE IF NOT EXISTS \"public\".\"insurance_plans\" (
+    \"id\" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    \"name\" TEXT NOT NULL,
+    \"description\" TEXT NOT NULL,
+    \"price\" NUMERIC(10,2) NOT NULL,
+    \"features\" JSONB NOT NULL,
+    \"is_active\" BOOLEAN NOT NULL DEFAULT true,
+    \"asaas_plan_id\" TEXT,
+    \"created_at\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    \"updated_at\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );"; then
+    echo "Error: Failed to create insurance_plans table"
+    exit 1
+  fi
+  echo "insurance_plans table created successfully"
+fi
+
 echo "Migration completed successfully!" 
