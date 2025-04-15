@@ -6,6 +6,7 @@ export default function AdminPage() {
   const options = [
     { id: 1, title: 'Cadastro de Usuário/Corretor/Administrador/Advogado', href: '/register' },
     { id: 2, title: 'Cadastro de Apólice Vigente', href: '/admin/cadastro-apolice' },
+    { id: 3, title: 'Gerenciar Planos de Seguro', href: '/admin/planos' },
     { id: 5, title: 'Cadastro de Processo', href: '/admin/cadastro-processo' },
     { id: 6, title: 'Cadastro de Modalidade de Seguro', href: '/admin/cadastro-modalidade' },
     { id: 7, title: 'Cadastro de Atos Processuais', href: '/admin/cadastro-atos' },

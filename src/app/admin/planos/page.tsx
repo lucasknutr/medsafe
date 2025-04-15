@@ -1,9 +1,26 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardActions, Typography, Button, Grid, Container, TextField, IconButton, Alert, Snackbar } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useCookies } from 'react-cookie';
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  CardActions,
+  TextField,
+  Button,
+  Grid,
+  IconButton,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  Box,
+  FormControl,
+  FormControlLabel,
+  Switch,
+} from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 interface InsurancePlan {
   id: string;
@@ -12,6 +29,11 @@ interface InsurancePlan {
   price: number;
   features: string[];
   is_active: boolean;
+  coverage_limit?: number;
+  deductible?: number;
+  waiting_period?: number;
+  age_limit?: number;
+  pre_existing_conditions?: boolean;
 }
 
 export default function InsurancePlansAdminPage() {
@@ -28,6 +50,11 @@ export default function InsurancePlansAdminPage() {
     description: '',
     price: '',
     features: [''],
+    coverage_limit: '',
+    deductible: '',
+    waiting_period: '',
+    age_limit: '',
+    pre_existing_conditions: false,
   });
 
   useEffect(() => {
@@ -93,6 +120,11 @@ export default function InsurancePlansAdminPage() {
           description: newPlan.description,
           price: parseFloat(newPlan.price),
           features: newPlan.features.filter(f => f.trim() !== ''),
+          coverage_limit: newPlan.coverage_limit ? parseFloat(newPlan.coverage_limit) : null,
+          deductible: newPlan.deductible ? parseFloat(newPlan.deductible) : null,
+          waiting_period: newPlan.waiting_period ? parseInt(newPlan.waiting_period) : null,
+          age_limit: newPlan.age_limit ? parseInt(newPlan.age_limit) : null,
+          pre_existing_conditions: newPlan.pre_existing_conditions,
           is_active: true,
         }),
       });
@@ -108,6 +140,11 @@ export default function InsurancePlansAdminPage() {
         description: '',
         price: '',
         features: [''],
+        coverage_limit: '',
+        deductible: '',
+        waiting_period: '',
+        age_limit: '',
+        pre_existing_conditions: false,
       });
       setSuccess('Plano de seguro criado com sucesso!');
     } catch (error) {
@@ -146,6 +183,9 @@ export default function InsurancePlansAdminPage() {
         <Typography variant="h4" className="text-center mb-8">
           Carregando planos...
         </Typography>
+        <div className="flex justify-center">
+          <CircularProgress />
+        </div>
       </Container>
     );
   }
@@ -192,6 +232,62 @@ export default function InsurancePlansAdminPage() {
                   onChange={handleInputChange}
                   required
                   inputProps={{ step: "0.01" }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Limite de Cobertura (R$)"
+                  name="coverage_limit"
+                  type="number"
+                  value={newPlan.coverage_limit}
+                  onChange={handleInputChange}
+                  inputProps={{ step: "0.01" }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Franquia (R$)"
+                  name="deductible"
+                  type="number"
+                  value={newPlan.deductible}
+                  onChange={handleInputChange}
+                  inputProps={{ step: "0.01" }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Período de Carência (dias)"
+                  name="waiting_period"
+                  type="number"
+                  value={newPlan.waiting_period}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Limite de Idade"
+                  name="age_limit"
+                  type="number"
+                  value={newPlan.age_limit}
+                  onChange={handleInputChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newPlan.pre_existing_conditions}
+                      onChange={(e) => setNewPlan(prev => ({
+                        ...prev,
+                        pre_existing_conditions: e.target.checked
+                      }))}
+                    />
+                  }
+                  label="Cobre condições pré-existentes"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -257,6 +353,32 @@ export default function InsurancePlansAdminPage() {
                 </Typography>
                 <Typography variant="body1" className="mb-4">
                   {plan.description}
+                </Typography>
+                {plan.coverage_limit && (
+                  <Typography variant="body2" className="mb-2">
+                    <strong>Limite de Cobertura:</strong> R$ {plan.coverage_limit.toFixed(2)}
+                  </Typography>
+                )}
+                {plan.deductible && (
+                  <Typography variant="body2" className="mb-2">
+                    <strong>Franquia:</strong> R$ {plan.deductible.toFixed(2)}
+                  </Typography>
+                )}
+                {plan.waiting_period && (
+                  <Typography variant="body2" className="mb-2">
+                    <strong>Período de Carência:</strong> {plan.waiting_period} dias
+                  </Typography>
+                )}
+                {plan.age_limit && (
+                  <Typography variant="body2" className="mb-2">
+                    <strong>Limite de Idade:</strong> {plan.age_limit} anos
+                  </Typography>
+                )}
+                <Typography variant="body2" className="mb-2">
+                  <strong>Cobre condições pré-existentes:</strong> {plan.pre_existing_conditions ? 'Sim' : 'Não'}
+                </Typography>
+                <Typography variant="subtitle1" className="mt-4 mb-2">
+                  Benefícios:
                 </Typography>
                 <ul className="list-disc pl-4 mb-4">
                   {plan.features.map((feature, index) => (

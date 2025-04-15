@@ -1,13 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Paper, Stepper, Step, StepLabel, Box } from '@mui/material';
+import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography } from '@mui/material';
 import PersonalInfo from './PersonalInfo';
 import AdditionalInfo from './AdditionalInfo';
 import PurchaseSummary from './PurchaseSummary';
 import CredentialsInfo from './CredentialsInfo';
 import TermsAndConditions from './TermsAndConditions';
+import { useCookies } from 'react-cookie';
+
+interface InsurancePlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  features: string[];
+  is_active: boolean;
+}
 
 interface FormData {
   firstName: string;
@@ -45,7 +55,7 @@ interface FormData {
   assessoradoPorVendas: string;
   carteiraProfissional: File | null;
   comprovanteResidencia: File | null;
-  selectedPlan: string;
+  selectedPlan: InsurancePlan | null;
   paymentMethod: string;
   installments: number;
   acceptedTerms: boolean;
@@ -87,7 +97,7 @@ const initialFormData: FormData = {
   assessoradoPorVendas: '',
   carteiraProfissional: null,
   comprovanteResidencia: null,
-  selectedPlan: '',
+  selectedPlan: null,
   paymentMethod: '',
   installments: 0,
   acceptedTerms: false
@@ -103,6 +113,32 @@ export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const router = useRouter();
+  const [cookies, setCookie] = useCookies(['selected_plan']);
+  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
+
+  useEffect(() => {
+    // Set initial plan from cookie if exists
+    if (cookies.selected_plan) {
+      setSelectedPlan(cookies.selected_plan);
+    }
+
+    // Fetch all available plans
+    const fetchPlans = async () => {
+      try {
+        const response = await fetch('/api/insurance-plans');
+        if (!response.ok) {
+          throw new Error('Failed to fetch insurance plans');
+        }
+        const data = await response.json();
+        setAvailablePlans(data.filter((plan: InsurancePlan) => plan.is_active));
+      } catch (error) {
+        console.error('Error fetching insurance plans:', error);
+      }
+    };
+
+    fetchPlans();
+  }, [cookies.selected_plan]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -178,7 +214,18 @@ export default function RegisterForm() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handlePlanChange = (plan: InsurancePlan) => {
+    setSelectedPlan(plan);
+    setCookie('selected_plan', plan, { path: '/' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan) {
+      setError('Por favor, selecione um plano de seguro');
+      return;
+    }
+
     try {
       const formDataToSend = new FormData();
       
@@ -231,6 +278,38 @@ export default function RegisterForm() {
         return null;
     }
   };
+
+  const renderPaymentStep = () => (
+    <div>
+      <Typography variant="h6" className="mb-4">
+        Selecione seu Plano
+      </Typography>
+      <Grid container spacing={2}>
+        {availablePlans.map((plan) => (
+          <Grid item xs={12} sm={6} md={4} key={plan.id}>
+            <Card 
+              className={`cursor-pointer ${selectedPlan?.id === plan.id ? 'border-2 border-primary' : ''}`}
+              onClick={() => handlePlanChange(plan)}
+            >
+              <CardContent>
+                <Typography variant="h6">{plan.name}</Typography>
+                <Typography variant="h5" color="primary" className="my-2">
+                  R$ {plan.price.toFixed(2)}/mês
+                </Typography>
+                <ul className="list-disc pl-4">
+                  {plan.features.map((feature, index) => (
+                    <li key={index}>
+                      <Typography variant="body2">{feature}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </div>
+  );
 
   return (
     <Box className="max-w-4xl mx-auto p-4">
