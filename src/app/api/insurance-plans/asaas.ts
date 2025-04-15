@@ -43,26 +43,39 @@ export async function createAsaasPlan(planData: {
       }),
     });
 
+    const responseText = await response.text();
+    console.log('Raw Asaas API response:', responseText);
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Asaas API error:', error);
-      throw new Error(error.message || 'Failed to create Asaas plan');
+      try {
+        const error = JSON.parse(responseText);
+        console.error('Asaas API error:', error);
+        throw new Error(error.message || 'Failed to create Asaas plan');
+      } catch (parseError) {
+        console.error('Failed to parse Asaas error response:', parseError);
+        throw new Error(`Asaas API error: ${response.status} ${response.statusText}`);
+      }
     }
 
-    const asaasPlan = await response.json();
-    console.log('Asaas plan created:', asaasPlan);
+    try {
+      const asaasPlan = JSON.parse(responseText);
+      console.log('Asaas plan created:', asaasPlan);
 
-    // Store Asaas plan ID in Supabase
-    const { error } = await supabase
-      .from('insurance_plans')
-      .update({ asaas_plan_id: asaasPlan.id })
-      .eq('name', planData.name);
+      // Store Asaas plan ID in Supabase
+      const { error } = await supabase
+        .from('insurance_plans')
+        .update({ asaas_plan_id: asaasPlan.id })
+        .eq('name', planData.name);
 
-    if (error) {
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      return asaasPlan;
+    } catch (parseError) {
+      console.error('Failed to parse Asaas success response:', parseError);
+      throw new Error('Invalid response from Asaas API');
     }
-
-    return asaasPlan;
   } catch (error) {
     console.error('Error creating Asaas plan:', error);
     throw error;
@@ -83,10 +96,18 @@ export async function deleteAsaasPlan(asaasPlanId: string) {
       },
     });
 
+    const responseText = await response.text();
+    console.log('Raw Asaas API response:', responseText);
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Asaas API error:', error);
-      throw new Error(error.message || 'Failed to delete Asaas plan');
+      try {
+        const error = JSON.parse(responseText);
+        console.error('Asaas API error:', error);
+        throw new Error(error.message || 'Failed to delete Asaas plan');
+      } catch (parseError) {
+        console.error('Failed to parse Asaas error response:', parseError);
+        throw new Error(`Asaas API error: ${response.status} ${response.statusText}`);
+      }
     }
 
     return true;
