@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client with proper error handling
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing required Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function createAsaasPlan(planData: {
   name: string;
@@ -12,12 +17,17 @@ export async function createAsaasPlan(planData: {
   features: string[];
 }) {
   try {
+    const asaasApiKey = process.env.ASAAS_API_KEY;
+    if (!asaasApiKey) {
+      throw new Error('Missing ASAAS_API_KEY environment variable');
+    }
+
     // Create payment plan in Asaas
     const response = await fetch('https://api.asaas.com/v3/plans', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'access_token': process.env.ASAAS_API_KEY!,
+        'access_token': asaasApiKey,
       },
       body: JSON.stringify({
         name: planData.name,
@@ -59,10 +69,15 @@ export async function createAsaasPlan(planData: {
 
 export async function deleteAsaasPlan(asaasPlanId: string) {
   try {
+    const asaasApiKey = process.env.ASAAS_API_KEY;
+    if (!asaasApiKey) {
+      throw new Error('Missing ASAAS_API_KEY environment variable');
+    }
+
     const response = await fetch(`https://api.asaas.com/v3/plans/${asaasPlanId}`, {
       method: 'DELETE',
       headers: {
-        'access_token': process.env.ASAAS_API_KEY!,
+        'access_token': asaasApiKey,
       },
     });
 
