@@ -38,34 +38,34 @@ interface Slide {
 const hardcodedServiceBoxes: ServiceBox[] = [
   {
     id: 1,
-    title: "Seguro de Responsabilidade Civil",
+    title: "Contrate Agora",
     description: "Proteção completa para profissionais de saúde contra reclamações e processos.",
     imageUrl: "/images/contract.jpg",
-    link: "/services/seguro",
+    link: "https://medsafeconsultoria.com.br/seguros",
     order: 1
   },
   {
     id: 2,
-    title: "Assessoria Jurídica",
-    description: "Suporte legal especializado para médicos e profissionais da área da saúde.",
+    title: "Reportar Ocorrência",
+    description: "Reportar ocorrência em detalhes para que possamos agir de forma adequada.",
     imageUrl: "/images/plans.jpg",
-    link: "/services/assessoria",
+    link: "https://medsafeconsultoria.com.br/comunicar-processo",
     order: 2
   },
   {
     id: 3,
-    title: "Gestão de Processos",
-    description: "Acompanhamento e gerenciamento eficiente de processos judiciais.",
+    title: "Planos e Valores",
+    description: "Verifique os planos e valores de cada seguro.",
     imageUrl: "/images/report.jpg",
-    link: "/services/processos",
+    link: "https://medsafeconsultoria.com.br/seguros",
     order: 3
   },
   {
     id: 4,
-    title: "Consultoria em Saúde",
-    description: "Orientação especializada para melhorar a gestão da sua prática médica.",
+    title: "Trabalhe Conosco",
+    description: "Entre em contato para saber mais sobre as vagas disponíveis.",
     imageUrl: "/images/work.jpg",
-    link: "/services/consultoria",
+    link: "https://medsafeconsultoria.com.br/#contact-section",
     order: 4
   }
 ];
