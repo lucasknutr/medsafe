@@ -67,12 +67,35 @@ export async function POST(request: Request) {
 
     // Create corresponding plan in Asaas
     try {
-      await createAsaasPlan({
+      const asaasPlan = await createAsaasPlan({
         name,
         description,
         price,
         features,
       });
+
+      // Update the Supabase record with the Asaas plan ID
+      const { error: updateError } = await supabase
+        .from('insurance_plans')
+        .update({ asaas_plan_id: asaasPlan.id })
+        .eq('id', plan.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Get the updated plan
+      const { data: updatedPlan, error: fetchError } = await supabase
+        .from('insurance_plans')
+        .select('*')
+        .eq('id', plan.id)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      return NextResponse.json(updatedPlan);
     } catch (asaasError) {
       // If Asaas creation fails, delete the Supabase record
       await supabase
@@ -82,8 +105,6 @@ export async function POST(request: Request) {
 
       throw asaasError;
     }
-
-    return NextResponse.json(plan);
   } catch (error) {
     console.error('Error creating insurance plan:', error);
     return NextResponse.json(

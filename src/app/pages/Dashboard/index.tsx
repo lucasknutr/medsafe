@@ -57,7 +57,7 @@ const hardcodedServiceBoxes: ServiceBox[] = [
     title: "Planos e Valores",
     description: "Verifique os planos e valores de cada seguro.",
     imageUrl: "/images/report.jpg",
-    link: "https://medsafeconsultoria.com.br/seguros",
+    link: "/planos",
     order: 3
   },
   {
