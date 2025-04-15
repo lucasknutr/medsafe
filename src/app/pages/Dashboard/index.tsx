@@ -38,34 +38,34 @@ interface Slide {
 const hardcodedServiceBoxes: ServiceBox[] = [
   {
     id: 1,
-    title: "Contrate Agora",
+    title: "Seguro de Responsabilidade Civil",
     description: "Proteção completa para profissionais de saúde contra reclamações e processos.",
     imageUrl: "/images/contract.jpg",
-    link: "https://medsafeconsultoria.com.br/seguros",
+    link: "/services/seguro",
     order: 1
   },
   {
     id: 2,
-    title: "Reportar Ocorrência",
-    description: "Reportar ocorrência em detalhes para que possamos agir de forma adequada.",
+    title: "Assessoria Jurídica",
+    description: "Suporte legal especializado para médicos e profissionais da área da saúde.",
     imageUrl: "/images/plans.jpg",
-    link: "https://medsafeconsultoria.com.br/comunicar-processo",
+    link: "/services/assessoria",
     order: 2
   },
   {
     id: 3,
-    title: "Planos e Valores",
-    description: "Verifique os planos e valores de cada seguro.",
+    title: "Gestão de Processos",
+    description: "Acompanhamento e gerenciamento eficiente de processos judiciais.",
     imageUrl: "/images/report.jpg",
-    link: "https://medsafeconsultoria.com.br/seguros",
+    link: "/services/processos",
     order: 3
   },
   {
     id: 4,
-    title: "Trabalhe Conosco",
-    description: "Entre em contato para saber mais sobre as vagas disponíveis.",
+    title: "Consultoria em Saúde",
+    description: "Orientação especializada para melhorar a gestão da sua prática médica.",
     imageUrl: "/images/work.jpg",
-    link: "https://medsafeconsultoria.com.br/#contact-section",
+    link: "/services/consultoria",
     order: 4
   }
 ];
@@ -196,11 +196,12 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className='first-banner w-full max-w-[85svw] my-0 mx-auto font-amelia pt-4'>
+      {/* Slides Section - Full width on mobile */}
+      <div className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia pt-4'>
         {slides.length > 0 && (
           <Carousel className="h-[70svh] mb-8">
             {slides.map((slide, i) => (
-              <Paper key={i} className="relative h-[70svh] w-[85svw]">
+              <Paper key={i} className="relative h-[70svh] w-full">
                 <div className="absolute inset-0 w-full h-[70svh]">
                   {slide.image && (
                     <Image
@@ -212,12 +213,12 @@ const Dashboard = () => {
                     />
                   )}
                 </div>
-                <div className="absolute top-0 right-0 w-1/2 h-full flex flex-col justify-center items-start p-8 text-white pr-20" style={{ background: "rgba(255,255,255,.6)" }}>
-                  <h1 className='text-6xl font-bold mb-4 text-blue-900'>{slide.title}</h1>
-                  <p className='text-2xl text-slate-900 mt-5'>{slide.description}</p>
+                <div className="absolute top-0 right-0 w-full md:w-1/2 h-full flex flex-col justify-center items-start p-4 md:p-8 text-white md:pr-20" style={{ background: "rgba(255,255,255,.6)" }}>
+                  <h1 className='text-4xl md:text-6xl font-bold mb-4 text-blue-900'>{slide.title}</h1>
+                  <p className='text-xl md:text-2xl text-slate-900 mt-5'>{slide.description}</p>
                   <button
                     onClick={() => window.open(slide.buttonLink, '_blank')}
-                    className='bg-blue-500 py-2 px-5 rounded-md text-2xl mt-10 hover:bg-white hover:scale-[1] hover:border-blue-500 border-2 hover:text-blue-500'
+                    className='bg-blue-500 py-2 px-5 rounded-md text-xl md:text-2xl mt-10 hover:bg-white hover:scale-[1] hover:border-blue-500 border-2 hover:text-blue-500'
                   >
                     Saiba mais
                   </button>
@@ -228,39 +229,42 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-8 mx-40 mb-8 text-lg">
+      {/* Stats Section - 2x2 grid on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mx-4 md:mx-40 mb-8 text-lg">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-lg shadow-lg">
-            <h1 className="text-3xl font-bold text-blue-900">{stat.value}</h1>
-            <p className="mt-2 text-gray-700">{stat.description}</p>
+          <div key={index} className="bg-white p-4 md:p-6 rounded-lg shadow-lg">
+            <h1 className="text-2xl md:text-3xl font-bold text-blue-900">{stat.value}</h1>
+            <p className="mt-2 text-sm md:text-base text-gray-700">{stat.description}</p>
           </div>
         ))}
       </div>
 
-      <div className='second-banner py-8 bg-slate-200 h-[100svh] grid grid-cols-3 text-black items-center px-40 gap-8'>
-        <div className='flex flex-col gap-16 text-xl'>
-          <h1 className='text-6xl font-bold'>Sobre</h1>
-          <p>Uma solução para simplificar o seu dia a dia. A sua plataforma completa para gerenciar seguros, processos jurídicos e muito mais, de forma simples e eficiente.</p>
-          <button className='mr-auto px-6 py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Saiba mais</button>
+      {/* About Section - Adjusted padding on mobile */}
+      <div className='second-banner py-8 bg-slate-200 h-auto md:h-[100svh] grid grid-cols-1 md:grid-cols-3 text-black items-center px-4 md:px-40 gap-8'>
+        <div className='flex flex-col gap-8 md:gap-16 text-xl'>
+          <h1 className='text-4xl md:text-6xl font-bold'>Sobre</h1>
+          <p className="text-base md:text-xl">Uma solução para simplificar o seu dia a dia. A sua plataforma completa para gerenciar seguros, processos jurídicos e muito mais, de forma simples e eficiente.</p>
+          <button className='mr-auto px-4 md:px-6 py-3 md:py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Saiba mais</button>
         </div>
         <div className='rounded'>
-          <Image src={hosp1} alt="Imagem de Hospital" className='rounded-xl' />
+          <Image src={hosp1} alt="Imagem de Hospital" className='rounded-xl w-full h-auto' />
         </div>
         <div>
-          <Image src={hosp2} alt="Imagem de Hospital" className='rounded-xl' />
+          <Image src={hosp2} alt="Imagem de Hospital" className='rounded-xl w-full h-auto' />
         </div>
       </div>
 
-      <div className='w-[100svw] h-[100svh] text-center text-slate-800 px-8 flex flex-col items-center justify-center gap-20' style={{ background: "#1bb4ad" }}>
-        <h1 className='text-6xl font-bold'>Serviços</h1>
-        <div className='grid grid-cols-4 gap-8'>
+      {/* Services Section - 2x2 grid on mobile */}
+      <div className='w-full h-auto md:h-[100svh] text-center text-slate-800 px-4 md:px-8 flex flex-col items-center justify-center gap-10 md:gap-20 py-10 md:py-0' style={{ background: "#1bb4ad" }}>
+        <h1 className='text-4xl md:text-6xl font-bold'>Serviços</h1>
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 w-full'>
           {serviceBoxes.map((box) => (
             <div
               key={box.id}
               onClick={() => handleBoxClick(box.link)}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300"
             >
-              <div className="relative h-48">
+              <div className="relative h-32 md:h-48">
                 <Image
                   src={box.imageUrl}
                   alt={box.title}
@@ -268,24 +272,25 @@ const Dashboard = () => {
                   objectFit="cover"
                 />
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">{box.title}</h3>
-                <p className="text-gray-600">{box.description}</p>
+              <div className="p-3 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold mb-1 md:mb-2">{box.title}</h3>
+                <p className="text-sm md:text-base text-gray-600">{box.description}</p>
               </div>
             </div>
           ))}
         </div>
-        <button className='mx-auto px-6 py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Todos os serviços</button>
+        <button className='mx-auto px-4 md:px-6 py-3 md:py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Todos os serviços</button>
       </div>
 
-      <div id="contact-section" className='h-[100svh] w-[100svw] bg-slate-300 flex justify-center items-center'>
-        <div className='flex justify-center items-center w-[80%] max-w-6xl'>
+      {/* Contact Section - Full width on mobile */}
+      <div id="contact-section" className='h-auto md:h-[100svh] w-full bg-slate-300 flex justify-center items-center py-10 md:py-0'>
+        <div className='flex flex-col md:flex-row justify-center items-center w-full md:w-[80%] max-w-6xl px-4 md:px-0'>
           {/* Form Section */}
-          <div className='bg-white p-8 rounded-lg shadow-lg w-1/2 h-[87svh]' style={{ background: "rgba(255,255,255,.5)" }}>
-            <h2 className='text-5xl font-bold mb-6 text-center text-slate-700'>Contato</h2>
+          <div className='bg-white p-6 md:p-8 rounded-lg shadow-lg w-full md:w-1/2 h-auto md:h-[87svh] mb-6 md:mb-0' style={{ background: "rgba(255,255,255,.5)" }}>
+            <h2 className='text-3xl md:text-5xl font-bold mb-6 text-center text-slate-700'>Contato</h2>
             <form onSubmit={handleSubmit} className='space-y-4'>
               <div>
-                <label className='block text-xl font-medium text-gray-700'>Nome</label>
+                <label className='block text-lg md:text-xl font-medium text-gray-700'>Nome</label>
                 <input
                   type='text'
                   name="name"
@@ -296,7 +301,7 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className='block text-xl font-medium text-gray-700'>E-mail</label>
+                <label className='block text-lg md:text-xl font-medium text-gray-700'>E-mail</label>
                 <input
                   type='email'
                   name="email"
@@ -307,7 +312,7 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className='block text-xl font-medium text-gray-700'>Telefone</label>
+                <label className='block text-lg md:text-xl font-medium text-gray-700'>Telefone</label>
                 <input
                   type='tel'
                   name="phone"
@@ -318,7 +323,7 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className='block text-xl font-medium text-gray-700'>Mensagem</label>
+                <label className='block text-lg md:text-xl font-medium text-gray-700'>Mensagem</label>
                 <textarea
                   name="message"
                   value={formData.message}
@@ -337,8 +342,8 @@ const Dashboard = () => {
             </form>
           </div>
 
-          {/* Image Section */}
-          <div className='w-1/2 flex justify-center items-center rounded-lg lg:block hidden'>
+          {/* Image Section - Hidden on mobile */}
+          <div className='w-full md:w-1/2 flex justify-center items-center rounded-lg hidden md:block'>
             <Image
               src={contactImage}
               alt="Medica"

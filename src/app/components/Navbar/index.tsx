@@ -71,6 +71,7 @@ const Navbar = () => {
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
+          {/* Logo - Hidden on mobile */}
           <Typography
             variant="h6"
             noWrap
@@ -96,10 +97,11 @@ const Navbar = () => {
             />
           </Typography>
 
+          {/* Mobile menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
-              aria-label="account of current user"
+              aria-label="menu"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleOpenNavMenu}
@@ -128,30 +130,35 @@ const Navbar = () => {
               {basePages.map((page) => (
                 <MenuItem 
                   key={page.name} 
-                  onClick={handleCloseNavMenu}
-                  sx={{ display: page.requireAuth && !cookies.role ? 'none' : 'block' }}
+                  onClick={() => {
+                    handleCloseNavMenu();
+                    if (page.requireAuth && !cookies.role) {
+                      router.push('/login');
+                    } else {
+                      router.push(page.path);
+                    }
+                  }}
                 >
-                  <Link href={page.path} passHref>
-                    <Typography sx={{ textAlign: 'center', fontFamily: '"Amelia UP W03 Regular", sans-serif' }}>
-                      {page.name}
-                    </Typography>
-                  </Link>
+                  <Typography textAlign="center">{page.name}</Typography>
                 </MenuItem>
               ))}
               {cookies.role === 'ADMIN' && adminPages.map((page) => (
-                <MenuItem key={page.name} onClick={handleCloseNavMenu}>
-                  <Link href={page.path} passHref>
-                    <Typography sx={{ textAlign: 'center', fontFamily: '"Amelia UP W03 Regular", sans-serif' }}>
-                      {page.name}
-                    </Typography>
-                  </Link>
+                <MenuItem 
+                  key={page.name} 
+                  onClick={() => {
+                    handleCloseNavMenu();
+                    router.push(page.path);
+                  }}
+                >
+                  <Typography textAlign="center">{page.name}</Typography>
                 </MenuItem>
               ))}
             </Menu>
           </Box>
 
+          {/* Mobile logo - Only visible on mobile */}
           <Typography
-            variant="h5"
+            variant="h6"
             noWrap
             component="a"
             href="/"
@@ -168,30 +175,26 @@ const Navbar = () => {
           >
             <Image 
               src={logo} 
-              width={200} 
+              width={150} 
               alt="MEDSAFE" 
-              priority
+              priority 
               style={{ width: 'auto', height: 'auto' }}
             />
           </Typography>
 
+          {/* Desktop menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {basePages.map((page) => (
               <Button
                 key={page.name}
-                component={Link}
-                href={page.path}
-                onClick={handleCloseNavMenu}
-                sx={{
-                  my: 2,
-                  color: 'white',
-                  display: page.requireAuth && !cookies.role ? 'none' : 'block',
-                  fontSize: '1.3rem',
-                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                  textTransform: 'none',
-                  mx: 2,
-                  textDecoration: 'none'
+                onClick={() => {
+                  if (page.requireAuth && !cookies.role) {
+                    router.push('/login');
+                  } else {
+                    router.push(page.path);
+                  }
                 }}
+                sx={{ my: 2, color: 'white', display: 'block' }}
               >
                 {page.name}
               </Button>
@@ -199,55 +202,50 @@ const Navbar = () => {
             {cookies.role === 'ADMIN' && adminPages.map((page) => (
               <Button
                 key={page.name}
-                component={Link}
-                href={page.path}
-                onClick={handleCloseNavMenu}
-                sx={{
-                  my: 2,
-                  color: 'white',
-                  display: 'block',
-                  fontSize: '1.3rem',
-                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                  textTransform: 'none',
-                  mx: 2,
-                  textDecoration: 'none'
-                }}
+                onClick={() => router.push(page.path)}
+                sx={{ my: 2, color: 'white', display: 'block' }}
               >
                 {page.name}
               </Button>
             ))}
           </Box>
 
+          {/* User menu */}
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title={cookies.role ? "Abrir configurações" : "Fazer login"}>
+            <Tooltip title="Open settings">
               <IconButton onClick={handleUserIconClick} sx={{ p: 0 }}>
-                <PersonIcon sx={{ color: 'white', fontSize: '2.5rem' }} />
+                <PersonIcon />
               </IconButton>
             </Tooltip>
-            {cookies.role && (
-              <Menu
-                sx={{ mt: '45px' }}
-                id="menu-appbar"
-                anchorEl={anchorElUser}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(anchorElUser)}
-                onClose={handleCloseUserMenu}
-              >
+            <Menu
+              sx={{ mt: '45px' }}
+              id="menu-appbar"
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+            >
+              {cookies.role ? (
                 <MenuItem onClick={handleLogout}>
-                  <Typography sx={{ textAlign: 'center', fontFamily: '"Amelia UP W03 Regular", sans-serif' }}>
-                    Sair
-                  </Typography>
+                  <Typography textAlign="center">Logout</Typography>
                 </MenuItem>
-              </Menu>
-            )}
+              ) : (
+                <MenuItem onClick={() => {
+                  handleCloseUserMenu();
+                  router.push('/login');
+                }}>
+                  <Typography textAlign="center">Login</Typography>
+                </MenuItem>
+              )}
+            </Menu>
           </Box>
         </Toolbar>
       </Container>
