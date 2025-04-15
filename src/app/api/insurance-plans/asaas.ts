@@ -27,7 +27,7 @@ export async function createAsaasPlan(planData: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'access_token': asaasApiKey,
+        'Authorization': `Bearer ${asaasApiKey}`,
       },
       body: JSON.stringify({
         name: planData.name,
@@ -45,10 +45,12 @@ export async function createAsaasPlan(planData: {
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('Asaas API error:', error);
       throw new Error(error.message || 'Failed to create Asaas plan');
     }
 
     const asaasPlan = await response.json();
+    console.log('Asaas plan created:', asaasPlan);
 
     // Store Asaas plan ID in Supabase
     const { error } = await supabase
@@ -77,12 +79,13 @@ export async function deleteAsaasPlan(asaasPlanId: string) {
     const response = await fetch(`https://api.asaas.com/v3/plans/${asaasPlanId}`, {
       method: 'DELETE',
       headers: {
-        'access_token': asaasApiKey,
+        'Authorization': `Bearer ${asaasApiKey}`,
       },
     });
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('Asaas API error:', error);
       throw new Error(error.message || 'Failed to delete Asaas plan');
     }
 
