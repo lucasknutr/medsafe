@@ -13,9 +13,9 @@ interface Slide {
 }
 
 const defaultSlide: Slide = {
-  image: '',
-  title: '',
-  description: '',
+      image: '', 
+      title: '', 
+      description: '', 
   buttonLink: '',
   order: 1
 };
@@ -304,7 +304,7 @@ export default function SlidesAdminPage() {
           </button>
         </div>
         
-        {slides.map((slide, index) => (
+          {slides.map((slide, index) => (
           <div key={index} className="bg-white p-6 rounded-lg shadow-md mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Slide {index + 1}</h2>
@@ -330,10 +330,10 @@ export default function SlidesAdminPage() {
                         className="h-20 w-auto mr-4 object-cover rounded"
                       />
                     )}
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
                         onChange={(e) => handleImageUpload(index, e.target.files?.[0] || null)}
                         className="block w-full text-sm text-gray-500
                           file:mr-4 file:py-2 file:px-4
@@ -366,7 +366,7 @@ export default function SlidesAdminPage() {
                 </div>
               </div>
               
-              <div>
+                <div>
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-bold mb-2">
                     Descrição
@@ -391,10 +391,10 @@ export default function SlidesAdminPage() {
                     placeholder="https://exemplo.com"
                   />
                 </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </>
   );

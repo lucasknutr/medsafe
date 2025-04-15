@@ -1,101 +1,65 @@
 import { NextResponse } from 'next/server';
-import { getAsaasClient } from '@/lib/asaas';
-import { prisma } from '@/lib/prisma';
+import { createPayment, getPaymentStatus } from '@/lib/asaas';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { value, description } = body;
+    const { amount, description, dueDate } = body;
 
-    if (!value || !description) {
+    if (!amount || !description || !dueDate) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true, name: true, email: true, cpf: true, phone: true }
+    const payment = await createPayment({
+      customerId: session.user.email,
+      amount,
+      description,
+      dueDate,
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const asaas = getAsaasClient();
-
-    // Create or get customer in Asaas
-    let customer;
-    try {
-      customer = await asaas.createCustomer({
-        name: user.name || 'Unknown',
-        cpfCnpj: user.cpf || '',
-        email: user.email,
-        phone: user.phone || ''
-      });
-    } catch (error: any) {
-      console.error('Error creating/getting customer:', error);
-      return NextResponse.json(
-        { error: 'Failed to create customer in payment system' },
-        { status: 500 }
-      );
-    }
-
-    // Create payment
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 3); // Due in 3 days
-
-    try {
-      const payment = await asaas.createPayment({
-        customer: customer.id,
-        billingType: 'BOLETO',
-        dueDate: dueDate.toISOString().split('T')[0],
-        value: value,
-        description: description
-      });
-
-      // Save transaction record in database
-      const savedTransaction = await prisma.transaction.create({
-        data: {
-          userId: user.id,
-          amount: value,
-          status: payment.status,
-          type: 'BOLETO',
-          transactionId: payment.id,
-          boletoUrl: payment.invoiceUrl
-        }
-      });
-
-      return NextResponse.json({
-        success: true,
-        transaction: savedTransaction
-      });
-    } catch (error: any) {
-      console.error('Error creating payment:', error);
-      return NextResponse.json(
-        { error: 'Failed to create payment' },
-        { status: 500 }
-      );
-    }
-  } catch (error: any) {
-    console.error('Unexpected error:', error);
+    return NextResponse.json(payment);
+  } catch (error) {
+    console.error('Payment creation error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create payment' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const paymentId = searchParams.get('paymentId');
+
+    if (!paymentId) {
+      return NextResponse.json(
+        { error: 'Payment ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const status = await getPaymentStatus(paymentId);
+    return NextResponse.json(status);
+  } catch (error) {
+    console.error('Payment status error:', error);
+    return NextResponse.json(
+      { error: 'Failed to get payment status' },
       { status: 500 }
     );
   }

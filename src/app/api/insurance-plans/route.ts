@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { cookies } from 'next/headers';
-import { createAsaasPlan, deleteAsaasPlan } from './asaas';
 
 // Initialize Supabase client with proper error handling
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -66,16 +64,8 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Creating plan in Supabase with data:', {
-      name,
-      description,
-      price,
-      features,
-      is_active: is_active ?? true,
-    });
-
     // Create plan in Supabase
-    const { data: plan, error: supabaseError } = await supabase
+    const { data: plan, error } = await supabase
       .from('insurance_plans')
       .insert({
         name,
@@ -87,59 +77,12 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (supabaseError) {
-      console.error('Supabase error:', supabaseError);
-      throw new Error(`Erro ao criar plano no banco de dados: ${supabaseError.message}`);
+    if (error) {
+      console.error('Error creating insurance plan:', error);
+      throw error;
     }
 
-    console.log('Plan created in Supabase:', plan);
-
-    // Create corresponding plan in Asaas
-    try {
-      console.log('Creating plan in Asaas...');
-      const asaasPlan = await createAsaasPlan({
-        name,
-        description,
-        price,
-        features,
-      });
-
-      console.log('Plan created in Asaas:', asaasPlan);
-
-      // Update the Supabase record with the Asaas plan ID
-      const { error: updateError } = await supabase
-        .from('insurance_plans')
-        .update({ asaas_plan_id: asaasPlan.id })
-        .eq('id', plan.id);
-
-      if (updateError) {
-        console.error('Error updating Asaas plan ID:', updateError);
-        throw new Error(`Erro ao atualizar ID do plano Asaas: ${updateError.message}`);
-      }
-
-      // Get the updated plan
-      const { data: updatedPlan, error: fetchError } = await supabase
-        .from('insurance_plans')
-        .select('*')
-        .eq('id', plan.id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching updated plan:', fetchError);
-        throw new Error(`Erro ao buscar plano atualizado: ${fetchError.message}`);
-      }
-
-      return NextResponse.json(updatedPlan);
-    } catch (asaasError) {
-      console.error('Asaas error:', asaasError);
-      // If Asaas creation fails, delete the Supabase record
-      await supabase
-        .from('insurance_plans')
-        .delete()
-        .eq('id', plan.id);
-
-      throw new Error(`Erro ao criar plano no Asaas: ${asaasError.message}`);
-    }
+    return NextResponse.json(plan);
   } catch (error) {
     console.error('Error creating insurance plan:', error);
     return NextResponse.json(
@@ -207,28 +150,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Get the plan to get the Asaas plan ID
-    const { data: plan, error: fetchError } = await supabase
-      .from('insurance_plans')
-      .select('asaas_plan_id')
-      .eq('id', id)
-      .single();
-
-    if (fetchError) {
-      throw fetchError;
-    }
-
-    // Delete plan from Asaas if it exists
-    if (plan.asaas_plan_id) {
-      try {
-        await deleteAsaasPlan(plan.asaas_plan_id);
-      } catch (asaasError) {
-        console.error('Error deleting Asaas plan:', asaasError);
-        // Continue with Supabase deletion even if Asaas deletion fails
-      }
-    }
-
-    // Delete plan from Supabase
     const { error } = await supabase
       .from('insurance_plans')
       .delete()

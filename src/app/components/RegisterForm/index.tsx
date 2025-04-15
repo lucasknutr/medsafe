@@ -59,6 +59,11 @@ interface FormData {
   paymentMethod: string;
   installments: number;
   acceptedTerms: boolean;
+  cardHolderName?: string;
+  cardNumber?: string;
+  cardExpiryMonth?: string;
+  cardExpiryYear?: string;
+  cardCcv?: string;
 }
 
 const initialFormData: FormData = {
@@ -222,48 +227,77 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlan) {
-      setError('Por favor, selecione um plano de seguro');
-      return;
-    }
-
     try {
-      const formDataToSend = new FormData();
-      
-      // Append all text fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key !== 'carteiraProfissional' && key !== 'comprovanteResidencia') {
-          if (typeof value === 'object') {
-            formDataToSend.append(key, JSON.stringify(value));
-          } else {
-            formDataToSend.append(key, value);
-          }
-        }
-      });
-
-      // Append files
-      if (formData.carteiraProfissional) {
-        formDataToSend.append('carteiraProfissional', formData.carteiraProfissional);
-      }
-      if (formData.comprovanteResidencia) {
-        formDataToSend.append('comprovanteResidencia', formData.comprovanteResidencia);
+      if (!selectedPlan) {
+        setError('Por favor, selecione um plano de seguro');
+        return;
       }
 
-      const response = await fetch('/api/register', {
+      if (!formData.paymentMethod) {
+        setError('Por favor, selecione um método de pagamento');
+        return;
+      }
+
+      // Create user in Supabase
+      const userResponse = await fetch('/api/register', {
         method: 'POST',
-        body: formDataToSend
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          selectedPlan: selectedPlan.id,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Erro ao enviar o formulário');
+      if (!userResponse.ok) {
+        const error = await userResponse.json();
+        throw new Error(error.error || 'Erro ao criar usuário');
       }
 
-      alert('Cadastro realizado com sucesso!');
-      router.push('/');
-      
+      const user = await userResponse.json();
+
+      // Process payment
+      const paymentData = {
+        planId: selectedPlan.id,
+        customerId: user.id,
+        paymentMethod: formData.paymentMethod,
+        cardInfo: formData.paymentMethod === 'CREDIT_CARD' ? {
+          holderName: formData.cardHolderName || '',
+          number: formData.cardNumber || '',
+          expiryMonth: formData.cardExpiryMonth || '',
+          expiryYear: formData.cardExpiryYear || '',
+          ccv: formData.cardCcv || '',
+        } : undefined,
+      };
+
+      const paymentResponse = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!paymentResponse.ok) {
+        const error = await paymentResponse.json();
+        throw new Error(error.error || 'Erro ao processar pagamento');
+      }
+
+      const payment = await paymentResponse.json();
+
+      // Redirect based on payment method
+      if (formData.paymentMethod === 'BOLETO') {
+        window.open(payment.invoiceUrl, '_blank');
+        alert('Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.');
+      } else {
+        alert('Pagamento processado com sucesso! Seu plano foi ativado.');
+      }
+
+      router.push('/dashboard');
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Erro ao enviar o formulário. Por favor, tente novamente.');
+      setError(error instanceof Error ? error.message : 'Erro ao processar sua solicitação');
     }
   };
 
