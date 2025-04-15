@@ -36,6 +36,19 @@ interface FormData {
   telefone: string;
   password: string;
   confirmPassword: string;
+  penalRestritiva: string;
+  penaAdministrativa: string;
+  dependenteQuimico: string;
+  recusaSeguro: string;
+  conhecimentoReclamacoes: string;
+  envolvidoReclamacoes: string;
+  assessoradoPorVendas: string;
+  carteiraProfissional: File | null;
+  comprovanteResidencia: File | null;
+  selectedPlan: string;
+  paymentMethod: string;
+  installments: number;
+  acceptedTerms: boolean;
 }
 
 const initialFormData: FormData = {
@@ -64,7 +77,20 @@ const initialFormData: FormData = {
   email: '',
   telefone: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  penalRestritiva: '',
+  penaAdministrativa: '',
+  dependenteQuimico: '',
+  recusaSeguro: '',
+  conhecimentoReclamacoes: '',
+  envolvidoReclamacoes: '',
+  assessoradoPorVendas: '',
+  carteiraProfissional: null,
+  comprovanteResidencia: null,
+  selectedPlan: '',
+  paymentMethod: '',
+  installments: 0,
+  acceptedTerms: false
 };
 
 const steps = [
@@ -132,6 +158,7 @@ export default function RegisterForm() {
         return Boolean(
           formData.selectedPlan &&
           formData.paymentMethod &&
+          formData.acceptedTerms &&
           (formData.paymentMethod === 'BOLETO' || formData.installments > 0)
         );
       default:
@@ -235,8 +262,9 @@ export default function RegisterForm() {
             </button>
           )}
           <button
-            onClick={handleNext}
-            className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            onClick={currentStep === 3 ? handleSubmit : handleNext}
+            disabled={!validateStep(currentStep)}
+            className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {currentStep === 3 ? 'Finalizar Cadastro' : 'Próximo'}
           </button>
