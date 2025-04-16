@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createPayment, getPaymentStatus } from '@/lib/asaas';
+import { createPayment, getPaymentStatus } from '@/app/api/insurance-plans/asaas';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,9 +11,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { amount, description, dueDate } = body;
+    const { planId, paymentMethod, cardInfo } = body;
 
-    if (!amount || !description || !dueDate) {
+    if (!planId || !paymentMethod) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -21,10 +21,10 @@ export async function POST(request: Request) {
     }
 
     const payment = await createPayment({
+      planId,
       customerId: session.user.email,
-      amount,
-      description,
-      dueDate,
+      paymentMethod,
+      cardInfo,
     });
 
     return NextResponse.json(payment);

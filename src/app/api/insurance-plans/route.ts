@@ -15,6 +15,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { data: plans, error } = await supabase
       .from('insurance_plans')
       .select('*')
@@ -36,6 +44,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { name, description, price, features, is_active } = await request.json();
 
     // Validate required fields with specific error messages
