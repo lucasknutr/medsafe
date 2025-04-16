@@ -8,6 +8,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase environment variables:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseKey
+  });
   throw new Error('Missing required Supabase environment variables');
 }
 
@@ -23,20 +27,23 @@ export async function GET() {
       );
     }
 
+    console.log('Fetching insurance plans...');
     const { data: plans, error } = await supabase
       .from('insurance_plans')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Supabase error:', error);
       throw error;
     }
 
+    console.log('Successfully fetched plans:', plans?.length);
     return NextResponse.json(plans);
   } catch (error) {
     console.error('Error fetching insurance plans:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch insurance plans' },
+      { error: 'Failed to fetch insurance plans', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -53,6 +60,7 @@ export async function POST(request: Request) {
     }
 
     const { name, description, price, features, is_active } = await request.json();
+    console.log('Creating plan with data:', { name, description, price, features, is_active });
 
     // Validate required fields with specific error messages
     if (!name) {
@@ -94,15 +102,19 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Error creating insurance plan:', error);
+      console.error('Supabase error creating plan:', error);
       throw error;
     }
 
+    console.log('Successfully created plan:', plan);
     return NextResponse.json(plan);
   } catch (error) {
     console.error('Error creating insurance plan:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Falha ao criar plano de seguro' },
+      { 
+        error: 'Falha ao criar plano de seguro',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
