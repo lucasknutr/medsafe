@@ -15,7 +15,13 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing required Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Create admin client with service role key
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 export async function GET() {
   try {
@@ -28,7 +34,7 @@ export async function GET() {
     }
 
     console.log('Fetching insurance plans...');
-    const { data: plans, error } = await supabase
+    const { data: plans, error } = await supabaseAdmin
       .from('insurance_plans')
       .select('*')
       .order('created_at', { ascending: false });
@@ -89,7 +95,7 @@ export async function POST(request: Request) {
     }
 
     // Create plan in Supabase
-    const { data: plan, error } = await supabase
+    const { data: plan, error } = await supabaseAdmin
       .from('insurance_plans')
       .insert({
         name,
@@ -140,7 +146,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { data: plan, error } = await supabase
+    const { data: plan, error } = await supabaseAdmin
       .from('insurance_plans')
       .update({
         name,
@@ -178,7 +184,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('insurance_plans')
       .delete()
       .eq('id', id);
