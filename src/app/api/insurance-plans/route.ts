@@ -10,7 +10,9 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase environment variables:', {
     hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseKey
+    hasKey: !!supabaseKey,
+    urlLength: supabaseUrl?.length,
+    keyLength: supabaseKey?.length
   });
   throw new Error('Missing required Supabase environment variables');
 }
@@ -20,11 +22,41 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
+  },
+  db: {
+    schema: 'public'
   }
 });
 
+// Test database connection
+async function testConnection() {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('insurance_plans')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('Database connection test failed:', error);
+      throw error;
+    }
+    
+    console.log('Database connection test successful');
+    return true;
+  } catch (error) {
+    console.error('Error testing database connection:', error);
+    return false;
+  }
+}
+
 export async function GET() {
   try {
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error('Failed to connect to database');
+    }
+
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(
@@ -49,7 +81,16 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching insurance plans:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch insurance plans', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to fetch insurance plans',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        env: {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseKey,
+          urlLength: supabaseUrl?.length,
+          keyLength: supabaseKey?.length
+        }
+      },
       { status: 500 }
     );
   }
@@ -57,6 +98,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error('Failed to connect to database');
+    }
+
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
@@ -119,7 +166,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         error: 'Falha ao criar plano de seguro',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        env: {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseKey,
+          urlLength: supabaseUrl?.length,
+          keyLength: supabaseKey?.length
+        }
       },
       { status: 500 }
     );
