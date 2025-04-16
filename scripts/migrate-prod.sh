@@ -105,4 +105,29 @@ else
   echo "insurance_plans table created successfully"
 fi
 
+# Check if the InsurancePlan table exists (Prisma model)
+echo "Checking if InsurancePlan table exists..."
+TABLE_EXISTS=$(run_psql "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InsurancePlan');")
+TABLE_EXISTS=$(echo "$TABLE_EXISTS" | tr -d ' ')
+
+if [ "$TABLE_EXISTS" = "t" ]; then
+  echo "InsurancePlan table already exists"
+else
+  echo "InsurancePlan table does not exist, creating it..."
+  if ! run_psql "CREATE TABLE IF NOT EXISTS \"public\".\"InsurancePlan\" (
+    \"id\" TEXT PRIMARY KEY,
+    \"name\" TEXT NOT NULL,
+    \"description\" TEXT NOT NULL,
+    \"price\" DOUBLE PRECISION NOT NULL,
+    \"features\" TEXT[] NOT NULL,
+    \"isActive\" BOOLEAN NOT NULL DEFAULT true,
+    \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    \"updatedAt\" TIMESTAMP(3) NOT NULL
+  );"; then
+    echo "Error: Failed to create InsurancePlan table"
+    exit 1
+  fi
+  echo "InsurancePlan table created successfully"
+fi
+
 echo "Migration completed successfully!" 
