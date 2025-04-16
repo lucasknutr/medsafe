@@ -1,62 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-// Initialize Supabase client with proper error handling
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables:', {
-    hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseKey,
-    urlLength: supabaseUrl?.length,
-    keyLength: supabaseKey?.length
-  });
-  throw new Error('Missing required Supabase environment variables');
-}
-
-// Create admin client with service role key
-const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  },
-  db: {
-    schema: 'public'
-  }
-});
-
-// Test database connection
-async function testConnection() {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('insurance_plans')
-      .select('count')
-      .limit(1);
-    
-    if (error) {
-      console.error('Database connection test failed:', error);
-      throw error;
-    }
-    
-    console.log('Database connection test successful');
-    return true;
-  } catch (error) {
-    console.error('Error testing database connection:', error);
-    return false;
-  }
-}
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Test connection first
-    const isConnected = await testConnection();
-    if (!isConnected) {
-      throw new Error('Failed to connect to database');
-    }
-
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(
@@ -66,15 +14,11 @@ export async function GET() {
     }
 
     console.log('Fetching insurance plans...');
-    const { data: plans, error } = await supabaseAdmin
-      .from('insurance_plans')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
+    const plans = await prisma.insurancePlan.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     console.log('Successfully fetched plans:', plans?.length);
     return NextResponse.json(plans);
@@ -83,13 +27,7 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: 'Failed to fetch insurance plans',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        env: {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseKey,
-          urlLength: supabaseUrl?.length,
-          keyLength: supabaseKey?.length
-        }
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -98,12 +36,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // Test connection first
-    const isConnected = await testConnection();
-    if (!isConnected) {
-      throw new Error('Failed to connect to database');
-    }
-
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
@@ -112,8 +44,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, description, price, features, is_active } = await request.json();
-    console.log('Creating plan with data:', { name, description, price, features, is_active });
+    const { name, description, price, features, isActive } = await request.json();
+    console.log('Creating plan with data:', { name, description, price, features, isActive });
 
     // Validate required fields with specific error messages
     if (!name) {
@@ -141,23 +73,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create plan in Supabase
-    const { data: plan, error } = await supabaseAdmin
-      .from('insurance_plans')
-      .insert({
+    // Create plan using Prisma
+    const plan = await prisma.insurancePlan.create({
+      data: {
         name,
         description,
         price,
         features,
-        is_active: is_active ?? true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error creating plan:', error);
-      throw error;
-    }
+        isActive: isActive ?? true,
+      }
+    });
 
     console.log('Successfully created plan:', plan);
     return NextResponse.json(plan);
@@ -166,13 +91,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         error: 'Falha ao criar plano de seguro',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        env: {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseKey,
-          urlLength: supabaseUrl?.length,
-          keyLength: supabaseKey?.length
-        }
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -190,7 +109,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, name, description, price, features, is_active } = body;
+    const { id, name, description, price, features, isActive } = body;
 
     if (!id || !name || !description || !price || !features) {
       return NextResponse.json(
@@ -199,21 +118,17 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { data: plan, error } = await supabaseAdmin
-      .from('insurance_plans')
-      .update({
+    const plan = await prisma.insurancePlan.update({
+      where: { id },
+      data: {
         name,
         description,
         price: parseFloat(price),
         features,
-        is_active: is_active ?? true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
+        isActive: isActive ?? true,
+        updatedAt: new Date(),
+      }
+    });
 
     return NextResponse.json(plan);
   } catch (error) {
@@ -237,14 +152,9 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { error } = await supabaseAdmin
-      .from('insurance_plans')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      throw error;
-    }
+    await prisma.insurancePlan.delete({
+      where: { id }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
