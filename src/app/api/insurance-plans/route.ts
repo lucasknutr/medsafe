@@ -1,26 +1,33 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
     console.log('Fetching insurance plans...');
+    console.log('Prisma client:', prisma);
+    console.log('Database URL:', process.env.DATABASE_URL);
+    
     const plans = await prisma.insurancePlan.findMany({
       orderBy: {
         createdAt: 'desc',
       },
     });
+
     console.log('Plans fetched successfully:', plans);
     return NextResponse.json(plans);
   } catch (error) {
-    console.error('Error fetching insurance plans:', error);
+    console.error('Detailed error fetching insurance plans:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       {
         error: 'Failed to fetch insurance plans',
         details: error instanceof Error ? error.message : 'Unknown error occurred',
-        stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
       },
       { status: 500 }
     );
@@ -29,7 +36,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    console.log('Starting POST request...');
     const session = await getServerSession(authOptions);
+    console.log('Session:', session);
+    
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized', details: 'You must be logged in to create an insurance plan' },
@@ -78,16 +88,17 @@ export async function POST(request: Request) {
     }
 
     console.log('Creating insurance plan with data:', {
-      id: uuidv4(),
       name: body.name,
       description: body.description,
       price: Number(body.price),
       features: body.features,
     });
 
+    console.log('Prisma client before create:', prisma);
+    console.log('Database URL:', process.env.DATABASE_URL);
+
     const plan = await prisma.insurancePlan.create({
       data: {
-        id: uuidv4(),
         name: body.name,
         description: body.description,
         price: Number(body.price),
@@ -98,12 +109,16 @@ export async function POST(request: Request) {
     console.log('Insurance plan created successfully:', plan);
     return NextResponse.json(plan, { status: 201 });
   } catch (error) {
-    console.error('Error creating insurance plan:', error);
+    console.error('Detailed error creating insurance plan:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       {
         error: 'Failed to create insurance plan',
         details: error instanceof Error ? error.message : 'Unknown error occurred',
-        stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
       },
       { status: 500 }
     );
@@ -145,12 +160,16 @@ export async function PUT(request: Request) {
     console.log('Insurance plan updated successfully:', plan);
     return NextResponse.json(plan);
   } catch (error) {
-    console.error('Error updating insurance plan:', error);
+    console.error('Detailed error updating insurance plan:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       {
         error: 'Failed to update insurance plan',
         details: error instanceof Error ? error.message : 'Unknown error occurred',
-        stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
       },
       { status: 500 }
     );
@@ -184,12 +203,16 @@ export async function DELETE(request: Request) {
     console.log('Insurance plan deleted successfully:', id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting insurance plan:', error);
+    console.error('Detailed error deleting insurance plan:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       {
         error: 'Failed to delete insurance plan',
         details: error instanceof Error ? error.message : 'Unknown error occurred',
-        stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined,
       },
       { status: 500 }
     );
