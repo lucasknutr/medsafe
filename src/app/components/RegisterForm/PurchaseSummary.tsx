@@ -1,22 +1,82 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useCookies } from 'react-cookie';
+
+interface InsurancePlan {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
+  is_active: boolean;
+}
 
 interface PurchaseSummaryProps {
   formData: {
-    selectedPlan: {
-      name: string;
-      price: number;
-      coverage: string;
-      description: string[];
-    };
+    selectedPlan: InsurancePlan | null;
     paymentMethod: string;
     installments: number;
   };
-  onInputChange: (field: string, value: string | number) => void;
+  onInputChange: (field: string, value: string | number | InsurancePlan) => void;
 }
 
 export default function PurchaseSummary({ formData, onInputChange }: PurchaseSummaryProps) {
+  const [cookies] = useCookies(['selected_plan']);
+  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
   const installmentOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  const installmentValue = formData.selectedPlan.price / (formData.installments || 1);
+  const installmentValue = formData.selectedPlan ? formData.selectedPlan.price / (formData.installments || 1) : 0;
+
+  useEffect(() => {
+    // Fetch all available plans
+    const fetchPlans = async () => {
+      try {
+        const response = await fetch('/api/insurance-plans');
+        if (!response.ok) {
+          throw new Error('Failed to fetch insurance plans');
+        }
+        const data = await response.json();
+        setAvailablePlans(data.filter((plan: InsurancePlan) => plan.is_active));
+      } catch (error) {
+        console.error('Error fetching insurance plans:', error);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  useEffect(() => {
+    // Set initial plan from cookie if exists
+    if (cookies.selected_plan && !formData.selectedPlan) {
+      onInputChange('selectedPlan', cookies.selected_plan);
+    }
+  }, [cookies.selected_plan, formData.selectedPlan, onInputChange]);
+
+  if (!formData.selectedPlan) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-xl font-bold mb-4">Selecione um Plano</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {availablePlans.map((plan) => (
+              <div
+                key={plan.id}
+                className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${
+                  formData.selectedPlan?.id === plan.id ? 'border-blue-500 bg-blue-50' : ''
+                }`}
+                onClick={() => onInputChange('selectedPlan', plan)}
+              >
+                <h4 className="font-bold text-lg">{plan.name}</h4>
+                <p className="text-gray-600">R$ {plan.price.toFixed(2)}</p>
+                <ul className="mt-2 space-y-1">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="text-sm text-gray-600">• {feature}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -30,15 +90,15 @@ export default function PurchaseSummary({ formData, onInputChange }: PurchaseSum
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="font-medium">Cobertura</span>
-            <span className="text-lg">{formData.selectedPlan.coverage}</span>
+            <span className="font-medium">Valor</span>
+            <span className="text-lg">R$ {formData.selectedPlan.price.toFixed(2)}</span>
           </div>
 
           <div className="border-t pt-4">
             <h4 className="font-medium mb-2">O que está incluso:</h4>
             <ul className="list-disc list-inside space-y-1">
-              {formData.selectedPlan.description.map((item, index) => (
-                <li key={index} className="text-gray-600">{item}</li>
+              {formData.selectedPlan.features.map((feature, index) => (
+                <li key={index} className="text-gray-600">{feature}</li>
               ))}
             </ul>
           </div>
