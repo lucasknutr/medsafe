@@ -31,15 +31,15 @@ psql "$DATABASE_URL" -c "SELECT 1;" || {
 
 # Create InsurancePlan table if it doesn't exist
 echo "Checking if InsurancePlan table exists..."
-psql "$DATABASE_URL" -c "CREATE TABLE IF NOT EXISTS InsurancePlan (
+psql "$DATABASE_URL" -c "CREATE TABLE IF NOT EXISTS \"InsurancePlan\" (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT NOT NULL,
   price DOUBLE PRECISION NOT NULL,
   features TEXT[] NOT NULL,
-  isActive BOOLEAN NOT NULL DEFAULT true,
-  createdAt TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP(3) NOT NULL
+  \"isActive\" BOOLEAN NOT NULL DEFAULT true,
+  \"createdAt\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  \"updatedAt\" TIMESTAMP(3) NOT NULL
 );" || {
   echo "Error: Failed to create InsurancePlan table"
   exit 1
@@ -67,7 +67,7 @@ echo "insurance_plans table created successfully"
 
 # Create Slide table if it doesn't exist
 echo "Checking if Slide table exists..."
-psql "$DATABASE_URL" -c "CREATE TABLE IF NOT EXISTS Slide (
+psql "$DATABASE_URL" -c "CREATE TABLE IF NOT EXISTS \"Slide\" (
   id SERIAL PRIMARY KEY,
   image TEXT NOT NULL,
   title TEXT NOT NULL,
