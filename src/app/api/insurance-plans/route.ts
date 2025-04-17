@@ -1,19 +1,32 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@supabase/supabase-js';
 
+// Initialize Supabase client with proper error handling
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing required Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Configure the route to use edge runtime
+export const runtime = 'edge';
+
+// Public endpoint - no auth required
 export async function GET() {
   try {
     console.log('Fetching insurance plans...');
-    console.log('Prisma client:', prisma);
-    console.log('Database URL:', process.env.DATABASE_URL);
     
-    const plans = await prisma.insurancePlan.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const { data: plans, error } = await supabase
+      .from('insurance_plans')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
 
     console.log('Plans fetched successfully:', plans);
     return NextResponse.json(plans);
@@ -34,19 +47,10 @@ export async function GET() {
   }
 }
 
+// Protected endpoints - using Supabase service role key
 export async function POST(request: Request) {
   try {
     console.log('Starting POST request...');
-    const session = await getServerSession(authOptions);
-    console.log('Session:', session);
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized', details: 'You must be logged in to create an insurance plan' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     console.log('Received request body:', body);
 
@@ -94,17 +98,21 @@ export async function POST(request: Request) {
       features: body.features,
     });
 
-    console.log('Prisma client before create:', prisma);
-    console.log('Database URL:', process.env.DATABASE_URL);
-
-    const plan = await prisma.insurancePlan.create({
-      data: {
+    const { data: plan, error } = await supabase
+      .from('insurance_plans')
+      .insert({
         name: body.name,
         description: body.description,
         price: Number(body.price),
         features: body.features,
-      },
-    });
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     console.log('Insurance plan created successfully:', plan);
     return NextResponse.json(plan, { status: 201 });
@@ -127,14 +135,6 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized', details: 'You must be logged in to update an insurance plan' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
     console.log('Received request body:', body);
 
@@ -145,17 +145,23 @@ export async function PUT(request: Request) {
       );
     }
 
-    const plan = await prisma.insurancePlan.update({
-      where: { id: body.id },
-      data: {
+    const { data: plan, error } = await supabase
+      .from('insurance_plans')
+      .update({
         name: body.name,
         description: body.description,
         price: body.price,
         features: body.features,
-        isActive: body.isActive,
-        updatedAt: new Date(),
-      },
-    });
+        is_active: body.isActive,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', body.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     console.log('Insurance plan updated successfully:', plan);
     return NextResponse.json(plan);
@@ -178,14 +184,6 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized', details: 'You must be logged in to delete an insurance plan' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -196,9 +194,14 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.insurancePlan.delete({
-      where: { id },
-    });
+    const { error } = await supabase
+      .from('insurance_plans')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
 
     console.log('Insurance plan deleted successfully:', id);
     return NextResponse.json({ success: true });
