@@ -19,7 +19,6 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.6",
     "@mui/material": "^6.4.6",
-    "@prisma/client": "^6.6.0",
     "@supabase/supabase-js": "^2.49.4",
     "@types/bcrypt": "^5.0.2",
     "@types/nodemailer": "^6.4.17",
@@ -53,7 +52,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss-import": "^16.1.0",
-    "prisma": "^6.6.0",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   }

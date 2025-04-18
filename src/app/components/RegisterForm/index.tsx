@@ -164,13 +164,6 @@ export default function RegisterForm() {
           formData.rg &&
           formData.orgaoExpedidor &&
           formData.residenceSince &&
-          formData.fezResidencia &&
-          formData.especialidadeAtual &&
-          formData.pertenceAlgumaAssociacao &&
-          formData.socioProprietario &&
-          formData.entidadeExerce &&
-          formData.realizaProcedimento &&
-          formData.atividadeProfissional.length > 0 &&
           formData.pais &&
           formData.estado &&
           formData.cep &&
@@ -178,14 +171,14 @@ export default function RegisterForm() {
           formData.bairro &&
           formData.endereco &&
           formData.numero &&
-          formData.complemento &&
           formData.email &&
-          formData.telefone &&
-          formData.password &&
-          formData.confirmPassword
+          formData.telefone
         );
       case 2:
         return Boolean(
+          formData.password &&
+          formData.confirmPassword &&
+          formData.password === formData.confirmPassword &&
           formData.penalRestritiva &&
           formData.penaAdministrativa &&
           formData.dependenteQuimico &&
