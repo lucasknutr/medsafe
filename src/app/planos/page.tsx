@@ -42,7 +42,7 @@ export default function InsurancePlansPage() {
 
   const handlePlanSelect = (plan: InsurancePlan) => {
     setCookie('selected_plan', plan, { path: '/' });
-    router.push('/register');
+    router.push('/cadastro');
   };
 
   if (loading) {

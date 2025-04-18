@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,128 +14,99 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: Request) {
   try {
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      cpf,
-      birthDate,
-      rg,
-      orgaoExpedidor,
-      residenceSince,
-      fezResidencia,
-      especialidadeAtual,
-      pertenceAlgumaAssociacao,
-      socioProprietario,
-      entidadeExerce,
-      realizaProcedimento,
-      atividadeProfissional,
-      pais,
-      estado,
-      cep,
-      cidade,
-      bairro,
-      endereco,
-      numero,
-      complemento,
-      telefone,
-      penalRestritiva,
-      penaAdministrativa,
-      dependenteQuimico,
-      recusaSeguro,
-      conhecimentoReclamacoes,
-      envolvidoReclamacoes,
-      assessoradoPorVendas,
-      selectedPlan,
-      paymentMethod,
-      installments,
-      acceptedTerms,
-      cardHolderName,
-      cardNumber,
-      cardExpiryMonth,
-      cardExpiryYear,
-      cardCcv,
-    } = await request.json();
+    const body = await request.json();
+    console.log('Received registration data:', body);
 
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          firstName,
-          lastName,
-          cpf,
-          phone: telefone,
+    // Validate required fields
+    const requiredFields = [
+      'name',
+      'email',
+      'cpf',
+      'profession',
+      'phone',
+      'address',
+      'city',
+      'state',
+      'zip_code',
+      'password'
+    ];
+
+    const missingFields = requiredFields.filter(field => !body[field]);
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Missing required fields',
+          missingFields,
         },
-      },
-    });
-
-    if (authError) {
-      throw authError;
+        { status: 400 }
+      );
     }
 
-    if (!authData.user) {
-      throw new Error('No user data returned from signup');
+    // Check if user already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('email, cpf')
+      .or(`email.eq.${body.email},cpf.eq.${body.cpf}`)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
     }
 
-    // Update the profile with all the additional information
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        birth_date: birthDate,
-        rg,
-        orgao_expedidor: orgaoExpedidor,
-        residence_since: residenceSince,
-        fez_residencia: fezResidencia,
-        especialidade_atual: especialidadeAtual,
-        pertence_alguma_associacao: pertenceAlgumaAssociacao,
-        socio_proprietario: socioProprietario,
-        entidade_exerce: entidadeExerce,
-        realiza_procedimento: realizaProcedimento,
-        atividade_profissional: atividadeProfissional,
-        pais,
-        estado,
-        cep,
-        cidade,
-        bairro,
-        endereco,
-        numero,
-        complemento,
-        penal_restritiva: penalRestritiva,
-        pena_administrativa: penaAdministrativa,
-        dependente_quimico: dependenteQuimico,
-        recusa_seguro: recusaSeguro,
-        conhecimento_reclamacoes: conhecimentoReclamacoes,
-        envolvido_reclamacoes: envolvidoReclamacoes,
-        assessorado_por_vendas: assessoradoPorVendas,
-        selected_plan: selectedPlan,
-        payment_method: paymentMethod,
-        installments,
-        accepted_terms: acceptedTerms,
-        card_holder_name: cardHolderName,
-        card_number: cardNumber,
-        card_expiry_month: cardExpiryMonth,
-        card_expiry_year: cardExpiryYear,
-        card_ccv: cardCcv,
+    if (existingUser) {
+      return NextResponse.json(
+        {
+          error: 'User already exists',
+          details: existingUser.email === body.email ? 'Email already in use' : 'CPF already in use',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+
+    // Create user in Supabase
+    const { data: user, error: createError } = await supabase
+      .from('users')
+      .insert({
+        name: body.name,
+        email: body.email,
+        cpf: body.cpf,
+        profession: body.profession,
+        phone: body.phone,
+        address: body.address,
+        city: body.city,
+        state: body.state,
+        zip_code: body.zip_code,
+        password: hashedPassword,
+        role: 'SEGURADO',
       })
-      .eq('id', authData.user.id);
+      .select()
+      .single();
 
-    if (profileError) {
-      throw profileError;
+    if (createError) {
+      throw createError;
     }
 
-    // Return success response
+    // Remove sensitive data before sending response
+    const { password, ...userWithoutPassword } = user;
+
     return NextResponse.json(
-      { message: 'Usuário cadastrado com sucesso!', user: authData.user },
+      {
+        message: 'User registered successfully',
+        user: userWithoutPassword,
+      },
       { status: 201 }
     );
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { message: 'Erro ao cadastrar usuário.', error: error.message },
-      { status: 400 }
+      {
+        error: 'Failed to register user',
+        details: error instanceof Error ? error.message : 'Unknown error occurred',
+      },
+      { status: 500 }
     );
   }
 }
