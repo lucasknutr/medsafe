@@ -18,12 +18,17 @@ CREATE TABLE IF NOT EXISTS users (
   asaas_customer_id TEXT UNIQUE
 );
 
--- Create insurance table
-CREATE TABLE IF NOT EXISTS insurance (
+-- Create lawyer table
+CREATE TABLE IF NOT EXISTS lawyer (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER UNIQUE REFERENCES users(id),
-  plan TEXT NOT NULL,
-  status TEXT NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  cpf TEXT UNIQUE NOT NULL,
+  phone TEXT NOT NULL,
+  address TEXT NOT NULL,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  zip_code TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -38,6 +43,16 @@ CREATE TABLE IF NOT EXISTS policy (
   total_value DECIMAL(10,2) NOT NULL,
   is_extended BOOLEAN DEFAULT FALSE,
   new_policy_id INTEGER REFERENCES policy(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create insurance table
+CREATE TABLE IF NOT EXISTS insurance (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER UNIQUE REFERENCES users(id),
+  plan TEXT NOT NULL,
+  status TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -58,21 +73,6 @@ CREATE TABLE IF NOT EXISTS process (
   is_covered BOOLEAN DEFAULT FALSE,
   probability_of_loss INTEGER NOT NULL,
   total_cost DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create lawyer table
-CREATE TABLE IF NOT EXISTS lawyer (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  cpf TEXT UNIQUE NOT NULL,
-  phone TEXT NOT NULL,
-  address TEXT NOT NULL,
-  city TEXT NOT NULL,
-  state TEXT NOT NULL,
-  zip_code TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
