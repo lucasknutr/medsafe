@@ -178,11 +178,8 @@ export default function RegisterForm() {
           formData.bairro &&
           formData.endereco &&
           formData.numero &&
-          formData.complemento &&
           formData.email &&
-          formData.telefone &&
-          formData.password &&
-          formData.confirmPassword
+          formData.telefone
         );
       case 2:
         return Boolean(
