@@ -183,6 +183,12 @@ export default function RegisterForm() {
         );
       case 2:
         return Boolean(
+          formData.email &&
+          formData.password &&
+          formData.confirmPassword
+        );
+      case 3:
+        return Boolean(
           formData.penalRestritiva &&
           formData.penaAdministrativa &&
           formData.dependenteQuimico &&
@@ -192,13 +198,6 @@ export default function RegisterForm() {
           formData.assessoradoPorVendas &&
           formData.carteiraProfissional &&
           formData.comprovanteResidencia
-        );
-      case 3:
-        return Boolean(
-          formData.selectedPlan &&
-          formData.paymentMethod &&
-          formData.acceptedTerms &&
-          (formData.paymentMethod === 'BOLETO' || formData.installments > 0)
         );
       default:
         return false;
