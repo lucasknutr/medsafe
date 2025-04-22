@@ -8,6 +8,7 @@ import AdditionalInfo from './AdditionalInfo';
 import PurchaseSummary from './PurchaseSummary';
 import CredentialsInfo from './CredentialsInfo';
 import TermsAndConditions from './TermsAndConditions';
+import PlanAndPayment from './PlanAndPayment';
 import { useCookies } from 'react-cookie';
 
 interface InsurancePlan {
@@ -304,7 +305,15 @@ export default function RegisterForm() {
       case 2:
         return <CredentialsInfo formData={formData} onInputChange={handleInputChange} />;
       case 3:
-        return <TermsAndConditions formData={formData} onInputChange={handleInputChange} />;
+        return (
+          <PlanAndPayment
+            availablePlans={availablePlans}
+            selectedPlan={selectedPlan}
+            onPlanChange={handlePlanChange}
+            formData={formData}
+            onInputChange={handleInputChange}
+          />
+        );
       default:
         return null;
     }
