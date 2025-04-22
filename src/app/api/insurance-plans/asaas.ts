@@ -23,6 +23,8 @@ interface PaymentData {
     expiryMonth: string;
     expiryYear: string;
     ccv: string;
+    cpfCnpj?: string;
+    phone?: string;
   };
 }
 
@@ -66,8 +68,8 @@ export async function createPayment(data: PaymentData) {
       paymentData.creditCardHolderInfo = {
         name: data.cardInfo.holderName,
         email: data.customerId, // Assuming customerId is the email
-        cpfCnpj: '', // We'll need to get this from the user
-        phone: '', // We'll need to get this from the user
+        cpfCnpj: data.cardInfo.cpfCnpj || '',
+        phone: data.cardInfo.phone || '',
       };
     }
 

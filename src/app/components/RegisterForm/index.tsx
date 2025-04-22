@@ -65,6 +65,8 @@ interface FormData {
   cardExpiryMonth?: string;
   cardExpiryYear?: string;
   cardCcv?: string;
+  cardCpfCnpj?: string;
+  cardPhone?: string;
 }
 
 const initialFormData: FormData = {
@@ -106,7 +108,14 @@ const initialFormData: FormData = {
   selectedPlan: null,
   paymentMethod: '',
   installments: 0,
-  acceptedTerms: false
+  acceptedTerms: false,
+  cardHolderName: '',
+  cardNumber: '',
+  cardExpiryMonth: '',
+  cardExpiryYear: '',
+  cardCcv: '',
+  cardCpfCnpj: '',
+  cardPhone: '',
 };
 
 const steps = [
@@ -179,6 +188,7 @@ export default function RegisterForm() {
           formData.bairro &&
           formData.endereco &&
           formData.numero &&
+          formData.complemento &&
           formData.email &&
           formData.telefone
         );
@@ -189,17 +199,22 @@ export default function RegisterForm() {
           formData.confirmPassword
         );
       case 3:
-        return Boolean(
-          formData.penalRestritiva &&
-          formData.penaAdministrativa &&
-          formData.dependenteQuimico &&
-          formData.recusaSeguro &&
-          formData.conhecimentoReclamacoes &&
-          formData.envolvidoReclamacoes &&
-          formData.assessoradoPorVendas &&
-          formData.carteiraProfissional &&
-          formData.comprovanteResidencia
-        );
+        // Allow "Ainda Vou Decidir" (selectedPlan === null) to finish WITHOUT payment
+        if (!selectedPlan) return true;
+        // Otherwise, require payment method and (for credit card) card fields
+        if (!formData.paymentMethod) return false;
+        if (formData.paymentMethod === 'CARTAO') {
+          return Boolean(
+            formData.cardHolderName &&
+            formData.cardNumber &&
+            formData.cardExpiryMonth &&
+            formData.cardExpiryYear &&
+            formData.cardCcv &&
+            formData.cardCpfCnpj &&
+            formData.cardPhone
+          );
+        }
+        return true;
       default:
         return false;
     }
@@ -217,7 +232,7 @@ export default function RegisterForm() {
     }
   };
 
-  const handlePlanChange = (plan: InsurancePlan) => {
+  const handlePlanChange = (plan: InsurancePlan | null) => {
     setSelectedPlan(plan);
     setCookie('selected_plan', plan, { path: '/' });
   };
@@ -225,46 +240,35 @@ export default function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!selectedPlan) {
-        setError('Por favor, selecione um plano de seguro');
+      if (selectedPlan === null) {
+        // Allow registration without payment
+        const userResponse = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...formData, selectedPlan: null }),
+        });
+        if (!userResponse.ok) {
+          const error = await userResponse.json();
+          throw new Error(error.error || 'Erro ao cadastrar usuário');
+        }
+        alert('Cadastro realizado! Você poderá escolher um plano depois.');
+        router.push('/dashboard');
         return;
       }
-
-      if (!formData.paymentMethod) {
-        setError('Por favor, selecione um método de pagamento');
-        return;
-      }
-
-      // Create user in Supabase
-      const userResponse = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          selectedPlan: selectedPlan.id,
-        }),
-      });
-
-      if (!userResponse.ok) {
-        const error = await userResponse.json();
-        throw new Error(error.error || 'Erro ao criar usuário');
-      }
-
-      const user = await userResponse.json();
-
-      // Process payment
-      const paymentData = {
+      // Existing payment logic for selected plan...
+      const paymentData: any = {
         planId: selectedPlan.id,
-        customerId: user.id,
         paymentMethod: formData.paymentMethod,
-        cardInfo: formData.paymentMethod === 'CREDIT_CARD' ? {
-          holderName: formData.cardHolderName || '',
-          number: formData.cardNumber || '',
-          expiryMonth: formData.cardExpiryMonth || '',
-          expiryYear: formData.cardExpiryYear || '',
-          ccv: formData.cardCcv || '',
+        cardInfo: formData.paymentMethod === 'CARTAO' ? {
+          holderName: formData.cardHolderName,
+          number: formData.cardNumber,
+          expiryMonth: formData.cardExpiryMonth,
+          expiryYear: formData.cardExpiryYear,
+          ccv: formData.cardCcv,
+          cpfCnpj: formData.cardCpfCnpj,
+          phone: formData.cardPhone,
         } : undefined,
       };
 
