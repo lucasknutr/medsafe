@@ -240,17 +240,34 @@ export default function RegisterForm() {
     setCookie('selected_plan', plan, { path: '/' });
   };
 
+  const mapFormDataToApi = (formData: FormData) => {
+    return {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      cpf: formData.cpf,
+      profession: formData.especialidadeAtual || formData.role || '',
+      phone: formData.telefone,
+      address: `${formData.endereco}, ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}`.trim(),
+      city: formData.cidade,
+      state: formData.estado,
+      zip_code: formData.cep,
+      password: formData.password,
+      role: formData.role || 'SEGURADO',
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (selectedPlan === null) {
         // Create user account without payment
+        const apiBody = mapFormDataToApi(formData);
         const userResponse = await fetch('/api/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ ...formData, selectedPlan: null }),
+          body: JSON.stringify(apiBody),
         });
         if (!userResponse.ok) {
           const error = await userResponse.json();
