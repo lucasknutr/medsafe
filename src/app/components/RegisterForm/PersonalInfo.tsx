@@ -87,11 +87,11 @@ const estados = [
   { value: 'TO', label: 'Tocantins' }
 ];
 
+// Correct roles for MedSafe platform
 const roles = [
-  { value: 'USER', label: 'Usuário' },
-  { value: 'MEDICO', label: 'Médico' },
-  { value: 'DENTISTA', label: 'Dentista' },
-  { value: 'OUTRO', label: 'Outro' }
+  { value: 'SEGURADO', label: 'Segurado' },
+  { value: 'CORRETOR', label: 'Corretor' },
+  { value: 'ADVOGADO', label: 'Advogado' }
 ];
 
 export default function PersonalInfo({ formData, onInputChange }: PersonalInfoProps) {
