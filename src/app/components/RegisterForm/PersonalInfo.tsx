@@ -26,6 +26,7 @@ interface PersonalInfoProps {
     complemento: string;
     email: string;
     telefone: string;
+    role: string;
   };
   onInputChange: (field: string, value: string | string[]) => void;
 }
@@ -86,6 +87,13 @@ const estados = [
   { value: 'TO', label: 'Tocantins' }
 ];
 
+const roles = [
+  { value: 'USER', label: 'Usuário' },
+  { value: 'MEDICO', label: 'Médico' },
+  { value: 'DENTISTA', label: 'Dentista' },
+  { value: 'OUTRO', label: 'Outro' }
+];
+
 export default function PersonalInfo({ formData, onInputChange }: PersonalInfoProps) {
   const fetchAddressFromCEP = async (cep: string) => {
     if (cep.length !== 8) return;
@@ -119,6 +127,23 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
 
   return (
     <div className="space-y-6">
+      {/* Role selector */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Qual o seu perfil?
+        </label>
+        <select
+          value={formData.role || ''}
+          onChange={e => onInputChange('role', e.target.value)}
+          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Selecione...</option>
+          {roles.map(role => (
+            <option key={role.value} value={role.value}>{role.label}</option>
+          ))}
+        </select>
+      </div>
+
       <h2 className="text-xl font-bold mb-6">DADOS PESSOAIS</h2>
       
       <div className="grid grid-cols-2 gap-4">

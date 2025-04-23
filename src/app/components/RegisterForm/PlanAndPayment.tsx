@@ -25,6 +25,9 @@ const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
   formData,
   onInputChange,
 }) => {
+  // Disable payment options if 'Ainda Vou Decidir' is selected
+  const paymentDisabled = !selectedPlan;
+
   return (
     <div className="space-y-8">
       <div>
@@ -77,31 +80,27 @@ const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
 
       <div>
         <Typography variant="h6" className="mb-4">
-          Forma de Pagamento
+          Método de Pagamento
         </Typography>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-            <input
-              type="radio"
-              value="BOLETO"
-              checked={formData.paymentMethod === 'BOLETO'}
-              onChange={(e) => onInputChange('paymentMethod', e.target.value)}
-              className="mr-2"
-            />
-            <span>Boleto Bancário</span>
-          </label>
-          <label className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-            <input
-              type="radio"
-              value="CARTAO"
-              checked={formData.paymentMethod === 'CARTAO'}
-              onChange={(e) => onInputChange('paymentMethod', e.target.value)}
-              className="mr-2"
-            />
-            <span>Cartão de Crédito</span>
-          </label>
+        <div className="flex gap-4">
+          <button
+            type="button"
+            className={`px-4 py-2 border rounded ${formData.paymentMethod === 'BOLETO' ? 'bg-blue-600 text-white' : 'bg-white text-black'} ${paymentDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !paymentDisabled && onInputChange('paymentMethod', 'BOLETO')}
+            disabled={paymentDisabled}
+          >
+            Boleto Bancário
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-2 border rounded ${formData.paymentMethod === 'CARTAO' ? 'bg-blue-600 text-white' : 'bg-white text-black'} ${paymentDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !paymentDisabled && onInputChange('paymentMethod', 'CARTAO')}
+            disabled={paymentDisabled}
+          >
+            Cartão de Crédito
+          </button>
         </div>
-        {formData.paymentMethod === 'CARTAO' && (
+        {formData.paymentMethod === 'CARTAO' && !paymentDisabled && (
           <div className="space-y-2">
             <input
               type="text"

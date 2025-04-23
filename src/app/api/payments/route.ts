@@ -5,13 +5,15 @@ import { authOptions } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Accept email from body if not using session
+    let sessionUserEmail = null;
+    try {
+      const session = await getServerSession(authOptions);
+      if (session?.user?.email) sessionUserEmail = session.user.email;
+    } catch (e) {}
 
     const body = await request.json();
-    const { planId, paymentMethod, cardInfo } = body;
+    const { planId, paymentMethod, cardInfo, email } = body;
 
     if (!planId || !paymentMethod) {
       return NextResponse.json(
@@ -20,9 +22,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Use email from session if available, otherwise from body
+    const customerId = sessionUserEmail || email;
+    if (!customerId) {
+      return NextResponse.json(
+        { error: 'Missing user email' },
+        { status: 400 }
+      );
+    }
+
     const payment = await createPayment({
       planId,
-      customerId: session.user.email,
+      customerId,
       paymentMethod,
       cardInfo,
     });

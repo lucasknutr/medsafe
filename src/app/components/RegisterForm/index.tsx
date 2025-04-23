@@ -45,6 +45,7 @@ interface FormData {
   complemento: string;
   email: string;
   telefone: string;
+  role: string;
   password: string;
   confirmPassword: string;
   penalRestritiva: string;
@@ -94,6 +95,7 @@ const initialFormData: FormData = {
   complemento: '',
   email: '',
   telefone: '',
+  role: '',
   password: '',
   confirmPassword: '',
   penalRestritiva: '',
@@ -167,6 +169,7 @@ export default function RegisterForm() {
     switch (step) {
       case 1:
         return Boolean(
+          formData.role &&
           formData.firstName &&
           formData.lastName &&
           formData.cpf &&
@@ -241,7 +244,7 @@ export default function RegisterForm() {
     e.preventDefault();
     try {
       if (selectedPlan === null) {
-        // Allow registration without payment
+        // Create user account without payment
         const userResponse = await fetch('/api/register', {
           method: 'POST',
           headers: {
@@ -257,7 +260,7 @@ export default function RegisterForm() {
         router.push('/dashboard');
         return;
       }
-      // Existing payment logic for selected plan...
+      // Payment logic for selected plan...
       const paymentData: any = {
         planId: selectedPlan.id,
         paymentMethod: formData.paymentMethod,
@@ -270,6 +273,7 @@ export default function RegisterForm() {
           cpfCnpj: formData.cardCpfCnpj,
           phone: formData.cardPhone,
         } : undefined,
+        email: formData.email,
       };
 
       const paymentResponse = await fetch('/api/payments', {
