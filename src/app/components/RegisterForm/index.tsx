@@ -273,6 +273,11 @@ export default function RegisterForm() {
           const error = await userResponse.json();
           throw new Error(error.error || 'Erro ao cadastrar usuário');
         }
+        // Wait for user to be created before redirecting
+        const userData = await userResponse.json();
+        if (!userData || !userData.user) {
+          throw new Error('Usuário não foi criado corretamente.');
+        }
         alert('Cadastro realizado! Você poderá escolher um plano depois.');
         router.push('/dashboard');
         return;
