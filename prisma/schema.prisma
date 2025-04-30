@@ -131,6 +131,7 @@ model PaymentMethod {
   updatedAt    DateTime      @updatedAt @map("updated_at")
   user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
+  @@unique([userId, type], name: "userId_type_type")
 }
 
 model Transaction {
@@ -180,6 +181,7 @@ model InsurancePlan {
   price       Float
   features    String[]
   isActive    Boolean  @default(true)
+  asaasPlanId String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 } 

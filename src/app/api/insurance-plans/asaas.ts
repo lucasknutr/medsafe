@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import prisma from '@/app/lib/prisma';
 
 // Initialize Supabase client with proper error handling
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,6 +26,12 @@ interface PaymentData {
     ccv: string;
     cpfCnpj?: string;
     phone?: string;
+    email?: string;
+    postalCode?: string;
+    addressNumber?: string;
+    addressComplement?: string | null;
+    mobilePhone?: string;
+    remoteIp?: string;
   };
 }
 
@@ -35,28 +42,28 @@ export async function createPayment(data: PaymentData) {
       throw new Error('Missing ASAAS_API_KEY environment variable');
     }
 
-    // Get plan details from Supabase
-    const { data: plan, error: planError } = await supabase
-      .from('insurance_plans')
-      .select('*')
-      .eq('id', data.planId)
-      .single();
+    // Get plan details from Prisma
+    const plan = await prisma.insurancePlan.findUnique({
+      where: { id: data.planId },
+    });
+    if (!plan) throw new Error('Plano não encontrado');
 
-    if (planError || !plan) {
-      throw new Error('Plano não encontrado');
-    }
+    // Get user (customer) details from Prisma
+    const user = await prisma.user.findUnique({
+      where: { id: Number(data.customerId) },
+    });
+    if (!user) throw new Error('Usuário não encontrado');
 
-    // Create payment in Asaas
+    // Prepare payment data for Asaas
     const paymentData: any = {
-      customer: data.customerId,
-      billingType: data.paymentMethod === 'BOLETO' ? 'BOLETO' : 'CREDIT_CARD',
+      customer: user.asaasCustomerId,
+      billingType: data.paymentMethod,
       value: plan.price,
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days from now
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       description: `Plano de Seguro: ${plan.name}`,
       externalReference: data.planId,
     };
 
-    // Add credit card info if payment method is credit card
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
       paymentData.creditCard = {
         holderName: data.cardInfo.holderName,
@@ -67,10 +74,17 @@ export async function createPayment(data: PaymentData) {
       };
       paymentData.creditCardHolderInfo = {
         name: data.cardInfo.holderName,
-        email: data.customerId, // Assuming customerId is the email
-        cpfCnpj: data.cardInfo.cpfCnpj || '',
-        phone: data.cardInfo.phone || '',
+        email: data.cardInfo.email || user.email,
+        cpfCnpj: data.cardInfo.cpfCnpj || user.cpf,
+        postalCode: data.cardInfo.postalCode || user.zip_code,
+        addressNumber: data.cardInfo.addressNumber || '',
+        addressComplement: data.cardInfo.addressComplement || '',
+        phone: data.cardInfo.phone || user.phone,
+        mobilePhone: data.cardInfo.mobilePhone || user.phone,
       };
+      if (data.cardInfo.remoteIp) {
+        paymentData.remoteIp = data.cardInfo.remoteIp;
+      }
     }
 
     const response = await fetch('https://api.asaas.com/v3/payments', {
@@ -89,21 +103,48 @@ export async function createPayment(data: PaymentData) {
 
     const payment = await response.json();
 
-    // Store payment information in Supabase
-    const { error: subscriptionError } = await supabase
-      .from('user_subscriptions')
-      .insert({
-        user_id: data.customerId,
-        plan_id: data.planId,
-        asaas_payment_id: payment.id,
-        payment_method: data.paymentMethod,
+    // Save payment info to user's transactions in Prisma
+    await prisma.transaction.create({
+      data: {
+        userId: user.id,
+        amount: Math.round(plan.price * 100), // ASAAS expects cents as int
         status: payment.status,
-        invoice_url: payment.invoiceUrl,
-        due_date: payment.dueDate,
-      });
+        type: data.paymentMethod,
+        transactionId: payment.id,
+        boletoUrl: payment.bankSlipUrl || payment.invoiceUrl,
+        boletoCode: payment.barCode || null,
+        createdAt: new Date(payment.dateCreated || Date.now()),
+        updatedAt: new Date(),
+      },
+    });
 
-    if (subscriptionError) {
-      throw subscriptionError;
+    // Optionally, save credit card token if present
+    if (payment.creditCardToken) {
+      await prisma.paymentMethod.upsert({
+        where: {
+          userId_type_type: {
+            userId: user.id,
+            type: 'CREDIT_CARD',
+          },
+        },
+        update: {
+          lastFour: payment.creditCardNumber,
+          brand: payment.creditCardBrand,
+          holderName: data.cardInfo?.holderName,
+          expiryMonth: data.cardInfo?.expiryMonth,
+          expiryYear: data.cardInfo?.expiryYear,
+        },
+        create: {
+          userId: user.id,
+          type: 'CREDIT_CARD',
+          lastFour: payment.creditCardNumber,
+          brand: payment.creditCardBrand,
+          holderName: data.cardInfo?.holderName,
+          expiryMonth: data.cardInfo?.expiryMonth,
+          expiryYear: data.cardInfo?.expiryYear,
+          isDefault: true,
+        },
+      });
     }
 
     return payment;
@@ -143,15 +184,11 @@ export async function handlePaymentWebhook(payload: any) {
   try {
     const { paymentId, status } = payload;
 
-    // Update payment status in Supabase
-    const { error } = await supabase
-      .from('user_subscriptions')
-      .update({ status })
-      .eq('asaas_payment_id', paymentId);
-
-    if (error) {
-      throw error;
-    }
+    // Update payment status in Prisma
+    await prisma.transaction.updateMany({
+      where: { transactionId: paymentId },
+      data: { status },
+    });
 
     return { success: true };
   } catch (error) {
@@ -230,15 +267,11 @@ export async function createAsaasPlan(planData: {
       const asaasPlan = JSON.parse(responseText);
       console.log('Asaas plan created:', asaasPlan);
 
-      // Store Asaas plan ID in Supabase
-      const { error } = await supabase
-        .from('insurance_plans')
-        .update({ asaas_plan_id: asaasPlan.id })
-        .eq('name', planData.name);
-
-      if (error) {
-        throw error;
-      }
+      // Store Asaas plan ID in Prisma
+      await prisma.insurancePlan.update({
+        where: { id: planData.id },
+        data: { asaasPlanId: asaasPlan.id },
+      });
 
       return asaasPlan;
     } catch (parseError) {
@@ -286,4 +319,4 @@ export async function deleteAsaasPlan(asaasPlanId: string) {
     console.error('Error deleting Asaas plan:', error);
     throw error;
   }
-} 
+}
