@@ -49,9 +49,15 @@ export async function createPayment(data: PaymentData) {
     if (!plan) throw new Error('Plano não encontrado');
 
     // Get user (customer) details from Prisma
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: Number(data.customerId) },
     });
+    if (!user) {
+      // Try to find user by email if not found by ID
+      user = await prisma.user.findUnique({
+        where: { email: data.customerId },
+      });
+    }
     if (!user) throw new Error('Usuário não encontrado');
 
     // Prepare payment data for Asaas

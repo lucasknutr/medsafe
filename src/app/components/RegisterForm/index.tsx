@@ -134,6 +134,7 @@ export default function RegisterForm() {
   const [cookies, setCookie] = useCookies(['selected_plan']);
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
+  const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
 
   useEffect(() => {
     // Set initial plan from cookie if exists
@@ -223,7 +224,33 @@ export default function RegisterForm() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Step 2: Register user
+    if (currentStep === 2) {
+      try {
+        const apiBody = mapFormDataToApi(formData);
+        const userResponse = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiBody),
+        });
+        if (!userResponse.ok) {
+          const error = await userResponse.json();
+          throw new Error(error.error || 'Erro ao cadastrar usuário');
+        }
+        const userData = await userResponse.json();
+        if (!userData || !userData.user) {
+          throw new Error('Usuário não foi criado corretamente.');
+        }
+        setRegisteredUserId(userData.user.id); // Store user ID for payment
+        setCurrentStep(currentStep + 1);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Erro ao cadastrar usuário');
+      }
+      return;
+    }
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
@@ -259,34 +286,16 @@ export default function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (selectedPlan === null) {
-        // Create user account without payment
-        const apiBody = mapFormDataToApi(formData);
-        const userResponse = await fetch('/api/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiBody),
-        });
-        if (!userResponse.ok) {
-          const error = await userResponse.json();
-          throw new Error(error.error || 'Erro ao cadastrar usuário');
-        }
-        // Wait for user to be created before redirecting
-        const userData = await userResponse.json();
-        if (!userData || !userData.user) {
-          throw new Error('Usuário não foi criado corretamente.');
-        }
-        alert('Cadastro realizado! Você poderá escolher um plano depois.');
-        router.push('/dashboard');
-        return;
+      if (!selectedPlan || !registeredUserId) {
+        throw new Error('Usuário ou plano não selecionado. Cadastre-se antes de pagar.');
       }
-      // Payment logic for selected plan...
       const paymentData: any = {
         planId: selectedPlan.id,
+        customerId: registeredUserId, // Always use user ID
         paymentMethod: formData.paymentMethod,
-        cardInfo: formData.paymentMethod === 'CARTAO' ? {
+      };
+      if (formData.paymentMethod === 'CARTAO') {
+        paymentData.cardInfo = {
           holderName: formData.cardHolderName,
           number: formData.cardNumber,
           expiryMonth: formData.cardExpiryMonth,
@@ -294,10 +303,9 @@ export default function RegisterForm() {
           ccv: formData.cardCcv,
           cpfCnpj: formData.cardCpfCnpj,
           phone: formData.cardPhone,
-        } : undefined,
-        email: formData.email,
-      };
-
+          email: formData.email,
+        };
+      }
       const paymentResponse = await fetch('/api/payments', {
         method: 'POST',
         headers: {
@@ -305,25 +313,19 @@ export default function RegisterForm() {
         },
         body: JSON.stringify(paymentData),
       });
-
       if (!paymentResponse.ok) {
         const error = await paymentResponse.json();
         throw new Error(error.error || 'Erro ao processar pagamento');
       }
-
       const payment = await paymentResponse.json();
-
-      // Redirect based on payment method
       if (formData.paymentMethod === 'BOLETO') {
         window.open(payment.invoiceUrl, '_blank');
         alert('Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.');
       } else {
         alert('Pagamento processado com sucesso! Seu plano foi ativado.');
       }
-
       router.push('/dashboard');
     } catch (error) {
-      console.error('Error submitting form:', error);
       setError(error instanceof Error ? error.message : 'Erro ao processar sua solicitação');
     }
   };
