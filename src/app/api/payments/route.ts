@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     } catch (e) {}
 
     const body = await request.json();
-    const { planId, paymentMethod, cardInfo, email } = body;
+    const { planId, paymentMethod, cardInfo, email, customerId } = body;
 
     if (!planId || !paymentMethod) {
       return NextResponse.json(
@@ -22,18 +22,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Use email from session if available, otherwise from body
-    const customerId = sessionUserEmail || email;
-    if (!customerId) {
+    // Use customerId from body (user ID) if present, otherwise fall back to session/email
+    const userId = customerId || sessionUserEmail || email;
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Missing user email' },
+        { error: 'Missing user identifier (customerId or email)' },
         { status: 400 }
       );
     }
 
     const payment = await createPayment({
       planId,
-      customerId,
+      customerId: userId,
       paymentMethod,
       cardInfo,
     });
