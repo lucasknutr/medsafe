@@ -329,7 +329,10 @@ export default function RegisterForm() {
       }
       const payment = await paymentResponse.json();
       if (formData.paymentMethod === 'BOLETO') {
-        window.open(payment.invoiceUrl, '_blank');
+        // Use setTimeout to ensure window.open works after user gesture
+        setTimeout(() => {
+          window.open(payment.invoiceUrl, '_blank');
+        }, 100);
         alert('Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.');
       } else {
         alert('Pagamento processado com sucesso! Seu plano foi ativado.');
