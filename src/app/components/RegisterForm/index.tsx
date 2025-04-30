@@ -328,10 +328,14 @@ export default function RegisterForm() {
         throw new Error(error.error || 'Erro ao processar pagamento');
       }
       const payment = await paymentResponse.json();
+      console.log('Payment response:', payment);
       if (formData.paymentMethod === 'BOLETO') {
-        // Use setTimeout to ensure window.open works after user gesture
         setTimeout(() => {
-          window.open(payment.invoiceUrl, '_blank');
+          if (payment.invoiceUrl) {
+            window.open(payment.invoiceUrl, '_blank');
+          } else {
+            alert('Erro: boleto não gerado. Verifique o retorno da API.');
+          }
         }, 100);
         alert('Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.');
       } else {
@@ -430,7 +434,7 @@ export default function RegisterForm() {
             disabled={!validateStep(currentStep)}
             className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {currentStep === 3 ? 'Finalizar Cadastro' : 'Próximo'}
+            {currentStep === 3 ? (formData.paymentMethod === 'BOLETO' ? 'Finalizar Pagamento' : 'Finalizar Pagamento') : 'Próximo'}
           </button>
         </div>
       </Paper>
