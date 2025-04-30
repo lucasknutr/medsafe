@@ -1,16 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import prisma from '@/app/lib/prisma';
 
 export async function POST(request: Request) {
   try {
@@ -42,16 +32,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user already exists
-    const { data: existingUser, error: checkError } = await supabase
-      .from('users')
-      .select('email, cpf')
-      .or(`email.eq.${body.email},cpf.eq.${body.cpf}`)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
-    }
+    // Check if user already exists in Prisma/Postgres
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: body.email },
+          { cpf: body.cpf },
+        ]
+      },
+      select: { email: true, cpf: true }
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -66,10 +56,9 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
-    // Create user in Supabase
-    const { data: user, error: createError } = await supabase
-      .from('users')
-      .insert({
+    // Create user in Prisma/Postgres
+    const user = await prisma.user.create({
+      data: {
         name: body.name,
         email: body.email,
         cpf: body.cpf,
@@ -81,13 +70,8 @@ export async function POST(request: Request) {
         zip_code: body.zip_code,
         password: hashedPassword,
         role: 'SEGURADO',
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      throw createError;
-    }
+      }
+    });
 
     // Remove sensitive data before sending response
     const { password, ...userWithoutPassword } = user;
