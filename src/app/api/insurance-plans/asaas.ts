@@ -198,6 +198,7 @@ export async function handlePaymentWebhook(payload: any) {
 }
 
 export async function createAsaasPlan(planData: {
+  id: string;
   name: string;
   description: string;
   price: number;
@@ -210,6 +211,7 @@ export async function createAsaasPlan(planData: {
     }
 
     console.log('Creating Asaas plan with data:', {
+      id: planData.id,
       name: planData.name,
       description: planData.description,
       price: planData.price,
@@ -270,7 +272,7 @@ export async function createAsaasPlan(planData: {
       // Store Asaas plan ID in Prisma
       await prisma.insurancePlan.update({
         where: { id: planData.id },
-        data: { asaasPlanId: asaasPlan.id },
+        data: { asaasPlanId: asaasPlan.id as string },
       });
 
       return asaasPlan;
