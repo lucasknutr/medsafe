@@ -17,7 +17,7 @@ export default function InsurancePlansPage() {
   const [plans, setPlans] = useState<InsurancePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cookies, setCookie] = useCookies(['selected_plan']);
+  const [cookies, setCookie] = useCookies(['selected_plan', 'role']);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,7 +42,13 @@ export default function InsurancePlansPage() {
 
   const handlePlanSelect = (plan: InsurancePlan) => {
     setCookie('selected_plan', plan, { path: '/' });
-    router.push('/register');
+    // If logged in, go straight to payment step in register
+    if (cookies.role) {
+      // Pass a query param or cookie to trigger payment step
+      window.location.href = '/register?step=3';
+    } else {
+      router.push('/register');
+    }
   };
 
   if (loading) {

@@ -142,6 +142,15 @@ export default function RegisterForm() {
       setSelectedPlan(cookies.selected_plan);
     }
 
+    // If step is forced via query param, jump to that step
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stepParam = urlParams.get('step');
+      if (stepParam && !isNaN(Number(stepParam))) {
+        setCurrentStep(Number(stepParam));
+      }
+    }
+
     // Fetch all available plans
     const fetchPlans = async () => {
       try {
@@ -153,11 +162,12 @@ export default function RegisterForm() {
         setAvailablePlans(data.filter((plan: InsurancePlan) => plan.is_active));
       } catch (error) {
         console.error('Error fetching insurance plans:', error);
+        setError('Erro ao carregar os planos de seguro. Por favor, tente novamente.');
       }
     };
 
     fetchPlans();
-  }, [cookies.selected_plan]);
+  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({

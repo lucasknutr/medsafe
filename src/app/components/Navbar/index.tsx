@@ -50,7 +50,7 @@ const Navbar = () => {
 
   const basePages = [
     { name: 'Sobre Nós', path: '/sobre-nos' },
-    { name: 'Serviços', path: '/seguros', requireAuth: true },
+    { name: 'Seguros', path: '/planos', requireAuth: true },
     { name: 'Fale Conosco', path: '/#contact-section' },
   ];
 
