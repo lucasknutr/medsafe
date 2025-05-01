@@ -420,23 +420,26 @@ export default function RegisterForm() {
           {renderStep()}
         </div>
 
-        <div className="mt-8 flex justify-between">
-          {currentStep > 1 && (
+        <form onSubmit={currentStep === 3 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }}>
+          <div className="mt-8 flex justify-between">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Voltar
+              </button>
+            )}
             <button
-              onClick={handleBack}
-              className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              type="submit"
+              disabled={!validateStep(currentStep)}
+              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Voltar
+              {currentStep === 3 ? 'Finalizar Pagamento' : 'Próximo'}
             </button>
-          )}
-          <button
-            onClick={currentStep === 3 ? handleSubmit : handleNext}
-            disabled={!validateStep(currentStep)}
-            className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {currentStep === 3 ? (formData.paymentMethod === 'BOLETO' ? 'Finalizar Pagamento' : 'Finalizar Pagamento') : 'Próximo'}
-          </button>
-        </div>
+          </div>
+        </form>
       </Paper>
     </Box>
   );
