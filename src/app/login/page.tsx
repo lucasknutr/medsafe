@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '../components/Layout';
+import { useCookies } from 'react-cookie';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,6 +21,7 @@ export default function AuthPage() {
   const [role, setRole] = useState('SEGURADO'); // Add role state
   const [cities, setCities] = useState<{ value: string; label: string }[]>([]);
   const router = useRouter();
+  const [cookies, setCookie] = useCookies(['role', 'email', 'user_id']);
 
   const fetchCities = async (uf: string) => {
     try {
@@ -112,6 +114,9 @@ export default function AuthPage() {
     const data = await response.json();
 
     if (response.ok) {
+      // Set cookies for email and user_id
+      setCookie('email', data.user.email, { path: '/' });
+      setCookie('user_id', data.user.id, { path: '/' });
       alert(data.message);
       router.push('/'); // Redirect to dashboard after successful login/registration
     } else {
