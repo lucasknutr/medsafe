@@ -42,10 +42,9 @@ export default function InsurancePlansPage() {
 
   const handlePlanSelect = (plan: InsurancePlan) => {
     setCookie('selected_plan', plan, { path: '/' });
-    // If logged in, go straight to payment step in register
+    // If logged in, go straight to payment page with planId
     if (cookies.role) {
-      // Pass a query param or cookie to trigger payment step
-      window.location.href = '/register?step=3';
+      window.location.href = `/pagamento?planId=${plan.id}`;
     } else {
       router.push('/register');
     }

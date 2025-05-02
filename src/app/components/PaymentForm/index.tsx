@@ -1,0 +1,174 @@
+"use client";
+import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Paper, Typography, Grid, Card, CardContent, Button, CircularProgress, Alert } from "@mui/material";
+import { useCookies } from "react-cookie";
+
+interface InsurancePlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  features: string[];
+  is_active: boolean;
+}
+
+export default function PaymentForm() {
+  const [plan, setPlan] = useState<InsurancePlan | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cookies] = useCookies(["role", "selected_plan"]);
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [cardDetails, setCardDetails] = useState<any>({});
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const planId = searchParams.get("planId") || (cookies.selected_plan && cookies.selected_plan.id);
+
+  useEffect(() => {
+    if (!planId) {
+      setError("Nenhum plano selecionado.");
+      setLoading(false);
+      return;
+    }
+    const fetchPlan = async () => {
+      try {
+        const response = await fetch(`/api/insurance-plans?id=${planId}`);
+        if (!response.ok) throw new Error("Erro ao buscar o plano");
+        const data = await response.json();
+        // If endpoint returns array
+        setPlan(Array.isArray(data) ? data[0] : data);
+      } catch (err) {
+        setError("Erro ao carregar o plano selecionado.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlan();
+  }, [planId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!plan) return;
+    try {
+      const paymentData: any = {
+        planId: plan.id,
+        paymentMethod,
+      };
+      if (paymentMethod === "CARTAO") {
+        paymentData.cardInfo = cardDetails;
+      }
+      // Assume user is logged in and backend gets user from session/cookie
+      const paymentResponse = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentData),
+      });
+      if (!paymentResponse.ok) {
+        const error = await paymentResponse.json();
+        throw new Error(error.error || "Erro ao processar pagamento");
+      }
+      const payment = await paymentResponse.json();
+      if (paymentMethod === "BOLETO") {
+        setTimeout(() => {
+          if (payment.invoiceUrl) {
+            window.open(payment.invoiceUrl, "_blank");
+          } else {
+            alert("Erro: boleto não gerado. Verifique o retorno da API.");
+          }
+        }, 100);
+        alert("Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.");
+      } else {
+        alert("Pagamento processado com sucesso! Seu plano foi ativado.");
+      }
+      router.push("/dashboard");
+    } catch (err: any) {
+      alert(err.message || "Erro ao processar pagamento");
+    }
+  };
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (!plan) return <Alert severity="warning">Plano não encontrado.</Alert>;
+
+  return (
+    <Paper className="p-6 max-w-xl mx-auto mt-10">
+      <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name}</Typography>
+      <Typography variant="h6" color="primary" className="mb-4">
+        R$ {plan.price.toFixed(2)}/mês
+      </Typography>
+      <form onSubmit={handleSubmit}>
+        <Typography variant="subtitle1" className="mb-2">Método de Pagamento</Typography>
+        <div className="flex gap-4 mb-4">
+          <Button
+            variant={paymentMethod === "BOLETO" ? "contained" : "outlined"}
+            color="primary"
+            onClick={() => setPaymentMethod("BOLETO")}
+          >
+            Boleto Bancário
+          </Button>
+          <Button
+            variant={paymentMethod === "CARTAO" ? "contained" : "outlined"}
+            color="primary"
+            onClick={() => setPaymentMethod("CARTAO")}
+          >
+            Cartão de Crédito
+          </Button>
+        </div>
+        {paymentMethod === "CARTAO" && (
+          <div className="space-y-2 mb-4">
+            <input
+              type="text"
+              placeholder="Nome no cartão"
+              value={cardDetails.holderName || ""}
+              onChange={e => setCardDetails((c: any) => ({ ...c, holderName: e.target.value }))}
+              className="w-full p-2 border rounded"
+            />
+            <input
+              type="text"
+              placeholder="Número do cartão"
+              value={cardDetails.number || ""}
+              onChange={e => setCardDetails((c: any) => ({ ...c, number: e.target.value }))}
+              className="w-full p-2 border rounded"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="MM"
+                value={cardDetails.expiryMonth || ""}
+                onChange={e => setCardDetails((c: any) => ({ ...c, expiryMonth: e.target.value }))}
+                className="w-1/3 p-2 border rounded"
+                maxLength={2}
+              />
+              <input
+                type="text"
+                placeholder="AA"
+                value={cardDetails.expiryYear || ""}
+                onChange={e => setCardDetails((c: any) => ({ ...c, expiryYear: e.target.value }))}
+                className="w-1/3 p-2 border rounded"
+                maxLength={2}
+              />
+              <input
+                type="text"
+                placeholder="CVV"
+                value={cardDetails.ccv || ""}
+                onChange={e => setCardDetails((c: any) => ({ ...c, ccv: e.target.value }))}
+                className="w-1/3 p-2 border rounded"
+                maxLength={4}
+              />
+            </div>
+          </div>
+        )}
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          disabled={!paymentMethod}
+          fullWidth
+        >
+          Finalizar Pagamento
+        </Button>
+      </form>
+    </Paper>
+  );
+}

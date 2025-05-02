@@ -295,6 +295,7 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    alert('handleSubmit called'); // Debug: ensure this runs
     try {
       if (!selectedPlan || !registeredUserId) {
         throw new Error('Usuário ou plano não selecionado. Cadastre-se antes de pagar.');
@@ -402,6 +403,10 @@ export default function RegisterForm() {
 
   return (
     <Box className="max-w-4xl mx-auto p-4">
+      {/* DEBUG BANNER */}
+      <div style={{ background: '#fffae6', color: '#a67c00', padding: 8, marginBottom: 8, borderRadius: 4 }}>
+        <strong>DEBUG:</strong> currentStep = {currentStep}, paymentMethod = {formData.paymentMethod}, selectedPlan = {selectedPlan ? selectedPlan.name : 'null'}
+      </div>
       <Paper className="p-6">
         <Stepper activeStep={currentStep - 1} alternativeLabel className="mb-8">
           {steps.map((step, index) => (
@@ -433,6 +438,7 @@ export default function RegisterForm() {
             )}
             <button
               type="submit"
+              onClick={() => alert('Button onClick fired!')}
               disabled={!validateStep(currentStep)}
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
