@@ -17,7 +17,7 @@ export default function PaymentForm() {
   const [plan, setPlan] = useState<InsurancePlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cookies] = useCookies(["role", "selected_plan"]);
+  const [cookies] = useCookies(["role", "selected_plan", "email", "user_id"]);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [cardDetails, setCardDetails] = useState<any>({});
   const router = useRouter();
@@ -54,11 +54,14 @@ export default function PaymentForm() {
       const paymentData: any = {
         planId: plan.id,
         paymentMethod,
+        email: cookies.email,
+        customerId: cookies.user_id,
       };
       if (paymentMethod === "CARTAO") {
         paymentData.cardInfo = cardDetails;
       }
-      // Assume user is logged in and backend gets user from session/cookie
+      // Debug: show what we are sending
+      console.log('Submitting paymentData:', paymentData);
       const paymentResponse = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,7 +96,11 @@ export default function PaymentForm() {
 
   return (
     <Paper className="p-6 max-w-xl mx-auto mt-10">
-      <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name}</Typography>
+      <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name} (id: {plan.id})</Typography>
+      <Typography variant="subtitle2" color="secondary" className="mb-2">
+        DEBUG: planId param: {planId}, cookie selected_plan id: {cookies.selected_plan && cookies.selected_plan.id ? cookies.selected_plan.id : 'none'}<br/>
+        email: {cookies.email || 'none'}, user_id: {cookies.user_id || 'none'}
+      </Typography>
       <Typography variant="h6" color="primary" className="mb-4">
         R$ {plan.price.toFixed(2)}/mês
       </Typography>
