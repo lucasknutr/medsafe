@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import PaymentForm from "@/app/components/PaymentForm";
 
 export default function PagamentoPage() {
