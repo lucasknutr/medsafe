@@ -128,7 +128,7 @@ const Dashboard = () => {
         setSlides([
           {
             image: doctorBanner.src,
-            title: 'Proteção Jurídica para Profissionais de Saúde',
+            title: 'Proteção Jurídica para Profissionais de Saúde.',
             description: 'Oferecemos consultoria especializada para médicos e profissionais de saúde.',
             buttonLink: '/register',
           }
