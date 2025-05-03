@@ -38,7 +38,9 @@ interface PaymentData {
 export async function createPayment(data: PaymentData) {
   try {
     const asaasApiKey = process.env.ASAAS_API_KEY;
+    console.log('[createPayment] data:', JSON.stringify(data, null, 2));
     if (!asaasApiKey) {
+      console.error('[createPayment] Missing ASAAS_API_KEY environment variable');
       throw new Error('Missing ASAAS_API_KEY environment variable');
     }
 
@@ -46,19 +48,23 @@ export async function createPayment(data: PaymentData) {
     const plan = await prisma.insurancePlan.findUnique({
       where: { id: data.planId },
     });
+    console.log('[createPayment] plan:', plan);
     if (!plan) throw new Error('Plano não encontrado');
 
     // Get user (customer) details from Prisma
     let user = await prisma.user.findUnique({
       where: { id: Number(data.customerId) },
     });
+    console.log('[createPayment] user by id:', user);
     if (!user) {
       // Try to find user by email if not found by ID
       user = await prisma.user.findUnique({
         where: { email: data.customerId },
       });
+      console.log('[createPayment] user by email:', user);
     }
     if (!user) throw new Error('Usuário não encontrado');
+    console.log('[createPayment] user.asaasCustomerId:', user.asaasCustomerId);
 
     // Prepare payment data for Asaas
     const paymentData: any = {
@@ -69,6 +75,7 @@ export async function createPayment(data: PaymentData) {
       description: `Plano de Seguro: ${plan.name}`,
       externalReference: data.planId,
     };
+    console.log('[createPayment] paymentData for Asaas:', paymentData);
 
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
       paymentData.creditCard = {
@@ -91,6 +98,7 @@ export async function createPayment(data: PaymentData) {
       if (data.cardInfo.remoteIp) {
         paymentData.remoteIp = data.cardInfo.remoteIp;
       }
+      console.log('[createPayment] creditCard & creditCardHolderInfo:', paymentData.creditCard, paymentData.creditCardHolderInfo);
     }
 
     const response = await fetch('https://api.asaas.com/v3/payments', {
@@ -101,13 +109,15 @@ export async function createPayment(data: PaymentData) {
       },
       body: JSON.stringify(paymentData),
     });
-
+    console.log('[createPayment] Asaas API response status:', response.status);
     if (!response.ok) {
       const error = await response.json();
+      console.error('[createPayment] Asaas API error:', error);
       throw new Error(error.message || 'Erro ao processar pagamento');
     }
 
     const payment = await response.json();
+    console.log('[createPayment] payment response from Asaas:', payment);
 
     // Save payment info to user's transactions in Prisma
     await prisma.transaction.create({
@@ -155,7 +165,7 @@ export async function createPayment(data: PaymentData) {
 
     return payment;
   } catch (error) {
-    console.error('Error creating payment:', error);
+    console.error('[createPayment] Error creating payment:', error);
     throw error;
   }
 }
