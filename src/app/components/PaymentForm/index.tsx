@@ -52,7 +52,7 @@ export default function PaymentForm() {
     if (!plan) return;
     try {
       const paymentData: any = {
-        planId: plan.id,
+        planId: "cmabutev30000ec8p7nanpru7",
         paymentMethod,
         email: cookies.email,
         customerId: cookies.user_id,

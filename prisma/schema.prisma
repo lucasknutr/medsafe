@@ -1,10 +1,12 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 model User {
@@ -29,6 +31,7 @@ model User {
   processes      Process[]
   transactions   Transaction[]
   policy         Policy?         @relation(fields: [policy_id], references: [id])
+  @@schema("public")
 }
 
 model Insurance {
@@ -40,6 +43,7 @@ model Insurance {
   updatedAt    DateTime      @updatedAt @map("updated_at")
   user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
+  @@schema("public")
 }
 
 model Policy {
@@ -56,6 +60,7 @@ model Policy {
   new_policy        Policy?  @relation("PolicyExtension", fields: [new_policy_id], references: [id])
   extended_policies Policy[] @relation("PolicyExtension")
   users             User[]
+  @@schema("public")
 }
 
 model Process {
@@ -77,6 +82,7 @@ model Process {
   updated_at          DateTime @updatedAt
   lawyer              Lawyer   @relation(fields: [lawyer_id], references: [id])
   user                User     @relation(fields: [user_id], references: [id])
+  @@schema("public")
 }
 
 model Lawyer {
@@ -92,6 +98,7 @@ model Lawyer {
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   processes  Process[]
+  @@schema("public")
 }
 
 model Broker {
@@ -107,6 +114,7 @@ model Broker {
   commission_rules Json
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
+  @@schema("public")
 }
 
 model LegalAction {
@@ -115,6 +123,7 @@ model LegalAction {
   cost       Float
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  @@schema("public")
 }
 
 model PaymentMethod {
@@ -132,6 +141,7 @@ model PaymentMethod {
   user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
   @@unique([userId, type], name: "userId_type_type")
+  @@schema("public")
 }
 
 model Transaction {
@@ -150,6 +160,7 @@ model Transaction {
   insurance       Insurance?     @relation(fields: [insuranceId], references: [id])
   paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
   user            User           @relation(fields: [userId], references: [id])
+  @@schema("public")
 }
 
 model ServiceBox {
@@ -161,6 +172,7 @@ model ServiceBox {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@schema("public")
 }
 
 model Slide {
@@ -172,6 +184,7 @@ model Slide {
   order       Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  @@schema("public")
 }
 
 model InsurancePlan {
@@ -184,4 +197,5 @@ model InsurancePlan {
   asaasPlanId String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-} 
+  @@schema("public")
+}
