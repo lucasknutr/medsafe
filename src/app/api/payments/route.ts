@@ -39,10 +39,15 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(payment);
-  } catch (error) {
-    console.error('Payment creation error:', error);
+  } catch (error: any) {
+    console.error('!!! Payment Route Error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('!!! Specific Error Message:', errorMessage);
     return NextResponse.json(
-      { error: 'Failed to create payment' },
+      { 
+        error: 'Failed to create payment',
+        details: errorMessage
+      },
       { status: 500 }
     );
   }
@@ -67,10 +72,15 @@ export async function GET(request: Request) {
 
     const status = await getPaymentStatus(paymentId);
     return NextResponse.json(status);
-  } catch (error) {
-    console.error('Payment status error:', error);
+  } catch (error: any) {
+    console.error('!!! Payment Status Route Error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('!!! Specific Status Error Message:', errorMessage);
     return NextResponse.json(
-      { error: 'Failed to get payment status' },
+      { 
+        error: 'Failed to get payment status',
+        details: errorMessage
+      },
       { status: 500 }
     );
   }
