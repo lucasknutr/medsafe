@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import prisma from '@/app/lib/prisma';
+import { getAsaasClient } from '@/lib/asaas'; // Assuming getAsaasClient is defined elsewhere
 
 // Initialize Supabase client with proper error handling
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,7 +17,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface PaymentData {
   planId: string;
-  customerId: string;
+  customerId: number | string; // Can be user ID (number) or email (string)
   paymentMethod: 'BOLETO' | 'CREDIT_CARD';
   cardInfo?: {
     holderName: string;
@@ -24,149 +25,234 @@ interface PaymentData {
     expiryMonth: string;
     expiryYear: string;
     ccv: string;
-    cpfCnpj?: string;
-    phone?: string;
     email?: string;
+    cpfCnpj?: string;
     postalCode?: string;
     addressNumber?: string;
-    addressComplement?: string | null;
+    addressComplement?: string;
+    phone?: string;
     mobilePhone?: string;
     remoteIp?: string;
   };
 }
 
-export async function createPayment(data: PaymentData) {
-  try {
-    const asaasApiKey = process.env.ASAAS_API_KEY;
-    console.log('[createPayment] data:', JSON.stringify(data, null, 2));
-    if (!asaasApiKey) {
-      console.error('[createPayment] Missing ASAAS_API_KEY environment variable');
-      throw new Error('Missing ASAAS_API_KEY environment variable');
-    }
+interface AsaasCustomerData {
+  name: string;
+  email: string;
+  cpfCnpj?: string;
+  phone?: string;
+  // Add other relevant fields like address, etc.
+}
 
-    // Get plan details from Prisma
+interface AsaasPaymentResponse {
+  id: string;
+  status: string;
+  invoiceUrl?: string; // For Boleto
+  bankSlipUrl?: string; // Alternative for Boleto
+  barCode?: string; // For Boleto
+  creditCardToken?: string; // For Credit Card
+  creditCardNumber?: string; // Last 4 digits
+  creditCardBrand?: string;
+  dateCreated?: string;
+  // ... other fields returned by Asaas
+}
+
+export async function createPayment(data: PaymentData) {
+  console.log('[createPayment] Starting payment creation with data:', JSON.stringify(data, null, 2));
+  const asaasClient = getAsaasClient(); // Use your Asaas client instance
+
+  try {
+    // 1. Get Plan Details
+    console.log(`[createPayment] Fetching plan with ID: ${data.planId}`);
     const plan = await prisma.insurancePlan.findUnique({
       where: { id: data.planId },
     });
-    console.log('[createPayment] plan:', plan);
-    if (!plan) throw new Error('Plano não encontrado');
-
-    // Get user (customer) details from Prisma
-    let user = await prisma.user.findUnique({
-      where: { id: Number(data.customerId) },
-    });
-    console.log('[createPayment] user by id:', user);
-    if (!user) {
-      // Try to find user by email if not found by ID
-      user = await prisma.user.findUnique({
-        where: { email: data.customerId },
-      });
-      console.log('[createPayment] user by email:', user);
+    if (!plan) {
+      console.error(`[createPayment] Plan not found for ID: ${data.planId}`);
+      throw new Error('Plano não encontrado');
     }
-    if (!user) throw new Error('Usuário não encontrado');
-    console.log('[createPayment] user.asaasCustomerId:', user.asaasCustomerId);
+    console.log('[createPayment] Plan details:', plan);
 
-    // Prepare payment data for Asaas
-    const paymentData: any = {
-      customer: user.asaasCustomerId,
+    // 2. Get User Details (Try by ID first, then email)
+    let userIdentifier = typeof data.customerId === 'number' ? { id: data.customerId } : { email: data.customerId };
+    console.log('[createPayment] Fetching user with identifier:', userIdentifier);
+    let user = await prisma.user.findUnique({ where: userIdentifier });
+
+    if (!user && typeof data.customerId === 'number') {
+        // If lookup by ID failed, try fetching by email using the ID (assuming ID lookup failed but email might be available)
+        // This fallback logic might need adjustment based on how customerId is truly passed
+        console.warn(`[createPayment] User not found by ID ${data.customerId}, attempting lookup by email associated with potential session`);
+        // Potentially fetch email based on ID if needed, or rely on email being passed separately
+        // For now, this fallback might not be robust without more context
+    } else if (!user && typeof data.customerId === 'string') {
+        console.log(`[createPayment] User not found by email ${data.customerId}`);
+        // Handle case where neither ID nor email match
+    }
+
+    if (!user) {
+      console.error(`[createPayment] User not found for identifier: ${JSON.stringify(userIdentifier)}`);
+      throw new Error('Usuário não encontrado');
+    }
+    console.log('[createPayment] User details:', { id: user.id, email: user.email, name: user.name, asaasCustomerId: user.asaasCustomerId });
+
+    // 3. Ensure Asaas Customer Exists
+    let asaasCustomerId = user.asaasCustomerId;
+    if (!asaasCustomerId) {
+      console.log(`[createPayment] Asaas customer ID not found for user ${user.id}. Creating customer in Asaas...`);
+      try {
+        const customerPayload: AsaasCustomerData = {
+          name: user.name,
+          email: user.email,
+          cpfCnpj: user.cpf || undefined,
+          phone: user.phone || undefined,
+          // Add other required fields from your User model
+        };
+        console.log('[createPayment] Asaas customer creation payload:', customerPayload);
+        const newAsaasCustomer = await asaasClient.createCustomer(customerPayload);
+        asaasCustomerId = newAsaasCustomer.id;
+        console.log(`[createPayment] Asaas customer created with ID: ${asaasCustomerId}. Updating user record.`);
+
+        // Update user in Prisma with the new Asaas ID
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { asaasCustomerId: asaasCustomerId },
+        });
+        console.log(`[createPayment] User ${user.id} updated with Asaas Customer ID.`);
+      } catch (customerError: any) {
+        console.error('[createPayment] Error creating Asaas customer:', customerError?.response?.data || customerError.message);
+        throw new Error(`Failed to create Asaas customer: ${customerError?.response?.data?.errors?.[0]?.description || customerError.message}`);
+      }
+    }
+
+    // 4. Prepare Payment Data for Asaas
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 3); // Set due date 3 days from now
+    const formattedDueDate = dueDate.toISOString().split('T')[0];
+
+    const paymentPayload: any = {
+      customer: asaasCustomerId,
       billingType: data.paymentMethod,
-      value: plan.price,
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      description: `Plano de Seguro: ${plan.name}`,
-      externalReference: data.planId,
+      value: plan.price, // Use price from the fetched plan
+      dueDate: formattedDueDate,
+      description: `Pagamento Plano: ${plan.name}`, // Clearer description
+      externalReference: `plan_${data.planId}_user_${user.id}_${Date.now()}`, // More unique reference
     };
-    console.log('[createPayment] paymentData for Asaas:', paymentData);
 
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
-      paymentData.creditCard = {
-        holderName: data.cardInfo.holderName,
-        number: data.cardInfo.number,
-        expiryMonth: data.cardInfo.expiryMonth,
-        expiryYear: data.cardInfo.expiryYear,
-        ccv: data.cardInfo.ccv,
-      };
-      paymentData.creditCardHolderInfo = {
-        name: data.cardInfo.holderName,
-        email: data.cardInfo.email || user.email,
-        cpfCnpj: data.cardInfo.cpfCnpj || user.cpf,
-        postalCode: data.cardInfo.postalCode || user.zip_code,
-        addressNumber: data.cardInfo.addressNumber || '',
-        addressComplement: data.cardInfo.addressComplement || '',
-        phone: data.cardInfo.phone || user.phone,
-        mobilePhone: data.cardInfo.mobilePhone || user.phone,
-      };
-      if (data.cardInfo.remoteIp) {
-        paymentData.remoteIp = data.cardInfo.remoteIp;
-      }
-      console.log('[createPayment] creditCard & creditCardHolderInfo:', paymentData.creditCard, paymentData.creditCardHolderInfo);
+        console.log('[createPayment] Preparing Credit Card payment details...');
+        paymentPayload.creditCard = {
+            holderName: data.cardInfo.holderName,
+            number: data.cardInfo.number.replace(/\s+/g, ''), // Remove spaces from card number
+            expiryMonth: data.cardInfo.expiryMonth,
+            expiryYear: data.cardInfo.expiryYear,
+            ccv: data.cardInfo.ccv,
+        };
+        paymentPayload.creditCardHolderInfo = {
+            name: data.cardInfo.holderName, // Use holder name from card info
+            email: user.email, // Use user's primary email
+            cpfCnpj: user.cpf, // Use user's CPF
+            postalCode: user.zip_code, // Use user's zip code
+            addressNumber: user.address_number || data.cardInfo.addressNumber || 'N/A', // Provide user's or cardholder's address number
+            // addressComplement: user.address_complement || data.cardInfo.addressComplement || '',
+            phone: user.phone, // Use user's primary phone
+            // mobilePhone: user.mobile_phone || user.phone, // Optional: use mobile if available
+        };
+        // Asaas often requires remote IP for fraud prevention
+        paymentPayload.remoteIp = data.cardInfo.remoteIp || '127.0.0.1'; // Get IP from request if possible
+        console.log('[createPayment] Credit Card Payload Snippet:', { creditCard: paymentPayload.creditCard, creditCardHolderInfo: paymentPayload.creditCardHolderInfo, remoteIp: paymentPayload.remoteIp });
     }
 
-    const response = await fetch('https://api.asaas.com/v3/payments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${asaasApiKey}`,
-      },
-      body: JSON.stringify(paymentData),
-    });
-    console.log('[createPayment] Asaas API response status:', response.status);
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('[createPayment] Asaas API error:', error);
-      throw new Error(error.message || 'Erro ao processar pagamento');
+    console.log('[createPayment] Final Asaas payment payload:', JSON.stringify(paymentPayload, null, 2));
+
+    // 5. Create Payment in Asaas
+    let paymentResponse: AsaasPaymentResponse;
+    try {
+        console.log('[createPayment] Sending payment request to Asaas...');
+        paymentResponse = await asaasClient.createPayment(paymentPayload);
+        console.log('[createPayment] Raw Asaas payment response:', JSON.stringify(paymentResponse, null, 2));
+    } catch (paymentError: any) {
+        console.error('[createPayment] Error calling Asaas createPayment API:');
+        if (paymentError.response) {
+            console.error('  Status:', paymentError.response.status);
+            console.error('  Data:', JSON.stringify(paymentError.response.data, null, 2));
+            const errorDetail = paymentError.response.data?.errors?.[0]?.description || JSON.stringify(paymentError.response.data);
+            throw new Error(`Asaas API Error (${paymentError.response.status}): ${errorDetail}`);
+        } else {
+            console.error('  Message:', paymentError.message);
+            throw new Error(`Asaas API Request Failed: ${paymentError.message}`);
+        }
     }
 
-    const payment = await response.json();
-    console.log('[createPayment] payment response from Asaas:', payment);
-
-    // Save payment info to user's transactions in Prisma
-    await prisma.transaction.create({
-      data: {
+    // 6. Save Transaction to Database
+    console.log('[createPayment] Saving transaction to database...');
+    try {
+      const transactionData = {
         userId: user.id,
-        amount: Math.round(plan.price * 100), // ASAAS expects cents as int
-        status: payment.status,
+        insuranceId: plan.id, // Link to the InsurancePlan ID
+        amount: plan.price, // Store amount in the correct format (e.g., float or decimal)
+        status: paymentResponse.status,
         type: data.paymentMethod,
-        transactionId: payment.id,
-        boletoUrl: payment.bankSlipUrl || payment.invoiceUrl,
-        boletoCode: payment.barCode || null,
-        createdAt: new Date(payment.dateCreated || Date.now()),
+        transactionId: paymentResponse.id, // Asaas payment ID
+        boletoUrl: paymentResponse.bankSlipUrl || paymentResponse.invoiceUrl || null,
+        boletoCode: paymentResponse.barCode || null,
+        createdAt: paymentResponse.dateCreated ? new Date(paymentResponse.dateCreated) : new Date(),
         updatedAt: new Date(),
-      },
-    });
+        paymentMethod: {
+          // Conditionally create/update PaymentMethod based on type
+          ...(data.paymentMethod === 'BOLETO' ? {
+             create: {
+                user: { connect: { id: user.id } },
+                type: 'BOLETO',
+                isDefault: false, // Boleto is usually not default
+              }
+          } : data.paymentMethod === 'CREDIT_CARD' && data.cardInfo ? {
+             // Upsert logic for Credit Card might be needed if you want to store card tokens
+             // For simplicity, just creating a placeholder or linking if needed
+             // If storing card details/tokens, use upsert as before
+             // Example: Connect if exists, otherwise create
+             connectOrCreate: {
+                where: { userId_type_type: { userId: user.id, type: 'CREDIT_CARD' } }, // Need a unique constraint
+                create: {
+                  user: { connect: { id: user.id } },
+                  type: 'CREDIT_CARD',
+                  lastFour: paymentResponse.creditCardNumber,
+                  brand: paymentResponse.creditCardBrand,
+                  holderName: data.cardInfo.holderName,
+                  // expiryMonth: data.cardInfo.expiryMonth, // Storing expiry might be PCI compliance issue
+                  // expiryYear: data.cardInfo.expiryYear,
+                  isDefault: true, // Make the first card default?
+                }
+             }
+          } : undefined)
+        }
+      };
 
-    // Optionally, save credit card token if present
-    if (payment.creditCardToken) {
-      await prisma.paymentMethod.upsert({
-        where: {
-          userId_type_type: {
-            userId: user.id,
-            type: 'CREDIT_CARD',
-          },
-        },
-        update: {
-          lastFour: payment.creditCardNumber,
-          brand: payment.creditCardBrand,
-          holderName: data.cardInfo?.holderName,
-          expiryMonth: data.cardInfo?.expiryMonth,
-          expiryYear: data.cardInfo?.expiryYear,
-        },
-        create: {
-          userId: user.id,
-          type: 'CREDIT_CARD',
-          lastFour: payment.creditCardNumber,
-          brand: payment.creditCardBrand,
-          holderName: data.cardInfo?.holderName,
-          expiryMonth: data.cardInfo?.expiryMonth,
-          expiryYear: data.cardInfo?.expiryYear,
-          isDefault: true,
-        },
-      });
+      console.log('[createPayment] Prisma Transaction Payload:', JSON.stringify(transactionData, null, 2));
+
+      const transaction = await prisma.transaction.create({ data: transactionData });
+      console.log('[createPayment] Transaction saved successfully:', transaction.id);
+
+      // Return relevant payment info to the frontend
+      return {
+          success: true,
+          transactionId: transaction.id,
+          asaasPaymentId: paymentResponse.id,
+          status: paymentResponse.status,
+          boletoUrl: paymentResponse.bankSlipUrl || paymentResponse.invoiceUrl,
+          boletoCode: paymentResponse.barCode,
+          // Add card details if needed, but be cautious
+      };
+
+    } catch (dbError: any) {
+        console.error('[createPayment] Error saving transaction to database:', dbError);
+        // Consider compensating action: try to cancel/refund Asaas payment if DB fails?
+        throw new Error(`Failed to save transaction details: ${dbError.message}`);
     }
 
-    return payment;
-  } catch (error) {
-    console.error('[createPayment] Error creating payment:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('!!! [createPayment] Overall Error:', error.message);
+    // Ensure the error thrown includes useful info
+    throw new Error(error.message || 'An unexpected error occurred during payment creation.');
   }
 }
 
