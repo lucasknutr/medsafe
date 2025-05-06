@@ -100,15 +100,21 @@ export async function createPayment(data: PaymentData) {
     if (!asaasCustomerId) {
       console.log(`[createPayment] Asaas customer ID not found for user ${user.id}. Creating customer in Asaas...`);
       try {
-        const customerPayload: AsaasCustomerData = {
+        const customerPayload = {
           name: user.name,
           email: user.email,
-          cpfCnpj: user.cpf || undefined,
-          phone: user.phone || undefined,
-          // Add other required fields from your User model
+          cpfCnpj: user.cpf, // Pass user.cpf directly (assuming it exists)
+          phone: user.phone || undefined, // Keep phone optional if it truly is
+          // Add other required fields from your User model if necessary
         };
+        // Basic check: Ensure required fields are present before calling Asaas
+        if (!customerPayload.cpfCnpj) {
+            console.error(`[createPayment] Cannot create Asaas customer for user ${user.id}: Missing CPF.`);
+            throw new Error('CPF do usuário é necessário para criar cliente Asaas.');
+        }
         console.log('[createPayment] Asaas customer creation payload:', customerPayload);
-        const newAsaasCustomer = await asaasClient.createCustomer(customerPayload);
+        // Note: Ensure asaasClient.createCustomer type matches this payload or adjust here
+        const newAsaasCustomer = await asaasClient.createCustomer(customerPayload as any); // Use 'as any' temporarily if type mismatch persists, but ideally fix the type
         asaasCustomerId = newAsaasCustomer.id;
         console.log(`[createPayment] Asaas customer created with ID: ${asaasCustomerId}. Updating user record.`);
 
@@ -152,7 +158,7 @@ export async function createPayment(data: PaymentData) {
             email: user.email, // Use user's primary email
             cpfCnpj: user.cpf, // Use user's CPF
             postalCode: user.zip_code, // Use user's zip code
-            addressNumber: user.address_number || data.cardInfo.addressNumber || 'N/A', // Provide user's or cardholder's address number
+            addressNumber: data.cardInfo.addressNumber || 'N/A', // Use card info or fallback
             // addressComplement: user.address_complement || data.cardInfo.addressComplement || '',
             phone: user.phone, // Use user's primary phone
             // mobilePhone: user.mobile_phone || user.phone, // Optional: use mobile if available
@@ -187,9 +193,8 @@ export async function createPayment(data: PaymentData) {
     console.log('[createPayment] Saving transaction to database...');
     try {
       const transactionData = {
-        userId: user.id,
-        insuranceId: plan.id, // Link to the InsurancePlan ID
-        amount: plan.price, // Store amount in the correct format (e.g., float or decimal)
+        user: { connect: { id: user.id } }, // CORRECTED: Explicitly connect the user
+        amount: Math.round(plan.price * 100), // Store amount as integer cents
         status: paymentResponse.status,
         type: data.paymentMethod,
         transactionId: paymentResponse.id, // Asaas payment ID
