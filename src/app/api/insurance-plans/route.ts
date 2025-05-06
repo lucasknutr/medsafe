@@ -15,21 +15,47 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export const runtime = 'edge';
 
 // Public endpoint - no auth required
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log('Fetching insurance plans...');
-    
-    const { data: plans, error } = await supabase
-      .from('insurance_plans')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
-    if (error) {
-      throw error;
+    let planOrPlans: any | any[] | null = null;
+    let fetchError: any = null;
+
+    if (id) {
+      console.log(`Fetching specific insurance plan with id: ${id}`);
+      // Fetch single result
+      const { data, error } = await supabase
+        .from('insurance_plans')
+        .select('*')
+        .eq('id', id)
+        .single(); 
+      planOrPlans = data;
+      fetchError = error;
+    } else {
+      console.log('Fetching all insurance plans...');
+      // Fetch multiple results
+      const { data, error } = await supabase
+        .from('insurance_plans')
+        .select('*')
+        .order('created_at', { ascending: false }); 
+      planOrPlans = data;
+      fetchError = error;
     }
 
-    console.log('Plans fetched successfully:', plans);
-    return NextResponse.json(plans);
+    // Now check the fetchError
+    if (fetchError) {
+      // Handle potential 'PGRST116' error if .single() finds no matching row
+      if (id && fetchError.code === 'PGRST116') {
+        console.warn(`Plan with id ${id} not found.`);
+        return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      }
+      throw fetchError; // Re-throw other errors
+    }
+
+    console.log('Plan(s) fetched successfully:', planOrPlans);
+    return NextResponse.json(planOrPlans);
   } catch (error) {
     console.error('Detailed error fetching insurance plans:', {
       error,
@@ -220,4 +246,4 @@ export async function DELETE(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
