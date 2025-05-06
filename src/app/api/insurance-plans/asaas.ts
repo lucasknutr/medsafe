@@ -173,8 +173,9 @@ export async function createPayment(data: PaymentData) {
     // 5. Create Payment in Asaas
     let paymentResponse: AsaasPaymentResponse;
     try {
-        console.log('[createPayment] Sending payment request to Asaas...');
+        console.log(`[${new Date().toISOString()}] [createPayment] >>> Attempting Asaas createPayment...`);
         paymentResponse = await asaasClient.createPayment(paymentPayload);
+        console.log(`[${new Date().toISOString()}] [createPayment] <<< Asaas createPayment successful.`);
         console.log('[createPayment] Raw Asaas payment response:', JSON.stringify(paymentResponse, null, 2));
     } catch (paymentError: any) {
         console.error('[createPayment] Error calling Asaas createPayment API:');
@@ -234,7 +235,9 @@ export async function createPayment(data: PaymentData) {
 
       console.log('[createPayment] Prisma Transaction Payload:', JSON.stringify(transactionData, null, 2));
 
+      console.log(`[${new Date().toISOString()}] [createPayment] >>> Attempting Prisma transaction.create...`);
       const transaction = await prisma.transaction.create({ data: transactionData });
+      console.log(`[${new Date().toISOString()}] [createPayment] <<< Prisma transaction.create successful.`);
       console.log('[createPayment] Transaction saved successfully:', transaction.id);
 
       // Return relevant payment info to the frontend
