@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with proper error handling
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Public endpoint - no auth required
 export async function GET(request: Request) {
@@ -18,37 +9,23 @@ export async function GET(request: Request) {
     const id = searchParams.get('id');
 
     let planOrPlans: any | any[] | null = null;
-    let fetchError: any = null;
 
     if (id) {
       console.log(`Fetching specific insurance plan with id: ${id}`);
-      // Fetch single result
-      const { data, error } = await supabase
-        .from('insurance_plans')
-        .select('*')
-        .eq('id', id)
-        .single(); 
-      planOrPlans = data;
-      fetchError = error;
-    } else {
-      console.log('Fetching all insurance plans...');
-      // Fetch multiple results
-      const { data, error } = await supabase
-        .from('insurance_plans')
-        .select('*')
-        .order('created_at', { ascending: false }); 
-      planOrPlans = data;
-      fetchError = error;
-    }
-
-    // Now check the fetchError
-    if (fetchError) {
-      // Handle potential 'PGRST116' error if .single() finds no matching row
-      if (id && fetchError.code === 'PGRST116') {
+      planOrPlans = await prisma.insurancePlan.findUnique({
+        where: { id: id },
+      });
+      if (!planOrPlans) {
         console.warn(`Plan with id ${id} not found.`);
         return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
       }
-      throw fetchError; // Re-throw other errors
+    } else {
+      console.log('Fetching all insurance plans...');
+      planOrPlans = await prisma.insurancePlan.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
     }
 
     console.log('Plan(s) fetched successfully:', planOrPlans);
@@ -70,48 +47,21 @@ export async function GET(request: Request) {
   }
 }
 
-// Protected endpoints - using Supabase service role key
+// Protected endpoints - assumption: use Prisma for consistency
 export async function POST(request: Request) {
   try {
     console.log('Starting POST request...');
     const body = await request.json();
     console.log('Received request body:', body);
 
-    // Validate required fields
     if (!body.name || !body.description || !body.price || !body.features) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: 'Missing required fields',
-          required: ['name', 'description', 'price', 'features'],
-          received: Object.keys(body),
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request', details: 'Missing required fields' }, { status: 400 });
     }
-
-    // Validate price is a number
     if (isNaN(Number(body.price))) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: 'Price must be a number',
-          received: body.price,
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request', details: 'Price must be a number' }, { status: 400 });
     }
-
-    // Validate features is an array
     if (!Array.isArray(body.features)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: 'Features must be an array',
-          received: body.features,
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request', details: 'Features must be an array' }, { status: 400 });
     }
 
     console.log('Creating insurance plan with data:', {
@@ -119,26 +69,21 @@ export async function POST(request: Request) {
       description: body.description,
       price: Number(body.price),
       features: body.features,
+      isActive: body.isActive !== undefined ? body.isActive : true,
     });
 
-    const { data: plan, error } = await supabase
-      .from('insurance_plans')
-      .insert({
+    const newPlan = await prisma.insurancePlan.create({
+      data: {
         name: body.name,
         description: body.description,
         price: Number(body.price),
         features: body.features,
-        is_active: true,
-      })
-      .select()
-      .single();
+        isActive: body.isActive !== undefined ? body.isActive : true,
+      },
+    });
 
-    if (error) {
-      throw error;
-    }
-
-    console.log('Insurance plan created successfully:', plan);
-    return NextResponse.json(plan, { status: 201 });
+    console.log('Insurance plan created successfully:', newPlan);
+    return NextResponse.json(newPlan, { status: 201 });
   } catch (error) {
     console.error('Detailed error creating insurance plan:', {
       error,
@@ -157,38 +102,34 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  let body: any = {};
   try {
-    const body = await request.json();
+    body = await request.json();
     console.log('Received request body:', body);
 
     if (!body.id) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: 'Missing plan ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request', details: 'Missing plan ID' }, { status: 400 });
     }
 
-    const { data: plan, error } = await supabase
-      .from('insurance_plans')
-      .update({
-        name: body.name,
-        description: body.description,
-        price: body.price,
-        features: body.features,
-        is_active: body.isActive,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', body.id)
-      .select()
-      .single();
+    const updateData: { [key: string]: any } = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.price !== undefined) updateData.price = Number(body.price);
+    if (body.features !== undefined) updateData.features = body.features;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive;
 
-    if (error) {
-      throw error;
-    }
+    const updatedPlan = await prisma.insurancePlan.update({
+      where: { id: body.id },
+      data: updateData,
+    });
 
-    console.log('Insurance plan updated successfully:', plan);
-    return NextResponse.json(plan);
+    console.log('Insurance plan updated successfully:', updatedPlan);
+    return NextResponse.json(updatedPlan);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      console.warn(`Update failed: Plan with id ${body.id} not found.`);
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+    }
     console.error('Detailed error updating insurance plan:', {
       error,
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -206,29 +147,24 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
     if (!id) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: 'Missing plan ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request', details: 'Missing plan ID' }, { status: 400 });
     }
 
-    const { error } = await supabase
-      .from('insurance_plans')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      throw error;
-    }
+    await prisma.insurancePlan.delete({
+      where: { id: id },
+    });
 
     console.log('Insurance plan deleted successfully:', id);
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      console.warn(`Delete failed: Plan with id ${id} not found.`);
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+    }
     console.error('Detailed error deleting insurance plan:', {
       error,
       message: error instanceof Error ? error.message : 'Unknown error',
