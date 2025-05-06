@@ -11,9 +11,6 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Configure the route to use edge runtime
-export const runtime = 'edge';
-
 // Public endpoint - no auth required
 export async function GET(request: Request) {
   try {
