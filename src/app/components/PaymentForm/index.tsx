@@ -14,16 +14,16 @@ interface InsurancePlan {
 }
 
 export default function PaymentForm() {
-  const [plan, setPlan] = useState<InsurancePlan | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [cookies] = useCookies(["role", "selected_plan", "email", "user_id"]);
-  const [paymentMethod, setPaymentMethod] = useState<string>("");
-  const [cardDetails, setCardDetails] = useState<any>({});
   const router = useRouter();
   const searchParams = useSearchParams();
-
+  const [cookies] = useCookies(["role", "selected_plan", "email", "user_id"]);
   const planId = searchParams.get("planId") || (cookies.selected_plan && cookies.selected_plan.id);
+  const [plan, setPlan] = useState<InsurancePlan | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [cardDetails, setCardDetails] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showGoToHomeButton, setShowGoToHomeButton] = useState(false);
 
   useEffect(() => {
     if (!planId) {
@@ -73,18 +73,18 @@ export default function PaymentForm() {
       }
       const payment = await paymentResponse.json();
       if (paymentMethod === "BOLETO") {
-        setTimeout(() => {
-          if (payment.invoiceUrl) {
-            window.open(payment.invoiceUrl, "_blank");
-          } else {
-            alert("Erro: boleto não gerado. Verifique o retorno da API.");
-          }
-        }, 100);
-        alert("Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.");
+        if (payment.boletoUrl) { 
+          window.open(payment.boletoUrl, "_blank");
+          alert("Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.");
+          setShowGoToHomeButton(true); // Show the button after Boleto success
+        } else {
+          alert("Erro: URL do boleto não encontrada na resposta.");
+        }
+        // No automatic redirect for Boleto
       } else {
         alert("Pagamento processado com sucesso! Seu plano foi ativado.");
+        router.push("/"); // Redirect to home for non-Boleto payments
       }
-      router.push("/dashboard");
     } catch (err: any) {
       alert(err.message || "Erro ao processar pagamento");
     }
@@ -104,78 +104,91 @@ export default function PaymentForm() {
       <Typography variant="h6" color="primary" className="mb-4">
         R$ {plan.price.toFixed(2)}/mês
       </Typography>
-      <form onSubmit={handleSubmit}>
-        <Typography variant="subtitle1" className="mb-2">Método de Pagamento</Typography>
-        <div className="flex gap-4 mb-4">
+
+      {!showGoToHomeButton ? (
+        <form onSubmit={handleSubmit}>
+          <Typography variant="subtitle1" className="mb-2">Método de Pagamento</Typography>
+          <div className="flex gap-4 mb-4">
+            <Button
+              variant={paymentMethod === "BOLETO" ? "contained" : "outlined"}
+              color="primary"
+              onClick={() => setPaymentMethod("BOLETO")}
+            >
+              Boleto Bancário
+            </Button>
+            <Button
+              variant={paymentMethod === "CARTAO" ? "contained" : "outlined"}
+              color="primary"
+              onClick={() => setPaymentMethod("CARTAO")}
+            >
+              Cartão de Crédito
+            </Button>
+          </div>
+          {paymentMethod === "CARTAO" && (
+            <div className="space-y-2 mb-4">
+              <input
+                type="text"
+                placeholder="Nome no cartão"
+                value={cardDetails.holderName || ""}
+                onChange={e => setCardDetails((c: any) => ({ ...c, holderName: e.target.value }))}
+                className="w-full p-2 border rounded"
+              />
+              <input
+                type="text"
+                placeholder="Número do cartão"
+                value={cardDetails.number || ""}
+                onChange={e => setCardDetails((c: any) => ({ ...c, number: e.target.value }))}
+                className="w-full p-2 border rounded"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="MM"
+                  value={cardDetails.expiryMonth || ""}
+                  onChange={e => setCardDetails((c: any) => ({ ...c, expiryMonth: e.target.value }))}
+                  className="w-1/3 p-2 border rounded"
+                  maxLength={2}
+                />
+                <input
+                  type="text"
+                  placeholder="AA"
+                  value={cardDetails.expiryYear || ""}
+                  onChange={e => setCardDetails((c: any) => ({ ...c, expiryYear: e.target.value }))}
+                  className="w-1/3 p-2 border rounded"
+                  maxLength={2}
+                />
+                <input
+                  type="text"
+                  placeholder="CVV"
+                  value={cardDetails.ccv || ""}
+                  onChange={e => setCardDetails((c: any) => ({ ...c, ccv: e.target.value }))}
+                  className="w-1/3 p-2 border rounded"
+                  maxLength={4}
+                />
+              </div>
+            </div>
+          )}
           <Button
-            variant={paymentMethod === "BOLETO" ? "contained" : "outlined"}
+            type="submit"
+            variant="contained"
             color="primary"
-            onClick={() => setPaymentMethod("BOLETO")}
+            disabled={!paymentMethod}
+            fullWidth
           >
-            Boleto Bancário
+            Finalizar Pagamento
           </Button>
-          <Button
-            variant={paymentMethod === "CARTAO" ? "contained" : "outlined"}
-            color="primary"
-            onClick={() => setPaymentMethod("CARTAO")}
+        </form>
+      ) : (
+        <div className="text-center mt-6">
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => router.push('/')}
           >
-            Cartão de Crédito
+            Continuar para o Início
           </Button>
         </div>
-        {paymentMethod === "CARTAO" && (
-          <div className="space-y-2 mb-4">
-            <input
-              type="text"
-              placeholder="Nome no cartão"
-              value={cardDetails.holderName || ""}
-              onChange={e => setCardDetails((c: any) => ({ ...c, holderName: e.target.value }))}
-              className="w-full p-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Número do cartão"
-              value={cardDetails.number || ""}
-              onChange={e => setCardDetails((c: any) => ({ ...c, number: e.target.value }))}
-              className="w-full p-2 border rounded"
-            />
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="MM"
-                value={cardDetails.expiryMonth || ""}
-                onChange={e => setCardDetails((c: any) => ({ ...c, expiryMonth: e.target.value }))}
-                className="w-1/3 p-2 border rounded"
-                maxLength={2}
-              />
-              <input
-                type="text"
-                placeholder="AA"
-                value={cardDetails.expiryYear || ""}
-                onChange={e => setCardDetails((c: any) => ({ ...c, expiryYear: e.target.value }))}
-                className="w-1/3 p-2 border rounded"
-                maxLength={2}
-              />
-              <input
-                type="text"
-                placeholder="CVV"
-                value={cardDetails.ccv || ""}
-                onChange={e => setCardDetails((c: any) => ({ ...c, ccv: e.target.value }))}
-                className="w-1/3 p-2 border rounded"
-                maxLength={4}
-              />
-            </div>
-          </div>
-        )}
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          disabled={!paymentMethod}
-          fullWidth
-        >
-          Finalizar Pagamento
-        </Button>
-      </form>
+      )}
     </Paper>
   );
 }
