@@ -126,6 +126,15 @@ const steps = [
   { label: 'RESUMO DA COMPRA', icon: '🛒' },
 ];
 
+// Helper function to convert DD/MM/YYYY to YYYY-MM-DD
+const convertDateToYMD = (dateString: string): string => {
+  if (!dateString || !/\d{2}\/\d{2}\/\d{4}/.test(dateString)) {
+    return dateString; // Return original if not in expected format or empty
+  }
+  const parts = dateString.split('/');
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
+
 export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -238,13 +247,23 @@ export default function RegisterForm() {
     // Step 2: Register user
     if (currentStep === 2) {
       try {
-        const apiBody = mapFormDataToApi(formData);
+        const apiPayload = {
+          ...formData,
+          birthDate: convertDateToYMD(formData.birthDate), // Convert date format
+          // Ensure 'selectedPlan' only sends the ID if it's an object, or the value directly if it's already an ID string
+          selectedPlanId: typeof formData.selectedPlan === 'object' && formData.selectedPlan !== null ? formData.selectedPlan.id : formData.selectedPlan,
+          // Remove or handle fields not expected by the backend, e.g., confirmPassword, selectedPlan object itself if only ID is needed
+        };
+        delete (apiPayload as any).confirmPassword; // Assuming backend doesn't need this
+        // If selectedPlan object was part of formData and backend only needs ID, ensure it's removed if selectedPlanId is used
+        delete (apiPayload as any).selectedPlan; 
+
         const userResponse = await fetch('/api/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(apiBody),
+          body: JSON.stringify(apiPayload),
         });
         if (!userResponse.ok) {
           const error = await userResponse.json();
@@ -275,22 +294,6 @@ export default function RegisterForm() {
   const handlePlanChange = (plan: InsurancePlan | null) => {
     setSelectedPlan(plan);
     setCookie('selected_plan', plan, { path: '/' });
-  };
-
-  const mapFormDataToApi = (formData: FormData) => {
-    return {
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      email: formData.email,
-      cpf: formData.cpf,
-      profession: formData.especialidadeAtual || formData.role || '',
-      phone: formData.telefone,
-      address: `${formData.endereco}, ${formData.numero}${formData.complemento ? ' - ' + formData.complemento : ''}`.trim(),
-      city: formData.cidade,
-      state: formData.estado,
-      zip_code: formData.cep,
-      password: formData.password,
-      role: formData.role || 'SEGURADO',
-    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

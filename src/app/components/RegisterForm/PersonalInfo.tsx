@@ -191,9 +191,10 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
             DATA DE NASCIMENTO *
           </label>
           <input
-            type="date"
+            type="text"
             value={formData.birthDate}
             onChange={(e) => onInputChange('birthDate', e.target.value)}
+            placeholder="DD/MM/YYYY"
             className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
             required
           />
