@@ -406,10 +406,6 @@ export default function RegisterForm() {
 
   return (
     <Box className="max-w-4xl mx-auto p-4">
-      {/* DEBUG BANNER */}
-      <div style={{ background: '#fffae6', color: '#a67c00', padding: 8, marginBottom: 8, borderRadius: 4 }}>
-        <strong>DEBUG:</strong> currentStep = {currentStep}, paymentMethod = {formData.paymentMethod}, selectedPlan = {selectedPlan ? selectedPlan.name : 'null'}
-      </div>
       <Paper className="p-6">
         <Stepper activeStep={currentStep - 1} alternativeLabel className="mb-8">
           {steps.map((step, index) => (
