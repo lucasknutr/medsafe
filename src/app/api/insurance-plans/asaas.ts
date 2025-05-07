@@ -204,33 +204,25 @@ export async function createPayment(data: PaymentData) {
         createdAt: paymentResponse.dateCreated ? new Date(paymentResponse.dateCreated) : new Date(),
         updatedAt: new Date(),
         paymentMethod: {
-          // Conditionally create/update PaymentMethod based on type
-          ...(data.paymentMethod === 'BOLETO' ? {
-             create: {
-                user: { connect: { id: user.id } },
-                type: 'BOLETO',
-                isDefault: false, // Boleto is usually not default
+          connectOrCreate: {
+            where: {
+              userId_type_type: { 
+                userId: user.id,
+                type: data.paymentMethod // This will be 'BOLETO' or 'CREDIT_CARD'
               }
-          } : data.paymentMethod === 'CREDIT_CARD' && data.cardInfo ? {
-             // Upsert logic for Credit Card might be needed if you want to store card tokens
-             // For simplicity, just creating a placeholder or linking if needed
-             // If storing card details/tokens, use upsert as before
-             // Example: Connect if exists, otherwise create
-             connectOrCreate: {
-                where: { userId_type_type: { userId: user.id, type: 'CREDIT_CARD' } }, // Need a unique constraint
-                create: {
-                  user: { connect: { id: user.id } },
-                  type: 'CREDIT_CARD',
-                  lastFour: paymentResponse.creditCardNumber,
-                  brand: paymentResponse.creditCardBrand,
-                  holderName: data.cardInfo.holderName,
-                  // expiryMonth: data.cardInfo.expiryMonth, // Storing expiry might be PCI compliance issue
-                  // expiryYear: data.cardInfo.expiryYear,
-                  isDefault: true, // Make the first card default?
-                }
-             }
-          } : undefined)
-        }
+            },
+            create: {
+              user: { connect: { id: user.id } },
+              type: data.paymentMethod, // 'BOLETO' or 'CREDIT_CARD'
+              ...(data.paymentMethod === 'CREDIT_CARD' && data.cardInfo && paymentResponse.creditCardNumber ? {
+                lastFour: paymentResponse.creditCardNumber,
+                brand: paymentResponse.creditCardBrand,
+                holderName: data.cardInfo.holderName,
+              } : {})
+            }
+          }
+        },
+        // insurance: { connect: { id: insuranceId } }, // Ensure insuranceId is defined and connected
       };
 
       console.log('[createPayment] Prisma Transaction Payload:', JSON.stringify(transactionData, null, 2));
