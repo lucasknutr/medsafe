@@ -247,23 +247,56 @@ export default function RegisterForm() {
     // Step 2: Register user
     if (currentStep === 2) {
       try {
-        const apiPayload = {
-          ...formData,
-          birthDate: convertDateToYMD(formData.birthDate), // Convert date format
-          // Ensure 'selectedPlan' only sends the ID if it's an object, or the value directly if it's already an ID string
+        // Construct the payload with correct field names and transformations for the API
+        const payloadForApi = {
+          // Mapped fields based on the error message and previous mapFormDataToApi logic
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          profession: formData.especialidadeAtual || formData.role || '',
+          phone: formData.telefone,
+          address: `${formData.endereco || ''}${formData.numero ? ', ' + formData.numero : ''}${formData.complemento ? ' - ' + formData.complemento : ''}`.trim(),
+          city: formData.cidade,
+          state: formData.estado,
+          zip_code: formData.cep,
+
+          // Core identity and credentials
+          email: formData.email,
+          cpf: formData.cpf,
+          password: formData.password,
+          birthDate: convertDateToYMD(formData.birthDate),
+          role: formData.role || 'SEGURADO', // Default role if not specified
+
+          // Other personal details from formData likely expected by the API
+          rg: formData.rg,
+          orgaoExpedidor: formData.orgaoExpedidor,
+          residenceSince: formData.residenceSince,
+          fezResidencia: formData.fezResidencia,
+          pertenceAlgumaAssociacao: formData.pertenceAlgumaAssociacao,
+          socioProprietario: formData.socioProprietario,
+          entidadeExerce: formData.entidadeExerce,
+          realizaProcedimento: formData.realizaProcedimento,
+          atividadeProfissional: formData.atividadeProfissional, // string[]
+          pais: formData.pais,
+          bairro: formData.bairro, // Sending bairro separately, adjust if API expects it in address string
+
+          // Questionnaire fields from step 2
+          penalRestritiva: formData.penalRestritiva,
+          penaAdministrativa: formData.penaAdministrativa,
+          dependenteQuimico: formData.dependenteQuimico,
+          recusaSeguro: formData.recusaSeguro,
+          conhecimentoReclamacoes: formData.conhecimentoReclamacoes,
+          envolvidoReclamacoes: formData.envolvidoReclamacoes,
+          assessoradoPorVendas: formData.assessoradoPorVendas,
+
+          // Selected Plan ID (if required by the /api/register endpoint)
           selectedPlanId: typeof formData.selectedPlan === 'object' && formData.selectedPlan !== null ? formData.selectedPlan.id : formData.selectedPlan,
-          // Remove or handle fields not expected by the backend, e.g., confirmPassword, selectedPlan object itself if only ID is needed
         };
-        delete (apiPayload as any).confirmPassword; // Assuming backend doesn't need this
-        // If selectedPlan object was part of formData and backend only needs ID, ensure it's removed if selectedPlanId is used
-        delete (apiPayload as any).selectedPlan; 
 
         const userResponse = await fetch('/api/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(apiPayload),
+          body: JSON.stringify(payloadForApi),
         });
         if (!userResponse.ok) {
           const error = await userResponse.json();
