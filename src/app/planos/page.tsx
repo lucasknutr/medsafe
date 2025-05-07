@@ -91,7 +91,8 @@ export default function InsurancePlansPage() {
     return (
       <>
         <Navbar />
-        <Container className="pt-20 pb-12">
+        {/* Adjusted padding: pt-40 for navbar, pb-12 for bottom space */}
+        <Container className="pt-40 pb-12">
           <Typography variant="h4" className="text-center mb-8">
             Carregando...
           </Typography>
@@ -107,7 +108,8 @@ export default function InsurancePlansPage() {
     return (
       <>
         <Navbar />
-        <Container className="pt-20 pb-12">
+        {/* Adjusted padding: pt-40 for navbar, pb-12 for bottom space */}
+        <Container className="pt-40 pb-12">
           <Alert severity="error" className="mb-4">
             {error}
           </Alert>
@@ -119,7 +121,8 @@ export default function InsurancePlansPage() {
   return (
     <>
       <Navbar />
-      <Container className="pt-20 pb-12">
+      {/* Adjusted padding: pt-40 for navbar, pb-12 for bottom space */}
+      <Container className="pt-40 pb-12">
         <Typography variant="h4" className="text-center mb-8">
           Planos de Seguro
         </Typography>

@@ -50,7 +50,22 @@ export default function PaymentForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plan) return;
+
+    let boletoWindow: Window | null = null;
+
     try {
+      // If Boleto, open a new window synchronously before async operations
+      if (paymentMethod === "BOLETO") {
+        boletoWindow = window.open('', '_blank');
+        if (boletoWindow) {
+          boletoWindow.document.write('<p>Gerando seu boleto, por favor aguarde...</p>');
+        } else {
+          // Handle case where window.open failed (e.g., blocked by a very aggressive popup blocker)
+          alert("Não foi possível abrir a janela para o boleto. Verifique as configurações do seu navegador.");
+          return; // Stop processing if window couldn't be opened
+        }
+      }
+
       const paymentData: any = {
         planId: plan.id,
         paymentMethod: paymentMethod === "CARTAO" ? "CREDIT_CARD" : paymentMethod,
@@ -70,20 +85,32 @@ export default function PaymentForm() {
         throw new Error(error.error || "Erro ao processar pagamento");
       }
       const payment = await paymentResponse.json();
+
       if (paymentMethod === "BOLETO") {
         if (payment.boletoUrl) { 
-          window.open(payment.boletoUrl, "_blank");
+          if (boletoWindow) {
+            boletoWindow.location.href = payment.boletoUrl;
+          } else {
+            // Fallback if boletoWindow is somehow null (should not happen if logic above is correct)
+            // or if we decide to not open window if fetch fails fast (less ideal)
+            window.open(payment.boletoUrl, "_blank"); 
+          }
           alert("Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.");
           setShowGoToHomeButton(true); // Show the button after Boleto success
         } else {
+          if (boletoWindow) boletoWindow.close(); // Close the pre-opened window if no URL
           alert("Erro: URL do boleto não encontrada na resposta.");
         }
-        // No automatic redirect for Boleto
       } else {
         alert("Pagamento processado com sucesso! Seu plano foi ativado.");
         router.push("/"); // Redirect to home for non-Boleto payments
       }
     } catch (err: any) {
+      console.error("Payment Error:", err);
+      // If a boleto window was opened and an error occurred, close it.
+      if (boletoWindow) {
+        boletoWindow.close();
+      }
       alert(err.message || "Erro ao processar pagamento");
     }
   };

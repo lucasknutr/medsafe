@@ -8,8 +8,8 @@ export default function PagamentoPage() {
   return (
     <>
       <Navbar />
-      {/* Adjusted to pt-20 for navbar, pb-8 for bottom padding */}
-      <div className="min-h-screen pt-20 pb-8">
+      {/* Adjusted to pt-40 for navbar, pb-8 for bottom padding */}
+      <div className="min-h-screen pt-40 pb-8">
         <Suspense fallback={<div>Carregando pagamento...</div>}>
           <PaymentForm />
         </Suspense>
