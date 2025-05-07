@@ -27,11 +27,13 @@ class AsaasClient {
   private get headers() {
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.apiKey}`
+      'User-Agent': 'MedSafeFront', // Or your preferred app name
+      'access_token': this.apiKey
     };
     console.log('Request headers:', {
       'Content-Type': headers['Content-Type'],
-      'Authorization': headers['Authorization'] ? 'Bearer [REDACTED]' : 'Not set'
+      'User-Agent': headers['User-Agent'],
+      'access_token': headers['access_token'] ? '[REDACTED]' : 'Not set' // Redact token for logging
     });
     return headers;
   }
