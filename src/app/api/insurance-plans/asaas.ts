@@ -47,18 +47,32 @@ interface AsaasCustomerData {
 interface AsaasPaymentResponse {
   id: string;
   status: string;
-  invoiceUrl?: string; // For Boleto
-  bankSlipUrl?: string; // Alternative for Boleto
+  billingType: string;
+  value: number;
+  netValue?: number;
+  dateCreated?: string;
+  customer?: string;
+  dueDate?: string;
+  invoiceUrl?: string; 
+  bankSlipUrl?: string; 
   barCode?: string; // For Boleto
   creditCardToken?: string; // For Credit Card
   creditCardNumber?: string; // Last 4 digits
   creditCardBrand?: string;
-  dateCreated?: string;
   // ... other fields returned by Asaas
 }
 
 export async function createPayment(data: PaymentData) {
-  console.log('[createPayment] Starting payment creation with data:', JSON.stringify(data, null, 2));
+  // Sanitize cardInfo for logging
+  const logData = { ...data };
+  if (logData.cardInfo && typeof logData.cardInfo.number === 'string') {
+    logData.cardInfo = {
+      ...logData.cardInfo,
+      number: '**** **** **** ' + logData.cardInfo.number.slice(-4),
+      ccv: '***',
+    };
+  }
+  console.log('[createPayment] Starting payment creation with data:', JSON.stringify(logData, null, 2));
   const asaasClient = getAsaasClient(); // Use your Asaas client instance
 
   try {
@@ -137,21 +151,21 @@ export async function createPayment(data: PaymentData) {
 
     const paymentPayload: any = {
       customer: asaasCustomerId,
-      billingType: data.paymentMethod,
+      billingType: data.paymentMethod, // Ensure this is 'CREDIT_CARD' or 'BOLETO'
       value: plan.price, // Use price from the fetched plan
       dueDate: formattedDueDate,
       description: `Pagamento Plano: ${plan.name}`, // Clearer description
       externalReference: `plan_${data.planId}_user_${user.id}_${Date.now()}`, // More unique reference
     };
 
-    if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
+    if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) { // Standardize on 'CREDIT_CARD'
         console.log('[createPayment] Preparing Credit Card payment details...');
         paymentPayload.creditCard = {
             holderName: data.cardInfo.holderName,
-            number: data.cardInfo.number.replace(/\s+/g, ''), // Remove spaces from card number
+            number: data.cardInfo.number, // Asaas SDK handles this directly
             expiryMonth: data.cardInfo.expiryMonth,
             expiryYear: data.cardInfo.expiryYear,
-            ccv: data.cardInfo.ccv,
+            ccv: data.cardInfo.ccv
         };
         paymentPayload.creditCardHolderInfo = {
             name: data.cardInfo.holderName, // Use holder name from card info
@@ -168,7 +182,12 @@ export async function createPayment(data: PaymentData) {
         console.log('[createPayment] Credit Card Payload Snippet:', { creditCard: paymentPayload.creditCard, creditCardHolderInfo: paymentPayload.creditCardHolderInfo, remoteIp: paymentPayload.remoteIp });
     }
 
-    console.log('[createPayment] Final Asaas payment payload:', JSON.stringify(paymentPayload, null, 2));
+    console.log('[createPayment] Asaas payment payload (sensitive details like full card number are NOT logged here, they are in paymentPayload object passed to Asaas):', 
+      {
+        ...paymentPayload, 
+        creditCard: paymentPayload.creditCard ? { ...paymentPayload.creditCard, number: 'REDACTED', ccv: 'REDACTED'} : undefined 
+      }
+    );
 
     // 5. Create Payment in Asaas
     let paymentResponse: AsaasPaymentResponse;
@@ -176,7 +195,14 @@ export async function createPayment(data: PaymentData) {
         console.log(`[${new Date().toISOString()}] [createPayment] >>> Attempting Asaas createPayment...`);
         paymentResponse = await asaasClient.createPayment(paymentPayload);
         console.log(`[${new Date().toISOString()}] [createPayment] <<< Asaas createPayment successful.`);
-        console.log('[createPayment] Raw Asaas payment response:', JSON.stringify(paymentResponse, null, 2));
+        console.log('[createPayment] Payment creation response from Asaas:', {
+          id: paymentResponse.id,
+          status: paymentResponse.status,
+          billingType: paymentResponse.billingType,
+          value: paymentResponse.value,
+          invoiceUrl: paymentResponse.invoiceUrl,
+          bankSlipUrl: paymentResponse.bankSlipUrl, // Asaas might use bankSlipUrl for boleto URL
+        });
     } catch (paymentError: any) {
         console.error('[createPayment] Error calling Asaas createPayment API:');
         if (paymentError.response) {

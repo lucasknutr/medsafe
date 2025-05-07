@@ -52,16 +52,14 @@ export default function PaymentForm() {
     if (!plan) return;
     try {
       const paymentData: any = {
-        planId: "cmabutev30000ec8p7nanpru7",
-        paymentMethod,
+        planId: plan.id,
+        paymentMethod: paymentMethod === "CARTAO" ? "CREDIT_CARD" : paymentMethod,
         email: cookies.email,
         customerId: cookies.user_id,
       };
-      if (paymentMethod === "CARTAO") {
+      if (paymentMethod === "CREDIT_CARD") {
         paymentData.cardInfo = cardDetails;
       }
-      // Debug: show what we are sending
-      console.log('Submitting paymentData:', paymentData);
       const paymentResponse = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,10 +95,6 @@ export default function PaymentForm() {
   return (
     <Paper className="p-6 max-w-xl mx-auto mt-10">
       <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name} (id: {plan.id})</Typography>
-      <Typography variant="subtitle2" color="secondary" className="mb-2">
-        DEBUG: planId param: {planId}, cookie selected_plan id: {cookies.selected_plan && cookies.selected_plan.id ? cookies.selected_plan.id : 'none'}<br/>
-        email: {cookies.email || 'none'}, user_id: {cookies.user_id || 'none'}
-      </Typography>
       <Typography variant="h6" color="primary" className="mb-4">
         R$ {plan.price.toFixed(2)}/mês
       </Typography>
@@ -117,14 +111,14 @@ export default function PaymentForm() {
               Boleto Bancário
             </Button>
             <Button
-              variant={paymentMethod === "CARTAO" ? "contained" : "outlined"}
+              variant={paymentMethod === "CREDIT_CARD" ? "contained" : "outlined"}
               color="primary"
-              onClick={() => setPaymentMethod("CARTAO")}
+              onClick={() => setPaymentMethod("CREDIT_CARD")}
             >
               Cartão de Crédito
             </Button>
           </div>
-          {paymentMethod === "CARTAO" && (
+          {paymentMethod === "CREDIT_CARD" && (
             <div className="space-y-2 mb-4">
               <input
                 type="text"
