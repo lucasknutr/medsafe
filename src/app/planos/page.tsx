@@ -22,7 +22,7 @@ interface CurrentUserInsurance {
 
 // Define the single hardcoded plan with user-provided details
 const medsafeDefaultPlan: InsurancePlan = {
-  id: 'medsafe-profissional-450',
+  id: 'cmabutev30000ec8p7nanpru7',
   name: 'Plano de Proteção Profissional MedSafe',
   description: 'Cobertura de R$ 200.000 para defesa em processos éticos, cíveis e criminais decorrentes da atividade profissional.',
   price: 450.00,
@@ -91,7 +91,7 @@ export default function InsurancePlansPage() {
     return (
       <>
         <Navbar />
-        <Container className="py-12">
+        <Container className="pt-20 pb-12">
           <Typography variant="h4" className="text-center mb-8">
             Carregando...
           </Typography>
@@ -107,7 +107,7 @@ export default function InsurancePlansPage() {
     return (
       <>
         <Navbar />
-        <Container className="py-12">
+        <Container className="pt-20 pb-12">
           <Alert severity="error" className="mb-4">
             {error}
           </Alert>
@@ -119,7 +119,7 @@ export default function InsurancePlansPage() {
   return (
     <>
       <Navbar />
-      <Container className="py-12">
+      <Container className="pt-20 pb-12">
         <Typography variant="h4" className="text-center mb-8">
           Planos de Seguro
         </Typography>

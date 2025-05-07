@@ -6,11 +6,14 @@ import Navbar from '@/app/components/Navbar';
 
 export default function PagamentoPage() {
   return (
-    <div className="min-h-screen py-8">
+    <>
       <Navbar />
-      <Suspense fallback={<div>Carregando pagamento...</div>}>
-        <PaymentForm />
-      </Suspense>
-    </div>
+      {/* Adjusted to pt-20 for navbar, pb-8 for bottom padding */}
+      <div className="min-h-screen pt-20 pb-8">
+        <Suspense fallback={<div>Carregando pagamento...</div>}>
+          <PaymentForm />
+        </Suspense>
+      </div>
+    </>
   );
 }
