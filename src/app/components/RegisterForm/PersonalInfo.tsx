@@ -288,9 +288,9 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          NA ENTIDADE ONDE EXERCE SUA ATIVIDADE PROFISSIONAL, SUA RELAÇÃO É:
+          RELAÇÃO PROFISSIONAL NA ENTIDADE:
         </label>
-        <div className="flex gap-4">
+        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-4">
           <label className="flex items-center">
             <input
               type="radio"
