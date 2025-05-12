@@ -197,20 +197,13 @@ export default function RegisterForm() {
     switch (step) {
       case 1:
         return Boolean(
-          formData.role &&
           formData.firstName &&
           formData.lastName &&
           formData.cpf &&
           formData.birthDate &&
           formData.rg &&
           formData.orgaoExpedidor &&
-          formData.residenceSince &&
-          formData.fezResidencia &&
-          formData.especialidadeAtual &&
-          formData.pertenceAlgumaAssociacao &&
-          formData.socioProprietario &&
           formData.entidadeExerce &&
-          formData.realizaProcedimento &&
           formData.atividadeProfissional &&
           formData.pais &&
           formData.estado &&
@@ -219,9 +212,9 @@ export default function RegisterForm() {
           formData.bairro &&
           formData.endereco &&
           formData.numero &&
-          formData.complemento &&
           formData.email &&
-          formData.telefone
+          formData.telefone &&
+          formData.role
         );
       case 2:
         return Boolean(
