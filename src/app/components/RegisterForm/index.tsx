@@ -139,6 +139,7 @@ export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Partial<Record<'email' | 'password' | 'confirmPassword', string>>>({}); // New state for field errors
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
@@ -183,6 +184,13 @@ export default function RegisterForm() {
       ...prev,
       [field]: value
     }));
+    // Clear specific errors when user types in relevant fields
+    if (field === 'email' || field === 'password' || field === 'confirmPassword') {
+      setFormErrors(prevErrors => ({
+        ...prevErrors,
+        [field]: undefined
+      }));
+    }
   };
 
   const validateStep = (step: number): boolean => {
@@ -243,9 +251,40 @@ export default function RegisterForm() {
     }
   };
 
+  // New function to validate credentials step
+  const validateCredentialsStep = (): Partial<Record<'email' | 'password' | 'confirmPassword', string>> => {
+    const newErrors: Partial<Record<'email' | 'password' | 'confirmPassword', string>> = {};
+    if (!formData.email) {
+      newErrors.email = 'E-mail é obrigatório.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Formato de e-mail inválido.';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Senha é obrigatória.';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'A senha deve ter pelo menos 8 caracteres.';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Confirmação de senha é obrigatória.';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'As senhas não coincidem.';
+    }
+    return newErrors;
+  };
+
   const handleNext = async () => {
-    // Step 2: Register user
+    // Validate credentials before attempting to register user or advance
     if (currentStep === 2) {
+      const credentialErrors = validateCredentialsStep();
+      setFormErrors(credentialErrors);
+
+      if (Object.keys(credentialErrors).length > 0) {
+        return; // Stop if there are validation errors
+      }
+
+      // Proceed with user registration API call if validation passes
       try {
         // Construct the payload with correct field names and transformations for the API
         const payloadForApi = {
@@ -389,7 +428,7 @@ export default function RegisterForm() {
       case 1:
         return <PersonalInfo formData={formData} onInputChange={handleInputChange} />;
       case 2:
-        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} />;
+        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
       case 3:
         return (
           <PlanAndPayment
