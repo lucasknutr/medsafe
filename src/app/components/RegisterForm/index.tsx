@@ -166,8 +166,11 @@ export default function RegisterForm() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const stepParam = urlParams.get('step');
-      if (stepParam && !isNaN(Number(stepParam))) {
-        setCurrentStep(Number(stepParam));
+      if (stepParam) {
+        const numericStepParam = Number(stepParam);
+        if (!isNaN(numericStepParam) && numericStepParam !== currentStep) { 
+          setCurrentStep(numericStepParam);
+        }
       }
     }
 

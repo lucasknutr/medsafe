@@ -16,9 +16,6 @@ const Navbar = () => {
   const [cookies, , removeCookie] = useCookies(['role']);
   const router = useRouter();
 
-  // Debug log to check the role cookie value
-  console.log('Current role from cookie:', cookies.role);
-
   const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElNav(event.currentTarget);
   };
