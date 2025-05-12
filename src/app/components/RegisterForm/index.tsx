@@ -77,6 +77,7 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   birthDate?: string;
+  email?: string;
 }
 
 const initialFormData: FormData = {
@@ -197,10 +198,24 @@ export default function RegisterForm() {
     return ''; // No error
   };
 
+  const validatePassword = (password: string): string => {
+    if (password.length < 8) {
+      return 'Senha deve ter no mínimo 8 caracteres.';
+    }
+    return ''; // No error
+  };
+
+  const validateConfirmPassword = (password: string, confirmPassword: string): string => {
+    if (password !== confirmPassword) {
+      return 'As senhas não coincidem.';
+    }
+    return ''; // No error
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
     // Clear previous error for this field and general error message
     if (formErrors[field as keyof FormErrors]) {
@@ -211,12 +226,24 @@ export default function RegisterForm() {
     // Validate CPF on change
     if (field === 'cpf') {
       const cpfError = validateCpf(value);
-      if (cpfError) {
-        setFormErrors(prev => ({ ...prev, cpf: cpfError }));
-      } else {
-        // Clear CPF error if it becomes valid
-        setFormErrors(prev => ({ ...prev, cpf: undefined })); 
+      setFormErrors(prev => ({ ...prev, cpf: cpfError || undefined }));
+    }
+
+    // Validate Password on change
+    if (field === 'password') {
+      const passwordError = validatePassword(value);
+      setFormErrors(prev => ({ ...prev, password: passwordError || undefined }));
+      // Also re-validate confirmPassword if it's already filled
+      if (formData.confirmPassword) {
+        const confirmPasswordError = validateConfirmPassword(value, formData.confirmPassword);
+        setFormErrors(prev => ({ ...prev, confirmPassword: confirmPasswordError || undefined }));
       }
+    }
+
+    // Validate Confirm Password on change
+    if (field === 'confirmPassword') {
+      const confirmPasswordError = validateConfirmPassword(formData.password, value);
+      setFormErrors(prev => ({ ...prev, confirmPassword: confirmPasswordError || undefined }));
     }
   };
 
@@ -237,9 +264,32 @@ export default function RegisterForm() {
       // Add other field validations for step 1 as needed
       // e.g., birthDate, rg, etc.
     }
+    
+    if (step === 2) { // Assuming CredentialsInfo is in step 2
+      if (!formData.email) { 
+        newFormErrors.email = 'E-mail é obrigatório.'; // Note: FormErrors needs email field
+        isValid = false; 
+      }
+      // else if (!/\S+@\S+\.\S+/.test(formData.email)) { // Basic email format check
+      //   newFormErrors.email = 'Formato de e-mail inválido.';
+      //   isValid = false;
+      // }
+
+      const passwordError = validatePassword(formData.password);
+      if (passwordError) {
+        newFormErrors.password = passwordError;
+        isValid = false;
+      }
+
+      const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
+      if (confirmPasswordError) {
+        newFormErrors.confirmPassword = confirmPasswordError;
+        isValid = false;
+      }
+    }
     // Add validations for other steps as needed
 
-    setFormErrors(newFormErrors);
+    setFormErrors(prev => ({ ...prev, ...newFormErrors })); // Merge with existing errors
     return isValid;
   };
 

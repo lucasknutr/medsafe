@@ -9,6 +9,7 @@ interface CredentialsInfoProps {
   };
   onInputChange: (field: string, value: string) => void;
   errors?: {
+    email?: string;
     password?: string;
     confirmPassword?: string;
   };
@@ -19,15 +20,19 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold mb-6">Credenciais de Acesso</h2>
       
-      <TextField
-        fullWidth
-        label="E-mail"
-        type="email"
-        name="email"
-        value={formData.email}
-        onChange={(e) => onInputChange('email', e.target.value)}
-        required
-      />
+      <div>
+        <TextField
+          fullWidth
+          label="E-mail"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={(e) => onInputChange('email', e.target.value)}
+          required
+          error={!!errors?.email}
+          helperText={errors?.email || ''}
+        />
+      </div>
 
       <div>
         <TextField
