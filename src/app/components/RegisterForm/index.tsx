@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography } from '@mui/material';
 import PersonalInfo from './PersonalInfo';
 import AdditionalInfo from './AdditionalInfo';
@@ -68,16 +68,6 @@ interface FormData {
   cardCcv?: string;
   cardCpfCnpj?: string;
   cardPhone?: string;
-}
-
-interface FormErrors {
-  firstName?: string;
-  lastName?: string;
-  cpf?: string;
-  password?: string;
-  confirmPassword?: string;
-  birthDate?: string;
-  email?: string;
 }
 
 const initialFormData: FormData = {
@@ -147,64 +137,31 @@ const convertDateToYMD = (dateString: string): string => {
 
 export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isMounted, setIsMounted] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const router = useRouter();
-  const searchParams = useSearchParams(); // Call useSearchParams
   const [cookies, setCookie] = useCookies(['selected_plan']);
-  const planFromCookie = cookies.selected_plan; // Get a stable reference
-  const stringifiedPlanFromCookie = useMemo(() => JSON.stringify(planFromCookie), [planFromCookie]); // Memoize
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
 
-  // Effect to set isMounted to true after component mounts on client
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    // Set initial plan from cookie if exists
+    if (cookies.selected_plan) {
+      setSelectedPlan(cookies.selected_plan);
+    }
 
-  // Temporarily commented out for Vercel build diagnosis
-  /*
-  // Effect for handling selected plan from cookie
-  useEffect(() => {
-    if (!isMounted) {
-      return; // Only run this logic on the client after mounting
-    }
-    if (planFromCookie) {
-      setSelectedPlan(prevPlan => {
-        if (JSON.stringify(prevPlan) !== JSON.stringify(planFromCookie)) {
-          return planFromCookie;
-        }
-        return prevPlan;
-      });
-    }
-  }, [isMounted, stringifiedPlanFromCookie]);
-  */
-
-  // Temporarily commented out for Vercel build diagnosis
-  /*
-  // Effect for handling current step from URL parameters
-  useEffect(() => {
-    if (!isMounted) {
-      return; // Only run this logic on the client after mounting
-    }
-    const stepFromUrl = searchParams.get('step'); // Use searchParams
-    if (stepFromUrl) {
-      const numericStepParam = parseInt(stepFromUrl, 10);
-      if (!isNaN(numericStepParam) && numericStepParam >= 1 && numericStepParam <= steps.length) {
-        if (currentStep !== numericStepParam) { // Only update if different
-          setCurrentStep(numericStepParam);
-        }
+    // If step is forced via query param, jump to that step
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stepParam = urlParams.get('step');
+      if (stepParam && !isNaN(Number(stepParam))) {
+        setCurrentStep(Number(stepParam));
       }
     }
-  }, [isMounted, currentStep, searchParams]);
-  */
 
-  // Effect for fetching available insurance plans
-  useEffect(() => {
-    const fetchPlansAsync = async () => {
+    // Fetch all available plans
+    const fetchPlans = async () => {
       try {
         const response = await fetch('/api/insurance-plans');
         if (!response.ok) {
@@ -218,139 +175,81 @@ export default function RegisterForm() {
       }
     };
 
-    fetchPlansAsync();
-  }, []); // Runs once to fetch plans
-
-  // Validation functions
-  const validateCpf = (cpf: string): string => {
-    const cleanedCpf = cpf.replace(/\D/g, '');
-    if (cleanedCpf.length !== 11) {
-      return 'CPF deve conter 11 dígitos.';
-    }
-    return ''; // No error
-  };
-
-  const validatePassword = (password: string): string => {
-    if (password.length < 8) {
-      return 'Senha deve ter no mínimo 8 caracteres.';
-    }
-    return ''; // No error
-  };
-
-  const validateConfirmPassword = (password: string, confirmPassword: string): string => {
-    if (password !== confirmPassword) {
-      return 'As senhas não coincidem.';
-    }
-    return ''; // No error
-  };
+    fetchPlans();
+  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value,
+      [field]: value
     }));
-    // Clear previous error for this field and general error message
-    if (formErrors[field as keyof FormErrors]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-    if (error) setError(null); 
-
-    // Validate CPF on change
-    if (field === 'cpf') {
-      const cpfError = validateCpf(value);
-      setFormErrors(prev => ({ ...prev, cpf: cpfError || undefined }));
-    }
-
-    // Validate Password on change
-    if (field === 'password') {
-      const passwordError = validatePassword(value);
-      setFormErrors(prev => ({ ...prev, password: passwordError || undefined }));
-      // Also re-validate confirmPassword if it's already filled
-      if (formData.confirmPassword) {
-        const confirmPasswordError = validateConfirmPassword(value, formData.confirmPassword);
-        setFormErrors(prev => ({ ...prev, confirmPassword: confirmPasswordError || undefined }));
-      }
-    }
-
-    // Validate Confirm Password on change
-    if (field === 'confirmPassword') {
-      const confirmPasswordError = validateConfirmPassword(formData.password, value);
-      setFormErrors(prev => ({ ...prev, confirmPassword: confirmPasswordError || undefined }));
-    }
   };
 
   const validateStep = (step: number): boolean => {
-    let isValid = true;
-    const newFormErrors: FormErrors = {};
-
-    if (step === 1) {
-      // Basic presence checks (can be expanded)
-      if (!formData.firstName) { newFormErrors.firstName = 'Primeiro nome é obrigatório.'; isValid = false; }
-      if (!formData.lastName) { newFormErrors.lastName = 'Sobrenome é obrigatório.'; isValid = false; }
-      
-      const cpfError = validateCpf(formData.cpf);
-      if (cpfError) {
-        newFormErrors.cpf = cpfError;
-        isValid = false;
-      }
-      // Add other field validations for step 1 as needed
-      // e.g., birthDate, rg, etc.
+    switch (step) {
+      case 1:
+        return Boolean(
+          formData.role &&
+          formData.firstName &&
+          formData.lastName &&
+          formData.cpf &&
+          formData.birthDate &&
+          formData.rg &&
+          formData.orgaoExpedidor &&
+          formData.residenceSince &&
+          formData.fezResidencia &&
+          formData.especialidadeAtual &&
+          formData.pertenceAlgumaAssociacao &&
+          formData.socioProprietario &&
+          formData.entidadeExerce &&
+          formData.realizaProcedimento &&
+          formData.atividadeProfissional.length > 0 &&
+          formData.pais &&
+          formData.estado &&
+          formData.cep &&
+          formData.cidade &&
+          formData.bairro &&
+          formData.endereco &&
+          formData.numero &&
+          formData.complemento &&
+          formData.email &&
+          formData.telefone
+        );
+      case 2:
+        return Boolean(
+          formData.email &&
+          formData.password &&
+          formData.confirmPassword
+        );
+      case 3:
+        // Allow "Ainda Vou Decidir" (selectedPlan === null) to finish WITHOUT payment
+        if (!selectedPlan) return true;
+        // Otherwise, require payment method and (for credit card) card fields
+        if (!formData.paymentMethod) return false;
+        if (formData.paymentMethod === 'CARTAO') {
+          return Boolean(
+            formData.cardHolderName &&
+            formData.cardNumber &&
+            formData.cardExpiryMonth &&
+            formData.cardExpiryYear &&
+            formData.cardCcv &&
+            formData.cardCpfCnpj &&
+            formData.cardPhone
+          );
+        }
+        return true;
+      default:
+        return false;
     }
-    
-    if (step === 2) { // Assuming CredentialsInfo is in step 2
-      if (!formData.email) { 
-        newFormErrors.email = 'E-mail é obrigatório.'; // Note: FormErrors needs email field
-        isValid = false; 
-      }
-      // else if (!/\S+@\S+\.\S+/.test(formData.email)) { // Basic email format check
-      //   newFormErrors.email = 'Formato de e-mail inválido.';
-      //   isValid = false;
-      // }
-
-      const passwordError = validatePassword(formData.password);
-      if (passwordError) {
-        newFormErrors.password = passwordError;
-        isValid = false;
-      }
-
-      const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
-      if (confirmPasswordError) {
-        newFormErrors.confirmPassword = confirmPasswordError;
-        isValid = false;
-      }
-    }
-    // Add validations for other steps as needed
-
-    setFormErrors(prev => ({ ...prev, ...newFormErrors })); // Merge with existing errors
-    return isValid;
   };
 
   const handleNext = async () => {
-    setError(null); // Clear general error
-    // setFormErrors({}); // Clear field-specific errors before validating current step
-
-    // Validate current step before proceeding (for fields not validated onInputChange or for a final check)
-    if (currentStep === 1) {
-      const isStep1Valid = validateStep(1);
-      if (!isStep1Valid) {
-        return; // Stop if validation fails
-      }
-    }
-    // Add similar validation for other steps if needed before API calls
-
-    // Logic for handling step transitions and API calls
-    if (currentStep < steps.length) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      // Final step: Process registration and payment or 'Ainda Vou Decidir'
-      // This is typically where you would make the API call for registration if not done earlier
-    }
-
-    // Step 2 specific logic (Registration API call) was here, now integrated with validation
-    // Ensure this runs only when moving from step 2 to 3 (or equivalent final step)
-    if (currentStep === 2) { // Assuming step 2 is 'Additional Info' and registration happens before 'Purchase Summary'
+    // Step 2: Register user
+    if (currentStep === 2) {
       try {
+        // Construct the payload with correct field names and transformations for the API
         const payloadForApi = {
+          // Mapped fields based on the error message and previous mapFormDataToApi logic
           name: `${formData.firstName} ${formData.lastName}`.trim(),
           profession: formData.especialidadeAtual || formData.role || '',
           phone: formData.telefone,
@@ -358,11 +257,15 @@ export default function RegisterForm() {
           city: formData.cidade,
           state: formData.estado,
           zip_code: formData.cep,
+
+          // Core identity and credentials
           email: formData.email,
-          cpf: formData.cpf.replace(/\D/g, ''), // Send cleaned CPF
+          cpf: formData.cpf,
           password: formData.password,
           birthDate: convertDateToYMD(formData.birthDate),
-          role: formData.role || 'SEGURADO',
+          role: formData.role || 'SEGURADO', // Default role if not specified
+
+          // Other personal details from formData likely expected by the API
           rg: formData.rg,
           orgaoExpedidor: formData.orgaoExpedidor,
           residenceSince: formData.residenceSince,
@@ -371,9 +274,11 @@ export default function RegisterForm() {
           socioProprietario: formData.socioProprietario,
           entidadeExerce: formData.entidadeExerce,
           realizaProcedimento: formData.realizaProcedimento,
-          atividadeProfissional: formData.atividadeProfissional,
+          atividadeProfissional: formData.atividadeProfissional, // string[]
           pais: formData.pais,
-          bairro: formData.bairro,
+          bairro: formData.bairro, // Sending bairro separately, adjust if API expects it in address string
+
+          // Questionnaire fields from step 2
           penalRestritiva: formData.penalRestritiva,
           penaAdministrativa: formData.penaAdministrativa,
           dependenteQuimico: formData.dependenteQuimico,
@@ -381,43 +286,35 @@ export default function RegisterForm() {
           conhecimentoReclamacoes: formData.conhecimentoReclamacoes,
           envolvidoReclamacoes: formData.envolvidoReclamacoes,
           assessoradoPorVendas: formData.assessoradoPorVendas,
+
+          // Selected Plan ID (if required by the /api/register endpoint)
           selectedPlanId: typeof formData.selectedPlan === 'object' && formData.selectedPlan !== null ? formData.selectedPlan.id : formData.selectedPlan,
         };
 
         const userResponse = await fetch('/api/register', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(payloadForApi),
         });
-
         if (!userResponse.ok) {
-          const errorData = await userResponse.json();
-          if (errorData.details === "CPF already in use" || errorData.error === "User already exists") {
-            setFormErrors(prev => ({ ...prev, cpf: 'CPF já cadastrado.' }));
-            setError('Erro no registro. Verifique os campos.'); // General error as well
-          } else if (errorData.missingFields) {
-            setError(`Campos obrigatórios faltando: ${errorData.missingFields.join(', ')}`);
-            // Potentially set formErrors for missing fields if backend provides them in a parsable way
-          } else {
-            setError(errorData.message || errorData.error || 'Erro ao registrar. Tente novamente.');
-          }
-          return; // Stop if registration fails
+          const error = await userResponse.json();
+          throw new Error(error.error || 'Erro ao cadastrar usuário');
         }
-
-        const responseData = await userResponse.json();
-        setRegisteredUserId(responseData.userId); // Assuming API returns userId
-        // If successful, then proceed to next step or final action
-        if (currentStep < steps.length) {
-            setCurrentStep(prev => prev + 1);
-        } else {
-            // Handle final step actions (e.g. payment or 'Ainda Vou Decidir')
-            console.log('Registration successful, proceed to payment or decision.');
+        const userData = await userResponse.json();
+        if (!userData || !userData.user) {
+          throw new Error('Usuário não foi criado corretamente.');
         }
-
-      } catch (err: any) {
-        console.error('Registration API error:', err);
-        setError(err.message || 'Ocorreu um erro na comunicação com o servidor.');
+        setRegisteredUserId(userData.user.id); // Store user ID for payment
+        setCurrentStep(currentStep + 1);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Erro ao cadastrar usuário');
       }
+      return;
+    }
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -490,9 +387,9 @@ export default function RegisterForm() {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <PersonalInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
+        return <PersonalInfo formData={formData} onInputChange={handleInputChange} />;
       case 2:
-        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
+        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} />;
       case 3:
         return (
           <PlanAndPayment
@@ -573,7 +470,7 @@ export default function RegisterForm() {
             )}
             <button
               type="submit"
-              onClick={() => alert('Button onClick fired!')}
+              onClick={() => alert('Button onClick fired!')} // This onClick on a submit button might be problematic
               disabled={!validateStep(currentStep)}
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
