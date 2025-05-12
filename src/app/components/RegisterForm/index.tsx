@@ -348,8 +348,20 @@ export default function RegisterForm() {
         setRegisteredUserId(userData.user.id); // Store user ID for payment
         setCurrentStep(currentStep + 1);
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Erro ao cadastrar usuário');
+        // Check if the error indicates the user already exists
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('já existe')) {
+          setFormErrors(prevErrors => ({
+            ...prevErrors,
+            email: 'Este e-mail ou CPF já está cadastrado.' // Set specific error for email field
+          }));
+          setError(null); // Clear general error if we set a specific one
+        } else {
+          setError(errorMessage); // Set general error for other API issues
+        }
+        return; // Stop step advancement if API call fails
       }
+      // Successfully registered and advanced step, so return to prevent further step advancement below
       return;
     }
     if (currentStep < 3) {
