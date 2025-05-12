@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography } from '@mui/material';
+import { signIn } from 'next-auth/react'; 
+import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography, Button, CircularProgress, Alert } from '@mui/material';
 import PersonalInfo from './PersonalInfo';
 import AdditionalInfo from './AdditionalInfo';
 import PurchaseSummary from './PurchaseSummary';
@@ -155,96 +156,53 @@ export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<Partial<Record<'email' | 'password' | 'confirmPassword', string>>>({}); // New state for field errors
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
   // Initialize availablePlans with the hardcoded plan
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([medsafeDefaultPlan]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
     // Set initial plan from cookie if exists
-    if (cookies.selected_plan) {
-      setSelectedPlan(cookies.selected_plan);
-    }
-
-    // If step is forced via query param, jump to that step
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const stepParam = urlParams.get('step');
-      if (stepParam && !isNaN(Number(stepParam))) {
-        setCurrentStep(Number(stepParam));
+    const savedPlanId = cookies.selected_plan?.id;
+    if (savedPlanId) {
+      const planFromCookie = availablePlans.find(p => p.id === savedPlanId);
+      if (planFromCookie) {
+        setSelectedPlan(planFromCookie);
       }
     }
-  }, []);
+  }, [availablePlans, cookies.selected_plan]);
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    // Clear specific errors when user types in relevant fields
-    if (field === 'email' || field === 'password' || field === 'confirmPassword') {
-      setFormErrors(prevErrors => ({
-        ...prevErrors,
-        [field]: undefined
-      }));
-    }
+  const validatePersonalInfoStep = (): Partial<Record<keyof FormData, string>> => {
+    const errors: Partial<Record<keyof FormData, string>> = {};
+    if (!formData.firstName) errors.firstName = 'Nome é obrigatório';
+    if (!formData.lastName) errors.lastName = 'Sobrenome é obrigatório';
+    if (!formData.cpf) errors.cpf = 'CPF é obrigatório';
+    else if (formData.cpf.replace(/\D/g, '').length !== 11) errors.cpf = 'CPF inválido';
+    if (!formData.birthDate) errors.birthDate = 'Data de Nascimento é obrigatória';
+    // Add other personal info validations as needed based on your FormData interface
+    if (!formData.rg) errors.rg = 'RG é obrigatório';
+    if (!formData.orgaoExpedidor) errors.orgaoExpedidor = 'Órgão Expedidor é obrigatório';
+    // Skipping residenceSince, fezResidencia, especialidadeAtual, pertenceAlgumaAssociacao, socioProprietario, realizaProcedimento as they might be optional or part of AdditionalInfo
+    if (!formData.entidadeExerce) errors.entidadeExerce = 'Entidade onde exerce a profissão é obrigatória';
+    if (!formData.atividadeProfissional) errors.atividadeProfissional = 'Atividade profissional é obrigatória';
+    if (!formData.pais) errors.pais = 'País é obrigatório';
+    if (!formData.estado) errors.estado = 'Estado é obrigatório';
+    if (!formData.cep) errors.cep = 'CEP é obrigatório';
+    if (!formData.cidade) errors.cidade = 'Cidade é obrigatória';
+    if (!formData.bairro) errors.bairro = 'Bairro é obrigatório';
+    if (!formData.endereco) errors.endereco = 'Endereço é obrigatório';
+    if (!formData.numero) errors.numero = 'Número é obrigatório';
+    if (!formData.email) errors.email = 'Email é obrigatório';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email inválido';
+    if (!formData.telefone) errors.telefone = 'Telefone é obrigatório';
+    // Role is validated separately in handleNext, but could be added here too if preferred
+    return errors;
   };
 
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 1:
-        return Boolean(
-          formData.firstName &&
-          formData.lastName &&
-          formData.cpf &&
-          formData.birthDate &&
-          formData.rg &&
-          formData.orgaoExpedidor &&
-          formData.entidadeExerce &&
-          formData.atividadeProfissional &&
-          formData.pais &&
-          formData.estado &&
-          formData.cep &&
-          formData.cidade &&
-          formData.bairro &&
-          formData.endereco &&
-          formData.numero &&
-          formData.email &&
-          formData.telefone &&
-          formData.role
-        );
-      case 2:
-        return Boolean(
-          formData.email &&
-          formData.password &&
-          formData.confirmPassword
-        );
-      case 3:
-        // Allow "Ainda Vou Decidir" (selectedPlan === null) to finish WITHOUT payment
-        if (!selectedPlan) return true;
-        // Otherwise, require payment method and (for credit card) card fields
-        if (!formData.paymentMethod) return false;
-        if (formData.paymentMethod === 'CARTAO') {
-          return Boolean(
-            formData.cardHolderName &&
-            formData.cardNumber &&
-            formData.cardExpiryMonth &&
-            formData.cardExpiryYear &&
-            formData.cardCcv &&
-            formData.cardCpfCnpj &&
-            formData.cardPhone
-          );
-        }
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  // New function to validate credentials step
   const validateCredentialsStep = (): Partial<Record<'email' | 'password' | 'confirmPassword', string>> => {
     const newErrors: Partial<Record<'email' | 'password' | 'confirmPassword', string>> = {};
     if (!formData.email) {
@@ -267,98 +225,189 @@ export default function RegisterForm() {
     return newErrors;
   };
 
-  const handleNext = async () => {
-    // Validate credentials before attempting to register user or advance
-    if (currentStep === 2) {
-      const credentialErrors = validateCredentialsStep();
-      setFormErrors(credentialErrors);
+  // Function to handle user registration API call
+  const registerUser = async (userData: Partial<FormData>) => {
+    // Construct the payload with correct field names and transformations for the API
+    // This should align with what your /api/register endpoint expects
+    const payloadForApi = {
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      cpf: userData.cpf, // Assuming it's already cleaned by the time it reaches here in handleNext
+      birthDate: userData.birthDate, // Ensure format is as API expects (e.g., YYYY-MM-DD)
+      rg: userData.rg,
+      orgaoExpedidor: userData.orgaoExpedidor,
+      entidadeExerce: userData.entidadeExerce,
+      atividadeProfissional: userData.atividadeProfissional,
+      pais: userData.pais,
+      estado: userData.estado,
+      cep: userData.cep, // Assuming it's already cleaned
+      cidade: userData.cidade,
+      bairro: userData.bairro,
+      endereco: userData.endereco,
+      numero: userData.numero,
+      complemento: userData.complemento,
+      telefone: userData.telefone, // Assuming it's already cleaned
+      role: userData.role,
+      // Include any other fields that your API expects from the FormData interface
+      // For example, fields from AdditionalInfo if they are part of the initial registration
+      // residenceSince: userData.residenceSince,
+      // fezResidencia: userData.fezResidencia,
+      // etc.
+    };
 
-      if (Object.keys(credentialErrors).length > 0) {
-        return; // Stop if there are validation errors
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payloadForApi),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      // Try to extract a more specific error message if available
+      const message = errorData.message || errorData.error || 'Erro ao cadastrar usuário';
+      throw new Error(message);
+    }
+
+    return response.json(); // Returns the user data from the API, including user.id
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear specific errors when user types in relevant fields
+    if (field === 'email' || field === 'password' || field === 'confirmPassword') {
+      setFormErrors(prevErrors => ({
+        ...prevErrors,
+        [field]: undefined
+      }));
+    }
+  };
+
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        // PersonalInfo step is valid if validatePersonalInfoStep returns no errors
+        return Object.keys(validatePersonalInfoStep()).length === 0;
+      case 2:
+        // Credentials step is valid if validateCredentialsStep returns no errors
+        return Object.keys(validateCredentialsStep()).length === 0;
+      case 3:
+        // Payment step validation logic for enabling/disabling the submit button
+        // This can be simple (e.g., selectedPlan exists if payment is intended)
+        // or more complex if you have pre-submit checks for payment form fields.
+        // If 'Ainda Vou Decidir' (no selectedPlan), it's considered valid to proceed to submit (which then redirects).
+        if (!selectedPlan) return true;
+        // If a plan is selected, ensure a payment method is chosen.
+        if (!formData.paymentMethod) return false;
+        // If card, basic checks (more thorough validation happens on submit)
+        if (formData.paymentMethod === 'CARTAO') {
+          return Boolean(
+            formData.cardHolderName &&
+            formData.cardNumber &&
+            formData.cardExpiryMonth &&
+            formData.cardExpiryYear &&
+            formData.cardCcv
+          );
+        }
+        return true; // For Boleto and PIX, just having method selected might be enough here
+      default:
+        return false;
+    }
+  };
+
+  const handleNext = async () => {
+    // Clear previous specific errors if any
+    setFormErrors({});
+    setError(null); 
+
+    if (currentStep === 1) {
+      const personalInfoErrors = validatePersonalInfoStep();
+      if (Object.keys(personalInfoErrors).length > 0) {
+        setFormErrors(personalInfoErrors);
+        return;
+      }
+      // Additional check for role, which is part of PersonalInfo but might be missed
+      if (!formData.role) {
+        setFormErrors(prev => ({ ...prev, role: 'Seleção de perfil é obrigatória.'}));
+        return;
+      }
+      setCurrentStep(currentStep + 1);
+    } else if (currentStep === 2) { 
+      setLoading(true);
+
+      const credentialsErrors = validateCredentialsStep();
+      if (Object.keys(credentialsErrors).length > 0) {
+        setFormErrors(credentialsErrors);
+        setLoading(false);
+        return;
       }
 
-      // Proceed with user registration API call if validation passes
       try {
-        // Construct the payload with correct field names and transformations for the API
-        const payloadForApi = {
-          // Mapped fields based on the error message and previous mapFormDataToApi logic
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          profession: formData.especialidadeAtual || formData.role || '',
-          phone: formData.telefone,
-          address: `${formData.endereco || ''}${formData.numero ? ', ' + formData.numero : ''}${formData.complemento ? ' - ' + formData.complemento : ''}`.trim(),
-          city: formData.cidade,
-          state: formData.estado,
-          zip_code: formData.cep,
-
-          // Core identity and credentials
+        const userData = await registerUser({
           email: formData.email,
-          cpf: formData.cpf,
           password: formData.password,
-          birthDate: convertDateToYMD(formData.birthDate),
-          role: formData.role || 'SEGURADO', // Default role if not specified
-
-          // Other personal details from formData likely expected by the API
+          // Pass all other necessary fields from formData for registration
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          cpf: formData.cpf.replace(/\D/g, ''), 
+          birthDate: formData.birthDate, 
           rg: formData.rg,
           orgaoExpedidor: formData.orgaoExpedidor,
-          residenceSince: formData.residenceSince,
-          fezResidencia: formData.fezResidencia,
-          pertenceAlgumaAssociacao: formData.pertenceAlgumaAssociacao,
-          socioProprietario: formData.socioProprietario,
           entidadeExerce: formData.entidadeExerce,
-          realizaProcedimento: formData.realizaProcedimento,
-          atividadeProfissional: formData.atividadeProfissional, // string
+          atividadeProfissional: formData.atividadeProfissional,
           pais: formData.pais,
-          bairro: formData.bairro, // Sending bairro separately, adjust if API expects it in address string
-
-          // Questionnaire fields from step 2
-          penalRestritiva: formData.penalRestritiva,
-          penaAdministrativa: formData.penaAdministrativa,
-          dependenteQuimico: formData.dependenteQuimico,
-          recusaSeguro: formData.recusaSeguro,
-          conhecimentoReclamacoes: formData.conhecimentoReclamacoes,
-          envolvidoReclamacoes: formData.envolvidoReclamacoes,
-          assessoradoPorVendas: formData.assessoradoPorVendas,
-
-          // Selected Plan ID (if required by the /api/register endpoint)
-          selectedPlanId: typeof formData.selectedPlan === 'object' && formData.selectedPlan !== null ? formData.selectedPlan.id : formData.selectedPlan,
-        };
-
-        const userResponse = await fetch('/api/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payloadForApi),
+          estado: formData.estado,
+          cep: formData.cep.replace(/\D/g, ''), 
+          cidade: formData.cidade,
+          bairro: formData.bairro,
+          endereco: formData.endereco,
+          numero: formData.numero,
+          complemento: formData.complemento,
+          telefone: formData.telefone.replace(/\D/g, ''), 
+          role: formData.role,
+          // Include any other fields from AdditionalInfo if they are part of initial registration
+          // e.g., residenceSince, fezResidencia, etc., if your API needs them at this stage.
         });
-        if (!userResponse.ok) {
-          const error = await userResponse.json();
-          throw new Error(error.error || 'Erro ao cadastrar usuário');
+
+        if (!userData || !userData.user || !userData.user.id) {
+          throw new Error('Usuário não foi criado corretamente ou ID não retornado.');
         }
-        const userData = await userResponse.json();
-        if (!userData || !userData.user) {
-          throw new Error('Usuário não foi criado corretamente.');
-        }
-        setRegisteredUserId(userData.user.id); // Store user ID for payment
-        setCurrentStep(currentStep + 1);
-      } catch (error) {
-        // Check if the error indicates the user already exists
-        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-        if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('já existe')) {
-          setFormErrors(prevErrors => ({
-            ...prevErrors,
-            email: 'Este e-mail ou CPF já está cadastrado.' // Set specific error for email field
-          }));
-          setError(null); // Clear general error if we set a specific one
+        setRegisteredUserId(userData.user.id);
+
+        // Attempt to sign in the user automatically
+        const signInResponse = await signIn('credentials', {
+          redirect: false,
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (signInResponse && signInResponse.ok) {
+          // Sign-in successful, proceed to payment
+          setCurrentStep(currentStep + 1);
         } else {
-          setError(errorMessage); // Set general error for other API issues
+          // Sign-in failed
+          setError('Falha ao fazer login automaticamente após o registro. ' + (signInResponse?.error || 'Por favor, tente fazer login manualmente.'));
         }
-        return; // Stop step advancement if API call fails
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        // Check for specific error messages from your API
+        if (errorMessage.includes('Email already exists') || errorMessage.includes('CPF already exists')) {
+          setError(errorMessage); 
+        } else {
+          setError(`Ocorreu um erro durante o registro: ${errorMessage}`);
+        }
+        console.error('Registration or auto sign-in error:', error);
+      } finally {
+        setLoading(false);
       }
-      // Successfully registered and advanced step, so return to prevent further step advancement below
-      return;
-    }
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+    } else if (currentStep === 3) { 
+        // Logic for step 3 is handled by handleSubmit, not handleNext for progression
     }
   };
 
@@ -373,18 +422,21 @@ export default function RegisterForm() {
     setCookie('selected_plan', plan, { path: '/' });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
 
     // Check if user chose 'Ainda Vou Decidir'
     if (!selectedPlan) {
       if (!registeredUserId) {
-        // Should ideally not happen if registration (step 2) succeeded, but good to check.
         setError('Erro: ID do usuário não encontrado. Tente recarregar a página.');
+        setLoading(false); 
         return;
       }
-      router.push('/dashboard'); // Redirect immediately
-      return; // Exit handleSubmit
+      router.push('/'); 
+      setLoading(false); 
+      return; 
     }
 
     // If a plan IS selected, proceed with payment logic
@@ -397,8 +449,20 @@ export default function RegisterForm() {
       // Construct payment data (only if plan is selected)
       const paymentData: any = {
         planId: selectedPlan.id,
-        customerId: registeredUserId, // Always use user ID
+        customerId: registeredUserId, 
         paymentMethod: formData.paymentMethod,
+        customer: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          cpfCnpj: formData.cpf.replace(/\D/g, ''),
+          phone: formData.telefone.replace(/\D/g, ''),
+          mobilePhone: formData.telefone.replace(/\D/g, ''), 
+          address: formData.endereco,
+          addressNumber: formData.numero,
+          complement: formData.complemento || null, 
+          province: formData.bairro, 
+          postalCode: formData.cep.replace(/\D/g, ''),
+        }
       };
       if (formData.paymentMethod === 'CARTAO') {
         paymentData.cardInfo = {
@@ -439,6 +503,7 @@ export default function RegisterForm() {
       router.push('/dashboard');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erro ao processar sua solicitação');
+      setLoading(false); 
     }
   };
 
