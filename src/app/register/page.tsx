@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import RegisterForm from '@/app/components/RegisterForm';
+// import RegisterForm from '@/app/components/RegisterForm'; // Comment out for now
 import Navbar from '@/app/components/Navbar'; 
 // teste
 
@@ -11,7 +11,8 @@ export default function RegisterPage() {
       {/* <Navbar /> */}
       {/* Adjusted to pt-40 for navbar, pb-8 for bottom padding */}
       <div className="min-h-screen pt-40 pb-8">
-        <RegisterForm />
+        {/* <RegisterForm /> */}
+        <div>Register Page Test - No Form</div> {/* Replace RegisterForm with a simple div */}
       </div>
     </>
   );
