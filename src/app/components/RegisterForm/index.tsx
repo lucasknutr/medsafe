@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography } from '@mui/material';
 import PersonalInfo from './PersonalInfo';
 import AdditionalInfo from './AdditionalInfo';
@@ -152,6 +152,7 @@ export default function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const router = useRouter();
+  const searchParams = useSearchParams(); // Call useSearchParams
   const [cookies, setCookie] = useCookies(['selected_plan']);
   const planFromCookie = cookies.selected_plan; // Get a stable reference
   const stringifiedPlanFromCookie = useMemo(() => JSON.stringify(planFromCookie), [planFromCookie]); // Memoize
@@ -184,8 +185,7 @@ export default function RegisterForm() {
     if (!isMounted) {
       return; // Only run this logic on the client after mounting
     }
-    const params = new URLSearchParams(window.location.search);
-    const stepFromUrl = params.get('step');
+    const stepFromUrl = searchParams.get('step'); // Use searchParams
     if (stepFromUrl) {
       const numericStepParam = parseInt(stepFromUrl, 10);
       if (!isNaN(numericStepParam) && numericStepParam >= 1 && numericStepParam <= steps.length) {
@@ -194,7 +194,7 @@ export default function RegisterForm() {
         }
       }
     }
-  }, [isMounted, currentStep, window.location.search]); // Corrected dependency
+  }, [isMounted, currentStep, searchParams]); // Use searchParams in dependency array
 
   // Effect for fetching available insurance plans
   useEffect(() => {
