@@ -3,6 +3,7 @@
 import React from 'react';
 import RegisterForm from '@/app/components/RegisterForm';
 import Navbar from '@/app/components/Navbar'; 
+// teste
 
 export default function RegisterPage() {
   return (
