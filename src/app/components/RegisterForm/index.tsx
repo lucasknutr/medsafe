@@ -390,7 +390,6 @@ export default function RegisterForm() {
         setError('Erro: ID do usuário não encontrado. Tente recarregar a página.');
         return;
       }
-      console.log('User chose "Ainda Vou Decidir". Skipping payment, redirecting to dashboard.');
       router.push('/dashboard'); // Redirect immediately
       return; // Exit handleSubmit
     }
@@ -432,7 +431,6 @@ export default function RegisterForm() {
         throw new Error(error.error || 'Erro ao processar pagamento');
       }
       const payment = await paymentResponse.json();
-      console.log('Payment response:', payment);
       if (formData.paymentMethod === 'BOLETO') {
         setTimeout(() => {
           if (payment.invoiceUrl) {
