@@ -165,6 +165,8 @@ export default function RegisterForm() {
     setIsMounted(true);
   }, []);
 
+  // Temporarily commented out for Vercel build diagnosis
+  /*
   // Effect for handling selected plan from cookie
   useEffect(() => {
     if (!isMounted) {
@@ -178,8 +180,11 @@ export default function RegisterForm() {
         return prevPlan;
       });
     }
-  }, [isMounted, stringifiedPlanFromCookie]); // Dependencies: isMounted and the memoized cookie string
+  }, [isMounted, stringifiedPlanFromCookie]);
+  */
 
+  // Temporarily commented out for Vercel build diagnosis
+  /*
   // Effect for handling current step from URL parameters
   useEffect(() => {
     if (!isMounted) {
@@ -194,7 +199,8 @@ export default function RegisterForm() {
         }
       }
     }
-  }, [isMounted, currentStep, searchParams]); // Use searchParams in dependency array
+  }, [isMounted, currentStep, searchParams]);
+  */
 
   // Effect for fetching available insurance plans
   useEffect(() => {
