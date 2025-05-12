@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography } from '@mui/material';
 import PersonalInfo from './PersonalInfo';
@@ -154,6 +154,7 @@ export default function RegisterForm() {
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
   const planFromCookie = cookies.selected_plan; // Get a stable reference
+  const stringifiedPlanFromCookie = useMemo(() => JSON.stringify(planFromCookie), [planFromCookie]); // Memoize
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
@@ -163,7 +164,6 @@ export default function RegisterForm() {
     setIsMounted(true);
   }, []);
 
-  /*
   // Effect for handling selected plan from cookie and step from URL parameters
   useEffect(() => {
     if (!isMounted) {
@@ -171,9 +171,10 @@ export default function RegisterForm() {
     }
 
     // Set initial plan from cookie if exists
-    if (planFromCookie) { // Use the stable reference
+    if (planFromCookie) { 
       setSelectedPlan(prevPlan => {
-        if (JSON.stringify(prevPlan) !== JSON.stringify(planFromCookie)) { // Compare with stable reference
+        // Deep comparison to prevent unnecessary updates if the plan object is the same
+        if (JSON.stringify(prevPlan) !== JSON.stringify(planFromCookie)) { 
           return planFromCookie;
         }
         return prevPlan;
@@ -189,10 +190,8 @@ export default function RegisterForm() {
         setCurrentStep(numericStepParam);
       }
     }
-  }, [isMounted, JSON.stringify(planFromCookie), currentStep]); // Use stringified plan in dependency array
-  */
+  }, [isMounted, stringifiedPlanFromCookie, currentStep]); // Use memoized stringified plan in dependency array
 
-  /*
   // Effect for fetching available insurance plans
   useEffect(() => {
     const fetchPlansAsync = async () => {
@@ -211,7 +210,6 @@ export default function RegisterForm() {
 
     fetchPlansAsync();
   }, []); // Runs once to fetch plans
-  */
 
   // Validation functions
   const validateCpf = (cpf: string): string => {
