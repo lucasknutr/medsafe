@@ -305,42 +305,19 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             RELAÇÃO PROFISSIONAL NA ENTIDADE:
           </label>
-          {/* Adjusted spacing and alignment */}
-          <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-6 sm:items-center">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                value="EMPREGADO"
-                checked={formData.entidadeExerce === 'EMPREGADO'}
-                onChange={(e) => onInputChange('entidadeExerce', e.target.value)}
-                className="mr-2"
-              />
-              EMPREGADO
-            </label>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                value="POR_CONTRATO"
-                checked={formData.entidadeExerce === 'POR_CONTRATO'}
-                onChange={(e) => onInputChange('entidadeExerce', e.target.value)}
-                className="mr-2"
-              />
-              POR CONTRATO
-            </label>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                value="SOCIO_PROPRIETARIO"
-                checked={formData.entidadeExerce === 'SOCIO_PROPRIETARIO'}
-                onChange={(e) => onInputChange('entidadeExerce', e.target.value)}
-                className="mr-2"
-              />
-              SÓCIO/PROPRIETÁRIO
-            </label>
-          </div>
+          <select
+            value={formData.entidadeExerce || ''}
+            onChange={(e) => onInputChange('entidadeExerce', e.target.value)}
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecione...</option>
+            <option value="EMPREGADO">EMPREGADO</option>
+            <option value="POR_CONTRATO">POR CONTRATO</option>
+            <option value="SOCIO_PROPRIETARIO">SÓCIO/PROPRIETÁRIO</option>
+          </select>
         </div>
 
         <div>
