@@ -147,6 +147,7 @@ const convertDateToYMD = (dateString: string): string => {
 
 export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isMounted, setIsMounted] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -156,26 +157,41 @@ export default function RegisterForm() {
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
 
+  // Effect to set isMounted to true after component mounts on client
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Effect for handling selected plan from cookie and step from URL parameters
+  useEffect(() => {
+    if (!isMounted) {
+      return; // Only run this logic on the client after mounting
+    }
+
     // Set initial plan from cookie if exists
     if (cookies.selected_plan) {
-      setSelectedPlan(cookies.selected_plan);
+      setSelectedPlan(prevPlan => {
+        if (JSON.stringify(prevPlan) !== JSON.stringify(cookies.selected_plan)) {
+          return cookies.selected_plan;
+        }
+        return prevPlan;
+      });
     }
 
     // If step is forced via query param, jump to that step
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const stepParam = urlParams.get('step');
-      if (stepParam) {
-        const numericStepParam = Number(stepParam);
-        if (!isNaN(numericStepParam) && numericStepParam !== currentStep) { 
-          setCurrentStep(numericStepParam);
-        }
+    const urlParams = new URLSearchParams(window.location.search);
+    const stepParam = urlParams.get('step');
+    if (stepParam) {
+      const numericStepParam = Number(stepParam);
+      if (!isNaN(numericStepParam) && numericStepParam !== currentStep) {
+        setCurrentStep(numericStepParam);
       }
     }
+  }, [isMounted, cookies.selected_plan, currentStep]);
 
-    // Fetch all available plans
-    const fetchPlans = async () => {
+  // Effect for fetching available insurance plans
+  useEffect(() => {
+    const fetchPlansAsync = async () => {
       try {
         const response = await fetch('/api/insurance-plans');
         if (!response.ok) {
@@ -189,7 +205,7 @@ export default function RegisterForm() {
       }
     };
 
-    fetchPlans();
+    fetchPlansAsync();
   }, []);
 
   // Validation functions
