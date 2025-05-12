@@ -153,6 +153,7 @@ export default function RegisterForm() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
+  const planFromCookie = cookies.selected_plan; // Get a stable reference
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
@@ -169,10 +170,10 @@ export default function RegisterForm() {
     }
 
     // Set initial plan from cookie if exists
-    if (cookies.selected_plan) {
+    if (planFromCookie) { // Use the stable reference
       setSelectedPlan(prevPlan => {
-        if (JSON.stringify(prevPlan) !== JSON.stringify(cookies.selected_plan)) {
-          return cookies.selected_plan;
+        if (JSON.stringify(prevPlan) !== JSON.stringify(planFromCookie)) { // Compare with stable reference
+          return planFromCookie;
         }
         return prevPlan;
       });
@@ -187,7 +188,7 @@ export default function RegisterForm() {
         setCurrentStep(numericStepParam);
       }
     }
-  }, [isMounted, cookies.selected_plan, currentStep]);
+  }, [isMounted, JSON.stringify(planFromCookie), currentStep]); // Use stringified plan in dependency array
 
   // Effect for fetching available insurance plans
   useEffect(() => {
