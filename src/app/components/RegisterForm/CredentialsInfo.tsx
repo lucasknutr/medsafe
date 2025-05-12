@@ -8,9 +8,13 @@ interface CredentialsInfoProps {
     confirmPassword: string;
   };
   onInputChange: (field: string, value: string) => void;
+  errors?: {
+    password?: string;
+    confirmPassword?: string;
+  };
 }
 
-const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChange }) => {
+const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChange, errors }) => {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold mb-6">Credenciais de Acesso</h2>
@@ -25,27 +29,37 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
         required
       />
 
-      <TextField
-        fullWidth
-        label="Senha"
-        type="password"
-        name="password"
-        value={formData.password}
-        onChange={(e) => onInputChange('password', e.target.value)}
-        required
-      />
+      <div>
+        <TextField
+          fullWidth
+          label="Senha"
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={(e) => onInputChange('password', e.target.value)}
+          required
+          error={!!errors?.password}
+          helperText={errors?.password || ''}
+          // You might want to style helperText directly if MUI default red is not what you want
+          // FormHelperTextProps={{ style: { color: 'red' } }} // Example
+        />
+      </div>
 
-      <TextField
-        fullWidth
-        label="Confirmar Senha"
-        type="password"
-        name="confirmPassword"
-        value={formData.confirmPassword}
-        onChange={(e) => onInputChange('confirmPassword', e.target.value)}
-        required
-      />
+      <div>
+        <TextField
+          fullWidth
+          label="Confirmar Senha"
+          type="password"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={(e) => onInputChange('confirmPassword', e.target.value)}
+          required
+          error={!!errors?.confirmPassword}
+          helperText={errors?.confirmPassword || ''}
+        />
+      </div>
     </div>
   );
 };
 
-export default CredentialsInfo; 
+export default CredentialsInfo;

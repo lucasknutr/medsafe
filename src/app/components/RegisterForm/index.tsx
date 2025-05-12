@@ -70,6 +70,15 @@ interface FormData {
   cardPhone?: string;
 }
 
+interface FormErrors {
+  firstName?: string;
+  lastName?: string;
+  cpf?: string;
+  password?: string;
+  confirmPassword?: string;
+  birthDate?: string;
+}
+
 const initialFormData: FormData = {
   firstName: '',
   lastName: '',
@@ -139,6 +148,7 @@ export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
@@ -178,78 +188,87 @@ export default function RegisterForm() {
     fetchPlans();
   }, []);
 
+  // Validation functions
+  const validateCpf = (cpf: string): string => {
+    const cleanedCpf = cpf.replace(/\D/g, '');
+    if (cleanedCpf.length !== 11) {
+      return 'CPF deve conter 11 dígitos.';
+    }
+    return ''; // No error
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+    // Clear previous error for this field and general error message
+    if (formErrors[field as keyof FormErrors]) {
+      setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    if (error) setError(null); 
 
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 1:
-        return Boolean(
-          formData.role &&
-          formData.firstName &&
-          formData.lastName &&
-          formData.cpf &&
-          formData.birthDate &&
-          formData.rg &&
-          formData.orgaoExpedidor &&
-          formData.residenceSince &&
-          formData.fezResidencia &&
-          formData.especialidadeAtual &&
-          formData.pertenceAlgumaAssociacao &&
-          formData.socioProprietario &&
-          formData.entidadeExerce &&
-          formData.realizaProcedimento &&
-          formData.atividadeProfissional.length > 0 &&
-          formData.pais &&
-          formData.estado &&
-          formData.cep &&
-          formData.cidade &&
-          formData.bairro &&
-          formData.endereco &&
-          formData.numero &&
-          formData.complemento &&
-          formData.email &&
-          formData.telefone
-        );
-      case 2:
-        return Boolean(
-          formData.email &&
-          formData.password &&
-          formData.confirmPassword
-        );
-      case 3:
-        // Allow "Ainda Vou Decidir" (selectedPlan === null) to finish WITHOUT payment
-        if (!selectedPlan) return true;
-        // Otherwise, require payment method and (for credit card) card fields
-        if (!formData.paymentMethod) return false;
-        if (formData.paymentMethod === 'CARTAO') {
-          return Boolean(
-            formData.cardHolderName &&
-            formData.cardNumber &&
-            formData.cardExpiryMonth &&
-            formData.cardExpiryYear &&
-            formData.cardCcv &&
-            formData.cardCpfCnpj &&
-            formData.cardPhone
-          );
-        }
-        return true;
-      default:
-        return false;
+    // Validate CPF on change
+    if (field === 'cpf') {
+      const cpfError = validateCpf(value);
+      if (cpfError) {
+        setFormErrors(prev => ({ ...prev, cpf: cpfError }));
+      } else {
+        // Clear CPF error if it becomes valid
+        setFormErrors(prev => ({ ...prev, cpf: undefined })); 
+      }
     }
   };
 
+  const validateStep = (step: number): boolean => {
+    let isValid = true;
+    const newFormErrors: FormErrors = {};
+
+    if (step === 1) {
+      // Basic presence checks (can be expanded)
+      if (!formData.firstName) { newFormErrors.firstName = 'Primeiro nome é obrigatório.'; isValid = false; }
+      if (!formData.lastName) { newFormErrors.lastName = 'Sobrenome é obrigatório.'; isValid = false; }
+      
+      const cpfError = validateCpf(formData.cpf);
+      if (cpfError) {
+        newFormErrors.cpf = cpfError;
+        isValid = false;
+      }
+      // Add other field validations for step 1 as needed
+      // e.g., birthDate, rg, etc.
+    }
+    // Add validations for other steps as needed
+
+    setFormErrors(newFormErrors);
+    return isValid;
+  };
+
   const handleNext = async () => {
-    // Step 2: Register user
-    if (currentStep === 2) {
+    setError(null); // Clear general error
+    // setFormErrors({}); // Clear field-specific errors before validating current step
+
+    // Validate current step before proceeding (for fields not validated onInputChange or for a final check)
+    if (currentStep === 1) {
+      const isStep1Valid = validateStep(1);
+      if (!isStep1Valid) {
+        return; // Stop if validation fails
+      }
+    }
+    // Add similar validation for other steps if needed before API calls
+
+    // Logic for handling step transitions and API calls
+    if (currentStep < steps.length) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      // Final step: Process registration and payment or 'Ainda Vou Decidir'
+      // This is typically where you would make the API call for registration if not done earlier
+    }
+
+    // Step 2 specific logic (Registration API call) was here, now integrated with validation
+    // Ensure this runs only when moving from step 2 to 3 (or equivalent final step)
+    if (currentStep === 2) { // Assuming step 2 is 'Additional Info' and registration happens before 'Purchase Summary'
       try {
-        // Construct the payload with correct field names and transformations for the API
         const payloadForApi = {
-          // Mapped fields based on the error message and previous mapFormDataToApi logic
           name: `${formData.firstName} ${formData.lastName}`.trim(),
           profession: formData.especialidadeAtual || formData.role || '',
           phone: formData.telefone,
@@ -257,15 +276,11 @@ export default function RegisterForm() {
           city: formData.cidade,
           state: formData.estado,
           zip_code: formData.cep,
-
-          // Core identity and credentials
           email: formData.email,
-          cpf: formData.cpf,
+          cpf: formData.cpf.replace(/\D/g, ''), // Send cleaned CPF
           password: formData.password,
           birthDate: convertDateToYMD(formData.birthDate),
-          role: formData.role || 'SEGURADO', // Default role if not specified
-
-          // Other personal details from formData likely expected by the API
+          role: formData.role || 'SEGURADO',
           rg: formData.rg,
           orgaoExpedidor: formData.orgaoExpedidor,
           residenceSince: formData.residenceSince,
@@ -274,11 +289,9 @@ export default function RegisterForm() {
           socioProprietario: formData.socioProprietario,
           entidadeExerce: formData.entidadeExerce,
           realizaProcedimento: formData.realizaProcedimento,
-          atividadeProfissional: formData.atividadeProfissional, // string[]
+          atividadeProfissional: formData.atividadeProfissional,
           pais: formData.pais,
-          bairro: formData.bairro, // Sending bairro separately, adjust if API expects it in address string
-
-          // Questionnaire fields from step 2
+          bairro: formData.bairro,
           penalRestritiva: formData.penalRestritiva,
           penaAdministrativa: formData.penaAdministrativa,
           dependenteQuimico: formData.dependenteQuimico,
@@ -286,35 +299,43 @@ export default function RegisterForm() {
           conhecimentoReclamacoes: formData.conhecimentoReclamacoes,
           envolvidoReclamacoes: formData.envolvidoReclamacoes,
           assessoradoPorVendas: formData.assessoradoPorVendas,
-
-          // Selected Plan ID (if required by the /api/register endpoint)
           selectedPlanId: typeof formData.selectedPlan === 'object' && formData.selectedPlan !== null ? formData.selectedPlan.id : formData.selectedPlan,
         };
 
         const userResponse = await fetch('/api/register', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payloadForApi),
         });
+
         if (!userResponse.ok) {
-          const error = await userResponse.json();
-          throw new Error(error.error || 'Erro ao cadastrar usuário');
+          const errorData = await userResponse.json();
+          if (errorData.details === "CPF already in use" || errorData.error === "User already exists") {
+            setFormErrors(prev => ({ ...prev, cpf: 'CPF já cadastrado.' }));
+            setError('Erro no registro. Verifique os campos.'); // General error as well
+          } else if (errorData.missingFields) {
+            setError(`Campos obrigatórios faltando: ${errorData.missingFields.join(', ')}`);
+            // Potentially set formErrors for missing fields if backend provides them in a parsable way
+          } else {
+            setError(errorData.message || errorData.error || 'Erro ao registrar. Tente novamente.');
+          }
+          return; // Stop if registration fails
         }
-        const userData = await userResponse.json();
-        if (!userData || !userData.user) {
-          throw new Error('Usuário não foi criado corretamente.');
+
+        const responseData = await userResponse.json();
+        setRegisteredUserId(responseData.userId); // Assuming API returns userId
+        // If successful, then proceed to next step or final action
+        if (currentStep < steps.length) {
+            setCurrentStep(prev => prev + 1);
+        } else {
+            // Handle final step actions (e.g. payment or 'Ainda Vou Decidir')
+            console.log('Registration successful, proceed to payment or decision.');
         }
-        setRegisteredUserId(userData.user.id); // Store user ID for payment
-        setCurrentStep(currentStep + 1);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Erro ao cadastrar usuário');
+
+      } catch (err: any) {
+        console.error('Registration API error:', err);
+        setError(err.message || 'Ocorreu um erro na comunicação com o servidor.');
       }
-      return;
-    }
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -387,9 +408,9 @@ export default function RegisterForm() {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <PersonalInfo formData={formData} onInputChange={handleInputChange} />;
+        return <PersonalInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
       case 2:
-        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} />;
+        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
       case 3:
         return (
           <PlanAndPayment
