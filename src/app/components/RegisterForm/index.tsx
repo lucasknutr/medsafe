@@ -232,30 +232,43 @@ export default function RegisterForm() {
     const payloadForApi = {
       email: userData.email,
       password: userData.password,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      cpf: userData.cpf, // Assuming it's already cleaned by the time it reaches here in handleNext
-      birthDate: userData.birthDate, // Ensure format is as API expects (e.g., YYYY-MM-DD)
+      // API expects 'name', 'profession', 'phone', 'address', 'city', 'state', 'zip_code'
+      name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+      profession: userData.atividadeProfissional || userData.especialidadeAtual || userData.role || '', // Choose the most appropriate field or combine
+      phone: userData.telefone?.replace(/\D/g, ''), // Cleaned phone number
+      address: `${userData.endereco || ''}${userData.numero ? ', ' + userData.numero : ''}${userData.complemento ? ' - ' + userData.complemento : ''}`.trim(),
+      city: userData.cidade,
+      state: userData.estado,
+      zip_code: userData.cep?.replace(/\D/g, ''), // Cleaned CEP
+
+      // Original fields that might also be needed by the API directly, or are correctly named:
+      firstName: userData.firstName, // Keep if API also uses it separately
+      lastName: userData.lastName,   // Keep if API also uses it separately
+      cpf: userData.cpf?.replace(/\D/g, ''), 
+      birthDate: userData.birthDate, 
       rg: userData.rg,
       orgaoExpedidor: userData.orgaoExpedidor,
       entidadeExerce: userData.entidadeExerce,
-      atividadeProfissional: userData.atividadeProfissional,
+      // atividadeProfissional is now part of 'profession', remove if not needed separately
       pais: userData.pais,
-      estado: userData.estado,
-      cep: userData.cep, // Assuming it's already cleaned
-      cidade: userData.cidade,
-      bairro: userData.bairro,
-      endereco: userData.endereco,
-      numero: userData.numero,
-      complemento: userData.complemento,
-      telefone: userData.telefone, // Assuming it's already cleaned
+      // estado, cep, cidade, bairro, endereco, numero, complemento are used in combined fields above
+      // telefone is now 'phone'
       role: userData.role,
-      // Include any other fields that your API expects from the FormData interface
-      // For example, fields from AdditionalInfo if they are part of the initial registration
-      // residenceSince: userData.residenceSince,
-      // fezResidencia: userData.fezResidencia,
-      // etc.
+      // Ensure all other necessary fields expected by your API are included here
+      // For example, if 'bairro' is needed separately by API:
+      // bairro: userData.bairro, 
     };
+
+    // Clean up payload: remove undefined/null to avoid sending empty fields if API doesn't like them
+    Object.keys(payloadForApi).forEach(key => {
+      const K = key as keyof typeof payloadForApi;
+      if (payloadForApi[K] === undefined || payloadForApi[K] === null || payloadForApi[K] === '') {
+        // Consider if API prefers null or empty string, or field to be absent
+        // delete payloadForApi[K]; // if API prefers fields to be absent
+      }
+    });
+
+    console.log('Sending to API:', payloadForApi); // DEBUG: Log the payload
 
     const response = await fetch('/api/register', {
       method: 'POST',
