@@ -29,6 +29,10 @@ interface PersonalInfoProps {
     role: string;
   };
   onInputChange: (field: string, value: string | string[]) => void;
+  errors?: {
+    cpf?: string;
+    birthDate?: string;
+  };
 }
 
 const profissoes = [
@@ -87,14 +91,13 @@ const estados = [
   { value: 'TO', label: 'Tocantins' }
 ];
 
-// Correct roles for MedSafe platform
 const roles = [
   { value: 'SEGURADO', label: 'Segurado' },
   { value: 'CORRETOR', label: 'Corretor' },
   { value: 'ADVOGADO', label: 'Advogado' }
 ];
 
-export default function PersonalInfo({ formData, onInputChange }: PersonalInfoProps) {
+export default function PersonalInfo({ formData, onInputChange, errors }: PersonalInfoProps) {
   const fetchAddressFromCEP = async (cep: string) => {
     if (cep.length !== 8) return;
     
@@ -124,6 +127,24 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
       fetchAddressFromCEP(formData.cep.replace(/\D/g, ''));
     }
   }, [formData.cep]);
+
+  const handleBirthDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length > 8) value = value.slice(0, 8);
+
+    if (value.length >= 5) {
+      value = `${value.slice(0, 2)}/${value.slice(2, 4)}/${value.slice(4)}`;
+    } else if (value.length >= 3) {
+      value = `${value.slice(0, 2)}/${value.slice(2)}`;
+    }
+    onInputChange('birthDate', value);
+  };
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length > 11) value = value.slice(0, 11); // CPF max 11 digits
+    onInputChange('cpf', value);
+  };
 
   return (
     <div className="space-y-6">
@@ -180,10 +201,13 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
           <input
             type="text"
             value={formData.cpf}
-            onChange={(e) => onInputChange('cpf', e.target.value)}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            onChange={handleCpfChange}
+            className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.cpf ? 'border-red-500' : 'border-gray-300'}`}
+            maxLength={14}
+            placeholder="000.000.000-00"
             required
           />
+          {errors?.cpf && <p className="text-red-500 text-xs mt-1">{errors.cpf}</p>}
         </div>
 
         <div>
@@ -193,11 +217,13 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
           <input
             type="text"
             value={formData.birthDate}
-            onChange={(e) => onInputChange('birthDate', e.target.value)}
+            onChange={handleBirthDateChange}
             placeholder="DD/MM/YYYY"
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            maxLength={10}
+            className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.birthDate ? 'border-red-500' : 'border-gray-300'}`}
             required
           />
+          {errors?.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
         </div>
 
         <div>
@@ -340,7 +366,7 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
         <label className="block text-sm font-medium text-gray-700 mb-3">
           ATUALMENTE EXERCE SUA ATIVIDADE PROFISSIONAL COMO:
         </label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
           {profissoes.map((profissao) => (
             <label key={profissao} className="flex items-center">
               <input
@@ -509,4 +535,4 @@ export default function PersonalInfo({ formData, onInputChange }: PersonalInfoPr
       </div>
     </div>
   );
-} 
+}
