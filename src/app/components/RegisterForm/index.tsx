@@ -470,7 +470,6 @@ export default function RegisterForm() {
             )}
             <button
               type="submit"
-              onClick={() => alert('Button onClick fired!')} // This onClick on a submit button might be problematic
               disabled={!validateStep(currentStep)}
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
