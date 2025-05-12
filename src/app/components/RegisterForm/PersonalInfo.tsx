@@ -15,7 +15,7 @@ interface PersonalInfoProps {
     socioProprietario: string;
     entidadeExerce: string;
     realizaProcedimento: string;
-    atividadeProfissional: string[];
+    atividadeProfissional: string; // Changed from string[] to string
     pais: string;
     estado: string;
     cep: string;
@@ -337,15 +337,13 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
             ATUALMENTE EXERCE SUA ATIVIDADE PROFISSIONAL COMO:
           </label>
           <select
-            multiple
-            value={formData.atividadeProfissional}
+            value={formData.atividadeProfissional || ''} // Assuming it will be a string, provide default empty string
             onChange={(e) => {
-              const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-              onInputChange('atividadeProfissional', selectedOptions);
+              onInputChange('atividadeProfissional', e.target.value); // Pass single value
             }}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 h-32" // Added h-32 for better multi-select visibility
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" // Removed h-32
           >
-            {/* <option value="">Selecione uma ou mais (Ctrl/Cmd + Click)...</option> // Placeholder not typical for multi-select */}
+            <option value="">Selecione uma profissão...</option>
             {profissoes.map((profissao) => (
               <option key={profissao} value={profissao}>
                 {profissao}

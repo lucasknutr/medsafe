@@ -34,7 +34,7 @@ interface FormData {
   socioProprietario: string;
   entidadeExerce: string;
   realizaProcedimento: string;
-  atividadeProfissional: string[];
+  atividadeProfissional: string;
   pais: string;
   estado: string;
   cep: string;
@@ -84,7 +84,7 @@ const initialFormData: FormData = {
   socioProprietario: '',
   entidadeExerce: '',
   realizaProcedimento: '',
-  atividadeProfissional: [],
+  atividadeProfissional: '',
   pais: '',
   estado: '',
   cep: '',
@@ -211,7 +211,7 @@ export default function RegisterForm() {
           formData.socioProprietario &&
           formData.entidadeExerce &&
           formData.realizaProcedimento &&
-          formData.atividadeProfissional.length > 0 &&
+          formData.atividadeProfissional &&
           formData.pais &&
           formData.estado &&
           formData.cep &&
@@ -313,7 +313,7 @@ export default function RegisterForm() {
           socioProprietario: formData.socioProprietario,
           entidadeExerce: formData.entidadeExerce,
           realizaProcedimento: formData.realizaProcedimento,
-          atividadeProfissional: formData.atividadeProfissional, // string[]
+          atividadeProfissional: formData.atividadeProfissional, // string
           pais: formData.pais,
           bairro: formData.bairro, // Sending bairro separately, adjust if API expects it in address string
 
