@@ -308,8 +308,9 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
           <label className="block text-sm font-medium text-gray-700 mb-3">
             RELAÇÃO PROFISSIONAL NA ENTIDADE:
           </label>
-          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-4">
-            <label className="flex items-center">
+          {/* Adjusted spacing and alignment */}
+          <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-6 sm:items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 value="EMPREGADO"
@@ -319,7 +320,7 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
               />
               EMPREGADO
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 value="POR_CONTRATO"
@@ -329,7 +330,7 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
               />
               POR CONTRATO
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 value="SOCIO_PROPRIETARIO"
@@ -358,9 +359,10 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
           <label className="block text-sm font-medium text-gray-700 mb-3">
             ATUALMENTE EXERCE SUA ATIVIDADE PROFISSIONAL COMO:
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+          {/* Kept responsive grid, added mb-2 to labels for vertical spacing */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
             {profissoes.map((profissao) => (
-              <label key={profissao} className="flex items-start">
+              <label key={profissao} className="flex items-start cursor-pointer mb-2">
                 <input
                   type="checkbox"
                   checked={formData.atividadeProfissional.includes(profissao)}
