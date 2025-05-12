@@ -135,6 +135,22 @@ const convertDateToYMD = (dateString: string): string => {
   return `${parts[2]}-${parts[1]}-${parts[0]}`;
 };
 
+// Define the single hardcoded plan
+const medsafeDefaultPlan: InsurancePlan = {
+  id: 'cmabutev30000ec8p7nanpru7',
+  name: 'Plano de Proteção Profissional MedSafe',
+  description: 'Cobertura de R$ 200.000 para defesa em processos éticos, cíveis e criminais decorrentes da atividade profissional.',
+  price: 450.00,
+  features: [
+    'Cobertura de R$ 200.000',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+    'Custas processuais'
+  ],
+  is_active: true,
+};
+
 export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -142,7 +158,8 @@ export default function RegisterForm() {
   const [formErrors, setFormErrors] = useState<Partial<Record<'email' | 'password' | 'confirmPassword', string>>>({}); // New state for field errors
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan']);
-  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([]);
+  // Initialize availablePlans with the hardcoded plan
+  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([medsafeDefaultPlan]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
 
@@ -160,23 +177,6 @@ export default function RegisterForm() {
         setCurrentStep(Number(stepParam));
       }
     }
-
-    // Fetch all available plans
-    const fetchPlans = async () => {
-      try {
-        const response = await fetch('/api/insurance-plans');
-        if (!response.ok) {
-          throw new Error('Failed to fetch insurance plans');
-        }
-        const data = await response.json();
-        setAvailablePlans(data.filter((plan: InsurancePlan) => plan.is_active));
-      } catch (error) {
-        console.error('Error fetching insurance plans:', error);
-        setError('Erro ao carregar os planos de seguro. Por favor, tente novamente.');
-      }
-    };
-
-    fetchPlans();
   }, []);
 
   const handleInputChange = (field: string, value: any) => {
@@ -382,11 +382,27 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('handleSubmit called'); // Debug: ensure this runs
-    try {
-      if (!selectedPlan || !registeredUserId) {
-        throw new Error('Usuário ou plano não selecionado. Cadastre-se antes de pagar.');
+
+    // Check if user chose 'Ainda Vou Decidir'
+    if (!selectedPlan) {
+      if (!registeredUserId) {
+        // Should ideally not happen if registration (step 2) succeeded, but good to check.
+        setError('Erro: ID do usuário não encontrado. Tente recarregar a página.');
+        return;
       }
+      console.log('User chose "Ainda Vou Decidir". Skipping payment, redirecting to dashboard.');
+      router.push('/dashboard'); // Redirect immediately
+      return; // Exit handleSubmit
+    }
+
+    // If a plan IS selected, proceed with payment logic
+    try {
+      // Ensure we have user ID for payment API
+      if (!registeredUserId) { 
+        throw new Error('ID do usuário não registrado. Não é possível processar o pagamento.');
+      }
+
+      // Construct payment data (only if plan is selected)
       const paymentData: any = {
         planId: selectedPlan.id,
         customerId: registeredUserId, // Always use user ID
