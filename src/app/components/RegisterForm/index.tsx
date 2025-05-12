@@ -164,33 +164,37 @@ export default function RegisterForm() {
     setIsMounted(true);
   }, []);
 
-  // Effect for handling selected plan from cookie and step from URL parameters
+  // Effect for handling selected plan from cookie
   useEffect(() => {
     if (!isMounted) {
       return; // Only run this logic on the client after mounting
     }
-
-    // Set initial plan from cookie if exists
-    if (planFromCookie) { 
+    if (planFromCookie) {
       setSelectedPlan(prevPlan => {
-        // Deep comparison to prevent unnecessary updates if the plan object is the same
-        if (JSON.stringify(prevPlan) !== JSON.stringify(planFromCookie)) { 
+        if (JSON.stringify(prevPlan) !== JSON.stringify(planFromCookie)) {
           return planFromCookie;
         }
         return prevPlan;
       });
     }
+  }, [isMounted, stringifiedPlanFromCookie]); // Dependencies: isMounted and the memoized cookie string
 
-    // If step is forced via query param, jump to that step
-    const urlParams = new URLSearchParams(window.location.search);
-    const stepParam = urlParams.get('step');
-    if (stepParam) {
-      const numericStepParam = Number(stepParam);
-      if (!isNaN(numericStepParam) && numericStepParam !== currentStep) {
-        setCurrentStep(numericStepParam);
+  // Effect for handling current step from URL parameters
+  useEffect(() => {
+    if (!isMounted) {
+      return; // Only run this logic on the client after mounting
+    }
+    const params = new URLSearchParams(window.location.search);
+    const stepFromUrl = params.get('step');
+    if (stepFromUrl) {
+      const numericStepParam = parseInt(stepFromUrl, 10);
+      if (!isNaN(numericStepParam) && numericStepParam >= 1 && numericStepParam <= steps.length) {
+        if (currentStep !== numericStepParam) { // Only update if different
+          setCurrentStep(numericStepParam);
+        }
       }
     }
-  }, [isMounted, stringifiedPlanFromCookie, currentStep]); // Use memoized stringified plan in dependency array
+  }, [isMounted, currentStep, window.location.search]); // Corrected dependency
 
   // Effect for fetching available insurance plans
   useEffect(() => {
