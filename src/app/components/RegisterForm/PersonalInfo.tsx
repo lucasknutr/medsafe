@@ -333,32 +333,25 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             ATUALMENTE EXERCE SUA ATIVIDADE PROFISSIONAL COMO:
           </label>
-          {/* Kept responsive grid, added mb-2 to labels for vertical spacing */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1">
+          <select
+            multiple
+            value={formData.atividadeProfissional}
+            onChange={(e) => {
+              const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+              onInputChange('atividadeProfissional', selectedOptions);
+            }}
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 h-32" // Added h-32 for better multi-select visibility
+          >
+            {/* <option value="">Selecione uma ou mais (Ctrl/Cmd + Click)...</option> // Placeholder not typical for multi-select */}
             {profissoes.map((profissao) => (
-              <label key={profissao} className="flex items-start cursor-pointer mb-2">
-                <input
-                  type="checkbox"
-                  checked={formData.atividadeProfissional.includes(profissao)}
-                  onChange={(e) => {
-                    const currentProfissoes = formData.atividadeProfissional;
-                    if (e.target.checked) {
-                      onInputChange('atividadeProfissional', [...currentProfissoes, profissao]);
-                    } else {
-                      onInputChange('atividadeProfissional', 
-                        currentProfissoes.filter(p => p !== profissao)
-                      );
-                    }
-                  }}
-                  className="mr-2"
-                />
+              <option key={profissao} value={profissao}>
                 {profissao}
-              </label>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
