@@ -163,6 +163,7 @@ export default function RegisterForm() {
     setIsMounted(true);
   }, []);
 
+  /*
   // Effect for handling selected plan from cookie and step from URL parameters
   useEffect(() => {
     if (!isMounted) {
@@ -189,7 +190,9 @@ export default function RegisterForm() {
       }
     }
   }, [isMounted, JSON.stringify(planFromCookie), currentStep]); // Use stringified plan in dependency array
+  */
 
+  /*
   // Effect for fetching available insurance plans
   useEffect(() => {
     const fetchPlansAsync = async () => {
@@ -207,7 +210,8 @@ export default function RegisterForm() {
     };
 
     fetchPlansAsync();
-  }, []);
+  }, []); // Runs once to fetch plans
+  */
 
   // Validation functions
   const validateCpf = (cpf: string): string => {
