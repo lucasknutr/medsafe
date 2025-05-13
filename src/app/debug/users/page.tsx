@@ -160,42 +160,6 @@ export default function DebugUsersPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: number, userEmail: string) => {
-    if (!window.confirm(`Are you sure you want to delete user ${userEmail} (ID: ${userId})? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: `User ${userEmail} (ID: ${userId}) deleted successfully.`,
-          severity: 'success'
-        });
-        // Refresh the user list
-        fetchUsers();
-      } else {
-        setSnackbar({
-          open: true,
-          message: `Error deleting user: ${data.error || 'Unknown error'}`,
-          severity: 'error'
-        });
-      }
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
-        severity: 'error'
-      });
-    }
-  };
-
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -302,14 +266,6 @@ export default function DebugUsersPage() {
                           Set Admin
                         </Button>
                       )}
-                      <Button 
-                        variant="contained" 
-                        color="error"
-                        size="small"
-                        onClick={() => handleDeleteUser(user.id, user.email)}
-                      >
-                        Delete
-                      </Button>
                     </Box>
                   </TableCell>
                 </TableRow>
