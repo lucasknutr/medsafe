@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client'; // Assuming Prisma Client
 
 const prisma = new PrismaClient();
@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   context: { params: { userId: string } }
 ) {
   // --- Authentication Check (Uncomment and implement!) ---
