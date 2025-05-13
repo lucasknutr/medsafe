@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./components/Providers";
+import Footer from "./components/Footer";
+import { Box } from "@mui/material";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-br">
       <head>
         <link
           rel="preload"
@@ -36,9 +38,12 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className={inter.className}>
-        <Providers>
-          {children}
-        </Providers>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Providers>
+            {children}
+          </Providers>
+          <Footer />
+        </Box>
       </body>
     </html>
   );
