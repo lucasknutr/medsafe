@@ -128,10 +128,20 @@ export default function AuthPage() {
     <Layout>
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-130px)] gap-4 text-center">
         <div
-          className="h-[70%] bg-slate-300 items-center justify-center py-20 px-20 rounded-md text-black"
-          style={{ background: 'rgba(0,0,0,.3)' }}
+          className="h-[70%] bg-slate-300 items-center justify-center py-20 px-20 rounded-md"
+          style={{ background: 'rgba(0,0,0,.3)' }} // Consider adjusting this background for contrast
         >
-          <h1 className="text-xl mb-3 text-slate-100">{isLogin ? 'Entrar' : 'Registrar'}</h1>
+          <h1 className="text-xl mb-1 text-black">{isLogin ? 'Entrar' : 'Registrar'}</h1>
+          
+          {isLogin && (
+            <button
+              onClick={() => router.push('/register')}
+              className="mb-3 text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              Não tem uma conta? Cadastre-se
+            </button>
+          )}
+
           <form
             onSubmit={handleSubmit}
             className={`grid ${isLogin ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}
@@ -240,12 +250,16 @@ export default function AuthPage() {
             />
             <button
               type="submit"
-              className={`bg-blue-500 py-2 mx-8 my-2 ${isLogin ? '' : 'col-span-2'}`}
+              className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 mx-8 my-2 rounded focus:outline-none focus:shadow-outline ${isLogin ? '' : 'col-span-2'}`}
             >
-              {isLogin ? 'Login' : 'Registrar'}
+              {isLogin ? 'Entrar' : 'Registrar'}
             </button>
           </form>
-          <button onClick={() => setIsLogin(!isLogin)} className="text-slate-100 hover:bg-blue-500 hover:text-white hover:p-1 hover:rounded-md hover:scale-[1]">
+          <button 
+            onClick={() => setIsLogin(!isLogin)} 
+            className="mt-4 text-sm text-black hover:text-gray-700 underline"
+          >
+            {isLogin ? 'Criar uma conta' : 'Já tenho uma conta'}
           </button>
         </div>
       </div>
