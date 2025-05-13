@@ -478,20 +478,21 @@ export default function RegisterForm() {
           address: formData.endereco,
           addressNumber: formData.numero,
           complement: formData.complemento || null, 
-          province: formData.bairro, 
+          city: formData.cidade, 
+          province: formData.estado, 
           postalCode: formData.cep.replace(/\D/g, ''),
         }
       };
       if (formData.paymentMethod === 'CARTAO') {
         paymentData.cardInfo = {
           holderName: formData.cardHolderName,
-          number: formData.cardNumber,
+          number: formData.cardNumber?.replace(/\D/g, ''), 
           expiryMonth: formData.cardExpiryMonth,
           expiryYear: formData.cardExpiryYear,
           ccv: formData.cardCcv,
-          cpfCnpj: formData.cardCpfCnpj,
-          phone: formData.cardPhone,
-          email: formData.email,
+          cpfCnpj: formData.cardCpfCnpj?.replace(/\D/g, ''), 
+          phone: formData.cardPhone?.replace(/\D/g, ''), 
+          email: formData.email, 
         };
       }
       const paymentResponse = await fetch('/api/payments', {
