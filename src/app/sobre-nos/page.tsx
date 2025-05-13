@@ -21,7 +21,7 @@ export default function SobreNos() {
               WebkitBackdropFilter: 'blur( 4px )',
               border: '1px solid rgba( 255, 255, 255, 0.18 )',
               color: 'text.primary', 
-              mt: 4 
+              mt: -11 
             }}
           >
             <Box sx={{ 
@@ -41,7 +41,7 @@ export default function SobreNos() {
               />
             </Box>
 
-            <Typography variant="h4" component="h1" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h4" component="h1" gutterBottom sx={{ textAlign: 'center', mb: 4, color: 'primary.main' }}>
               QUEM SOMOS
             </Typography>
 
@@ -57,7 +57,7 @@ export default function SobreNos() {
               Nossa missão é que o profissional da medicina possa atuar com tranquilidade, confiança e excelência, sabendo que conta com o respaldo de uma equipe sólida, experiente e comprometida com a valorização da prática médica.
             </Typography>
 
-            <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', mb: 4, mt: 6 }}>
+            <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', mb: 4, mt: 6, color: 'primary.main' }}>
               PLANO DE SERVIÇOS
             </Typography>
 
