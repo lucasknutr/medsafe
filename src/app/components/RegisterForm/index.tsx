@@ -400,12 +400,16 @@ export default function RegisterForm() {
           password: formData.password,
         });
 
+        console.log('Auto Sign-In Response:', signInResponse);
+
         if (signInResponse && signInResponse.ok) {
-          // Sign-in successful, proceed to payment
+          console.log('Auto Sign-In SUCCESSFUL. Proceeding to next step.');
           setCurrentStep(currentStep + 1);
         } else {
-          // Sign-in failed
-          setError('Falha ao fazer login automaticamente após o registro. ' + (signInResponse?.error || 'Por favor, tente fazer login manualmente.'));
+          const signInError = signInResponse?.error || 'Erro desconhecido no login.';
+          const fullErrorMsg = `Falha ao fazer login automaticamente após o registro. Erro: ${signInError}. Status: ${signInResponse?.status}. URL: ${signInResponse?.url || 'N/A'}. Por favor, tente fazer login manualmente.`;
+          setError(fullErrorMsg);
+          console.error('Auto Sign-In FAILED:', fullErrorMsg, 'Full response object:', signInResponse);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
