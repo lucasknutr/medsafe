@@ -3,6 +3,13 @@ import { PrismaClient } from '@prisma/client'; // Assuming Prisma Client
 
 const prisma = new PrismaClient();
 
+// Define an interface for the route context including params
+interface DeleteContext {
+  params: {
+    userId: string;
+  };
+}
+
 // IMPORTANT: Add Authentication/Authorization check here!
 // This is a destructive action and should only be allowed for admins.
 // Example (replace with your actual auth logic):
@@ -17,7 +24,7 @@ const prisma = new PrismaClient();
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { userId: string } }
+  context: DeleteContext
 ) {
   // --- Authentication Check (Uncomment and implement!) ---
   // const isAdmin = await verifyAdmin(request);
@@ -26,7 +33,7 @@ export async function DELETE(
   // }
   // --- End Auth Check ---
 
-  const userId = parseInt(params.userId, 10);
+  const userId = parseInt(context.params.userId, 10);
 
   if (isNaN(userId)) {
     return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
