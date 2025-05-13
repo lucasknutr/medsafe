@@ -479,7 +479,8 @@ export default function RegisterForm() {
           addressNumber: formData.numero,
           complement: formData.complemento || null, 
           city: formData.cidade, 
-          province: formData.estado, 
+          province: formData.bairro, 
+          state: formData.estado, 
           postalCode: formData.cep.replace(/\D/g, ''),
         }
       };
@@ -495,6 +496,8 @@ export default function RegisterForm() {
           email: formData.email, 
         };
       }
+      console.log('Sending paymentData to /api/payments:', JSON.stringify(paymentData, null, 2));
+
       const paymentResponse = await fetch('/api/payments', {
         method: 'POST',
         headers: {

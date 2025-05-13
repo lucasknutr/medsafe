@@ -72,9 +72,12 @@ export default function PaymentForm() {
         email: cookies.email,
         customerId: cookies.user_id,
       };
-      if (paymentMethod === "CREDIT_CARD") {
+      if (paymentMethod === "CARTAO") {
         paymentData.cardInfo = cardDetails;
       }
+
+      console.log('PaymentForm - Sending paymentData to /api/payments:', JSON.stringify(paymentData, null, 2));
+
       const paymentResponse = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
