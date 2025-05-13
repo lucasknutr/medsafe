@@ -133,15 +133,6 @@ export default function AuthPage() {
         >
           <h1 className="text-xl mb-1 text-black">{isLogin ? 'Entrar' : 'Registrar'}</h1>
           
-          {isLogin && (
-            <button
-              onClick={() => router.push('/register')}
-              className="mb-3 text-sm text-blue-600 hover:text-blue-800 underline"
-            >
-              Não tem uma conta? Cadastre-se
-            </button>
-          )}
-
           <form
             onSubmit={handleSubmit}
             className={`grid ${isLogin ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}
