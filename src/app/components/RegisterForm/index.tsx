@@ -158,7 +158,7 @@ export default function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
   const router = useRouter();
-  const [cookies, setCookie] = useCookies(['selected_plan']);
+  const [cookies, setCookie] = useCookies(['selected_plan', 'user_id', 'email', 'role']);
   // Initialize availablePlans with the hardcoded plan
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([medsafeDefaultPlan]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
@@ -388,29 +388,30 @@ export default function RegisterForm() {
           // e.g., residenceSince, fezResidencia, etc., if your API needs them at this stage.
         });
 
-        if (!userData || !userData.user || !userData.user.id) {
-          throw new Error('Usuário não foi criado corretamente ou ID não retornado.');
+        if (!userData || !userData.user || !userData.user.id || !userData.user.email || !userData.user.role) {
+          // Ensure role is also present for cookie setting
+          console.error('Registration response missing essential user data:', userData);
+          throw new Error('Usuário não foi criado corretamente ou dados essenciais (id, email, role) não retornados.');
         }
         setRegisteredUserId(userData.user.id);
 
-        // Attempt to sign in the user automatically
-        const signInResponse = await signIn('credentials', {
-          redirect: false,
-          email: formData.email,
-          password: formData.password,
-        });
+        // Manually set cookies, similar to the login page logic
+        try {
+          console.log('Attempting to set cookies for user:', userData.user.email, 'ID:', userData.user.id, 'Role:', userData.user.role);
+          setCookie('user_id', userData.user.id, { path: '/' });
+          setCookie('email', userData.user.email, { path: '/' });
+          setCookie('role', userData.user.role, { path: '/' }); // Crucial for session consistency
+          console.log('Cookies set successfully.');
 
-        console.log('Auto Sign-In Response:', signInResponse);
-
-        if (signInResponse && signInResponse.ok) {
-          console.log('Auto Sign-In SUCCESSFUL. Proceeding to next step.');
+          // Proceed to payment step
           setCurrentStep(currentStep + 1);
-        } else {
-          const signInError = signInResponse?.error || 'Erro desconhecido no login.';
-          const fullErrorMsg = `Falha ao fazer login automaticamente após o registro. Erro: ${signInError}. Status: ${signInResponse?.status}. URL: ${signInResponse?.url || 'N/A'}. Por favor, tente fazer login manualmente.`;
-          setError(fullErrorMsg);
-          console.error('Auto Sign-In FAILED:', fullErrorMsg, 'Full response object:', signInResponse);
+
+        } catch (cookieError) {
+          console.error('Error setting cookies:', cookieError);
+          setError('Falha ao configurar a sessão após o registro. Por favor, tente fazer login manualmente.');
+          // Do not proceed to next step if cookies can't be set
         }
+
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         // Check for specific error messages from your API
