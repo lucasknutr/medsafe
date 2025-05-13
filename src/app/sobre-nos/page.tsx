@@ -14,10 +14,14 @@ export default function SobreNos() {
           <Paper 
             elevation={3} 
             sx={{ 
-              p: 6, 
+              p: 6,
               borderRadius: 2,
-              bgcolor: 'white',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 8px 32px 0 rgba( 31, 38, 135, 0.37 )',
+              backdropFilter: 'blur( 4px )',
+              WebkitBackdropFilter: 'blur( 4px )',
+              border: '1px solid rgba( 255, 255, 255, 0.18 )',
+              color: 'text.primary', 
+              mt: 4 
             }}
           >
             <Box sx={{ 
@@ -37,110 +41,53 @@ export default function SobreNos() {
               />
             </Box>
 
-            <Typography
-              variant="h2"
-              component="h1"
-              sx={{
-                color: '#1976d2',
-                mb: 4,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                fontWeight: 700,
-                textAlign: 'center'
-              }}
-            >
-              Sobre Nós
+            <Typography variant="h4" component="h1" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+              QUEM SOMOS
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                mb: 4,
-                fontSize: '1.1rem',
-                lineHeight: 1.8,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                color: '#333'
-              }}
-            >
-              Bem-vindo à Medsafe, uma empresa inovadora nascida em Fortaleza com a missão de transformar a forma como profissionais da saúde e instituições lidam com os desafios jurídicos e administrativos do setor. Diante de um cenário cada vez mais complexo, onde os processos judiciais relacionados à saúde crescem de forma alarmante, a Medsafe surge como uma solução completa, eficiente e simplificada para gerenciar seguros, processos jurídicos e outras demandas do dia a dia.
+            <Typography variant="body1" paragraph sx={{ mb: 2 }}>
+              A MEDSAFE é formada por uma equipe altamente qualificada e especializada em questões relativas a área médica e da saúde, atuando de forma preventiva, consultiva e defensiva de modo a proporcionar aos profissionais da medicina um suporte completo e personalizado, visando a prevenção e contenção de eventuais danos patrimoniais e a imagem desses profissionais.
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                mb: 4,
-                fontSize: '1.1rem',
-                lineHeight: 1.8,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                color: '#333'
-              }}
-            >
-              Nos últimos anos, o Brasil tem enfrentado um aumento preocupante de 35% nos processos sobre saúde pendentes de julgamento, segundo dados do Conselho Nacional de Justiça (CNJ). Apenas em 2024, mais de 306 mil novos casos chegaram à justiça, refletindo um sistema sobrecarregado e uma realidade desafiadora para médicos, clínicas e hospitais. Além disso, estatísticas mostram que, atualmente, 20% dos médicos no país são processados judicialmente – um número que triplicou em relação aos 6% registrados há 15 anos.
+            <Typography variant="body1" paragraph sx={{ mb: 2 }}>
+              Em um cenário cada vez mais difícil ao pleno e efetivo exercício da atividade médica, atuamos de forma estratégica, com foco na mitigação de riscos legais, no esclarecimento de responsabilidades e na construção de uma prática médica mais protegida e consciente.
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                mb: 4,
-                fontSize: '1.1rem',
-                lineHeight: 1.8,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                color: '#333'
-              }}
-            >
-              É nesse contexto que a Medsafe se destaca. Nossa plataforma foi desenvolvida para oferecer uma gestão integrada e personalizada, ajudando profissionais e instituições de saúde a reduzir riscos, otimizar tempo e focar no que realmente importa: cuidar das pessoas. Com tecnologia avançada e uma equipe especializada, proporcionamos ferramentas que simplificam desde a administração de seguros até a resolução de processos jurídicos, garantindo mais segurança e tranquilidade para nossos clientes.
+            <Typography variant="body1" paragraph sx={{ mb: 4 }}>
+              Nossa missão é que o profissional da medicina possa atuar com tranquilidade, confiança e excelência, sabendo que conta com o respaldo de uma equipe sólida, experiente e comprometida com a valorização da prática médica.
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                mb: 4,
-                fontSize: '1.1rem',
-                lineHeight: 1.8,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                color: '#333'
-              }}
-            >
-              Na Medsafe, acreditamos que a saúde e a justiça devem caminhar juntas de forma harmoniosa. Por isso, nos dedicamos a criar soluções que não apenas resolvem problemas, mas também previnem conflitos, promovendo um ambiente mais justo e eficiente para todos.
+            <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', mb: 4, mt: 6 }}>
+              PLANO DE SERVIÇOS
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                mb: 4,
-                fontSize: '1.1rem',
-                lineHeight: 1.8,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                color: '#333'
-              }}
-            >
-              Somos mais do que uma empresa; somos parceiros na jornada de quem dedica sua vida a cuidar da saúde dos outros. Com transparência, inovação e compromisso, estamos aqui para transformar desafios em oportunidades e para garantir que o foco permaneça sempre no bem-estar das pessoas.
+            <Typography variant="body1" paragraph sx={{ mb: 2 }}>
+              A MEDSAFE disponibiliza um plano completo de serviços*, em que o profissional da medicina poderá ter a tranquilidade de contar com suporte consultivo, preventivo, defensivo e financeiro em face das mais variadas e eventuais imputações de responsabilidade médica.
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                mb: 4,
-                fontSize: '1.1rem',
-                lineHeight: 1.8,
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                color: '#333'
-              }}
-            >
-              Junte-se à Medsafe e descubra como podemos simplificar o seu dia a dia, oferecendo a segurança e a eficiência que você merece.
+            <Typography variant="body1" paragraph sx={{ mb: 2 }}>
+              Neste plano, encontram-se inclusos, dentre outros benefícios:
             </Typography>
 
-            <Typography
-              variant="h5"
-              sx={{
-                color: '#1976d2',
-                textAlign: 'center',
-                fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                fontWeight: 700,
-                fontStyle: 'italic'
-              }}
-            >
-              Medsafe: Sua saúde jurídica em boas mãos.
+            <Box component="ul" sx={{ pl: 2, mb: 2 }}>
+              <Typography component="li" variant="body1" sx={{ mb: 1 }}>
+                Assessoria especializada consultiva, preventiva e defensiva em questões cíveis, éticas ou criminais decorrentes do exercício da atividade profissional;
+              </Typography>
+              <Typography component="li" variant="body1" sx={{ mb: 1 }}>
+                Custeio de eventuais custas judiciais e honorários periciais;
+              </Typography>
+              <Typography component="li" variant="body1" sx={{ mb: 1 }}>
+                Suporte financeiro em honorários sucumbenciais e indenizações por danos morais, materiais, corporais e/ou lucros cessantes decorrentes de eventuais condenações transitadas em julgado;
+              </Typography>
+              <Typography component="li" variant="body1" sx={{ mb: 1 }}>
+                Disponibilidade de pronto atendimento através do telefone 0800 000 0000, 24 (vinte e quatro) horas por dia, 07 (sete) vezes por semana.
+              </Typography>
+            </Box>
+
+            <Typography variant="caption" display="block" sx={{ mt: 4, fontStyle: 'italic' }}>
+              *A MEDSAFE conta, ainda, com condições e preços especiais para sociedades, associações, conselhos, cooperativas e demais entidades médicas. Consulte-nos para mais informações.
             </Typography>
+
           </Paper>
         </Container>
       </Box>

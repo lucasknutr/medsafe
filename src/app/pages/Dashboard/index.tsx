@@ -197,7 +197,7 @@ const Dashboard = () => {
   return (
     <>
       {/* Slides Section - Full width on mobile */}
-      <div className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia pt-4'>
+      <div className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia -mt-6'>
         {slides.length > 0 && (
           <Carousel className="h-[70svh] mb-8">
           {slides.map((slide, i) => (
