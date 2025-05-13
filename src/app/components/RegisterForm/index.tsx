@@ -403,8 +403,19 @@ export default function RegisterForm() {
           setCookie('role', userData.user.role, { path: '/' }); // Crucial for session consistency
           console.log('Cookies set successfully.');
 
-          // Proceed to payment step
-          setCurrentStep(currentStep + 1);
+          // NEW LOGIC: Check if a plan was selected during registration
+          if (selectedPlan && selectedPlan.id) {
+            console.log(`Plan selected (ID: ${selectedPlan.id}), redirecting to /pagamento`);
+            router.push(`/pagamento?planId=${selectedPlan.id}`);
+            // setLoading(false) is not strictly necessary here if navigating away immediately,
+            // but good practice if there's any delay or potential for not navigating.
+            // However, since router.push can take a moment, we might not want to set loading false yet.
+            return; // Important to prevent setCurrentStep if redirecting
+          } else {
+            // No plan selected, proceed to simplified Step 3
+            console.log('No plan selected during registration, proceeding to simplified Step 3.');
+            setCurrentStep(currentStep + 1);
+          }
 
         } catch (cookieError) {
           console.error('Error setting cookies:', cookieError);
@@ -537,91 +548,100 @@ export default function RegisterForm() {
         return <CredentialsInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
       case 3:
         return (
-          <PlanAndPayment
-            availablePlans={availablePlans}
-            selectedPlan={selectedPlan}
-            onPlanChange={handlePlanChange}
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
+          <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
+            <Typography variant="h5" className="mb-4 text-green-700">
+              Cadastro Realizado com Sucesso!
+            </Typography>
+            
+            {/* This message primarily applies if no plan was chosen, as they'd be redirected otherwise */}
+            {!selectedPlan && (
+              <Typography variant="body1" className="mb-6 text-gray-700">
+                Seu perfil foi criado. Você pode agora explorar nossos planos ou retornar à página inicial.
+              </Typography>
+            )}
+            {selectedPlan && (
+               <Typography variant="body1" className="mb-6 text-gray-700">
+                Você selecionou o plano: <strong>{selectedPlan.name}</strong>. Você já foi redirecionado para a página de pagamento.
+                Se o redirecionamento falhou, por favor, clique abaixo para tentar novamente ou escolha outra opção.
+              </Typography>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-6">
+              {selectedPlan && (
+                   <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => router.push(`/pagamento?planId=${selectedPlan.id}`)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                      Ir para Pagamento do Plano: {selectedPlan.name}
+                  </Button>
+              )}
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => router.push('/planos')}
+                className="bg-teal-500 hover:bg-teal-600 text-white"
+              >
+                Ver Planos
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit" // Using inherit to make it less prominent if plan was selected
+                onClick={() => router.push('/')}
+                className="border-gray-400 text-gray-700 hover:bg-gray-100"
+              >
+                Ir para Início
+              </Button>
+            </div>
+          </div>
         );
       default:
         return null;
     }
   };
 
-  const renderPaymentStep = () => (
-    <div>
-      <Typography variant="h6" className="mb-4">
-        Selecione seu Plano
-      </Typography>
-      <Grid container spacing={2}>
-        {availablePlans.map((plan) => (
-          <Grid item xs={12} sm={6} md={4} key={plan.id}>
-            <Card 
-              className={`cursor-pointer ${selectedPlan?.id === plan.id ? 'border-2 border-primary' : ''}`}
-              onClick={() => handlePlanChange(plan)}
-            >
-              <CardContent>
-                <Typography variant="h6">{plan.name}</Typography>
-                <Typography variant="h5" color="primary" className="my-2">
-                  R$ {plan.price.toFixed(2)}/mês
-                </Typography>
-                <ul className="list-disc pl-4">
-                  {plan.features.map((feature, index) => (
-                    <li key={index}>
-                      <Typography variant="body2">{feature}</Typography>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </div>
-  );
-
   return (
     <Box className="max-w-4xl mx-auto p-4">
       <Paper className="p-2 sm:p-4 md:p-6">
-        <Stepper activeStep={currentStep - 1} alternativeLabel className="mb-8">
-          {steps.map((step, index) => (
-            <Step key={step.label}>
-              <StepLabel>
-                <div className="flex flex-col items-center">
-                  <span className="text-2xl mb-2">{step.icon}</span>
-                  <span className="text-xs font-semibold">{step.label}</span>
-                </div>
-              </StepLabel>
+        <Typography variant="h4" className="mb-2 text-center font-semibold">
+          {currentStep === 1 && 'Informações Pessoais e Plano'}
+          {currentStep === 2 && 'Credenciais de Acesso'}
+          {currentStep === 3 && 'Conclusão do Cadastro'}
+        </Typography>
+        <Stepper activeStep={currentStep - 1} alternativeLabel className="mb-6">
+          {['Informações Pessoais', 'Credenciais', 'Concluído'].map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
             </Step>
           ))}
         </Stepper>
 
-        <div className="mt-8">
+        <div className="mb-6">
           {renderStep()}
         </div>
 
-        <form onSubmit={currentStep === 3 ? handleSubmit : (e) => { e.preventDefault(); handleNext(); }}>
-          <div className="mt-8 flex justify-between">
+        {currentStep < 3 && (
+           <div className="mt-8 flex justify-between">
             {currentStep > 1 && (
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
               >
                 Voltar
               </button>
             )}
             <button
-              type="submit"
-              disabled={!validateStep(currentStep)}
+              type="button" 
+              onClick={handleNext} 
+              disabled={loading || !validateStep(currentStep)} 
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {currentStep === 3 ? 'Finalizar Pagamento' : 'Próximo'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : (currentStep === 2 ? 'Finalizar Cadastro' : 'Próximo')}
             </button>
           </div>
-        </form>
+        )}
       </Paper>
     </Box>
   );
