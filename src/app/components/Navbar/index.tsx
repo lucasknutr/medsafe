@@ -76,7 +76,7 @@ const Navbar = () => {
             href="/"
             sx={{
               mr: 8,
-              my: 4,
+              my: 1.5,
               display: { xs: 'none', md: 'flex' },
               fontFamily: '"Amelia UP W03 Regular", monospace',
               fontWeight: 700,

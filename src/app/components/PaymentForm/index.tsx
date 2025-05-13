@@ -124,7 +124,7 @@ export default function PaymentForm() {
 
   return (
     <Paper className="p-6 max-w-xl mx-auto mt-10">
-      <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name} (id: {plan.id})</Typography>
+      <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name}</Typography>
       <Typography variant="h6" color="primary" className="mb-4">
         R$ {plan.price.toFixed(2)}/mês
       </Typography>
