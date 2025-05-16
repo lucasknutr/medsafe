@@ -247,8 +247,14 @@ export default function AuthPage() {
             </button>
           </form>
           <button 
-            onClick={() => setIsLogin(!isLogin)} 
-            className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 mx-8 my-2 rounded focus:outline-none focus:shadow-outline ${isLogin ? '' : 'col-span-2'}`}
+            onClick={() => {
+              if (isLogin) {
+                router.push('/register');
+              } else {
+                setIsLogin(true);
+              }
+            }} 
+            className="mt-4 text-sm text-black hover:text-gray-700 underline"
           >
             {isLogin ? 'Criar uma conta' : 'Já tenho uma conta'}
           </button>
