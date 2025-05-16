@@ -136,7 +136,15 @@ const Navbar = () => {
                     }
                   }}
                 >
-                  <Typography textAlign="center">{page.name}</Typography>
+                  <Typography 
+                    textAlign="center"
+                    sx={{
+                      fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {page.name}
+                  </Typography>
                 </MenuItem>
               ))}
               {cookies.role === 'ADMIN' && adminPages.map((page) => (
@@ -147,7 +155,15 @@ const Navbar = () => {
                     router.push(page.path);
                   }}
                 >
-                  <Typography textAlign="center">{page.name}</Typography>
+                  <Typography 
+                    textAlign="center"
+                    sx={{
+                      fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {page.name}
+                  </Typography>
                 </MenuItem>
               ))}
             </Menu>
@@ -191,7 +207,13 @@ const Navbar = () => {
                     router.push(page.path);
                   }
                 }}
-                sx={{ my: 2, color: 'white', display: 'block' }}
+                sx={{ 
+                  my: 2, 
+                  color: 'white', 
+                  display: 'block',
+                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                  textTransform: 'capitalize'
+                }}
               >
                 {page.name}
               </Button>
@@ -200,7 +222,13 @@ const Navbar = () => {
               <Button
                 key={page.name}
                 onClick={() => router.push(page.path)}
-                sx={{ my: 2, color: 'white', display: 'block' }}
+                sx={{ 
+                  my: 2, 
+                  color: 'white', 
+                  display: 'block',
+                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                  textTransform: 'capitalize'
+                }}
               >
                 {page.name}
               </Button>
