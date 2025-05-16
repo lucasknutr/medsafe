@@ -197,7 +197,12 @@ const Dashboard = () => {
   return (
     <>
       {/* Slides Section - Full width on mobile */}
-      <div className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia -mt-6'>
+      <div 
+        className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia -mt-6'
+        style={{
+          background: 'linear-gradient(90deg, rgba(9, 62, 127, 1) 0%, rgba(6, 159, 166, 1) 100%)',
+        }}
+      >
         {slides.length > 0 && (
           <Carousel className="h-[70svh] mb-8">
           {slides.map((slide, i) => (
