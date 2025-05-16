@@ -206,7 +206,11 @@ const Dashboard = () => {
         {slides.length > 0 && (
           <Carousel className="h-[70svh] mb-8">
           {slides.map((slide, i) => (
-              <Paper key={i} className="relative h-[70svh] w-full">
+              <Paper 
+                key={i} 
+                className="relative h-[70svh] w-full"
+                sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}
+              >
                 <div className="absolute inset-0 w-full h-[70svh]">
                 {slide.image && (
                   <Image
