@@ -140,7 +140,9 @@ const Navbar = () => {
                     textAlign="center"
                     sx={{
                       fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                      textTransform: 'capitalize'
+                      textTransform: 'capitalize',
+                      fontWeight: 'bold',
+                      fontSize: '1.05rem'
                     }}
                   >
                     {page.name}
@@ -159,7 +161,9 @@ const Navbar = () => {
                     textAlign="center"
                     sx={{
                       fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                      textTransform: 'capitalize'
+                      textTransform: 'capitalize',
+                      fontWeight: 'bold',
+                      fontSize: '1.05rem'
                     }}
                   >
                     {page.name}
@@ -212,7 +216,9 @@ const Navbar = () => {
                   color: 'white', 
                   display: 'block',
                   fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                  textTransform: 'capitalize'
+                  textTransform: 'capitalize',
+                  fontWeight: 'bold',
+                  fontSize: '1.05rem'
                 }}
               >
                 {page.name}
@@ -227,7 +233,9 @@ const Navbar = () => {
                   color: 'white', 
                   display: 'block',
                   fontFamily: '"Amelia UP W03 Regular", sans-serif',
-                  textTransform: 'capitalize'
+                  textTransform: 'capitalize',
+                  fontWeight: 'bold',
+                  fontSize: '1.05rem'
                 }}
               >
                 {page.name}
