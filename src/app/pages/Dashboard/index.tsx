@@ -6,7 +6,7 @@ import { useCookies } from 'react-cookie';
 import React from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { Paper, Button } from '@mui/material';
+import { Paper, Button, Box, Typography, CircularProgress } from '@mui/material';
 import doctorBanner from '../../assets/doctor-banner.jpg';
 import hosp1 from '../../assets/hosp1.jpg';
 import hosp2 from '../../assets/hosp2.jpg';
@@ -73,6 +73,7 @@ const hardcodedServiceBoxes: ServiceBox[] = [
 const Dashboard = () => {
   const [serviceBoxes, setServiceBoxes] = useState<ServiceBox[]>(hardcodedServiceBoxes);
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
   const [cookies] = useCookies(['role']);
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -108,6 +109,7 @@ const Dashboard = () => {
   }, []);
 
   const fetchSlides = async () => {
+    setIsLoadingSlides(true);
     try {
       console.log('Fetching slides from API...');
       const response = await fetch('/api/slides');
@@ -135,16 +137,18 @@ const Dashboard = () => {
         ]);
       }
     } catch (error) {
-      console.error('Error fetching slides:', error);
-      // Set default slides on error
+      console.error('Failed to fetch slides:', error);
+      // Ensure default slides are set on error too, if desired
       setSlides([
         {
           image: doctorBanner.src,
-          title: 'Proteção Jurídica para Profissionais de Saúde',
+          title: 'Proteção Jurídica para Profissionais de Saúde.',
           description: 'Oferecemos consultoria especializada para médicos e profissionais de saúde.',
           buttonLink: '/register',
         }
       ]);
+    } finally {
+      setIsLoadingSlides(false);
     }
   };
 
@@ -197,46 +201,59 @@ const Dashboard = () => {
   return (
     <>
       {/* Slides Section - Full width on mobile */}
-      <div 
-        className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia -mt-6'
-        style={{
-          background: 'linear-gradient(90deg, rgba(9, 62, 127, 1) 0%, rgba(6, 159, 166, 1) 100%)',
-        }}
-      >
-        {slides.length > 0 && (
-          <Carousel className="h-[70svh] mb-8">
-          {slides.map((slide, i) => (
-              <Paper 
-                key={i} 
-                className="relative h-[70svh] w-full"
-                sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}
-              >
-                <div className="absolute inset-0 w-full h-[70svh]">
-                {slide.image && (
-                  <Image
-                    src={slide.image}
-                    alt={slide.title}
-                    layout="fill"
-                    objectFit="cover"
-                    className="w-full h-full"
-                  />
-                )}
-              </div>
-                <div className="absolute top-0 right-0 w-full md:w-1/2 h-full flex flex-col justify-center items-start p-4 md:p-8 text-white md:pr-20" style={{ background: "rgba(255,255,255,.6)" }}>
-                  <h1 className='text-4xl md:text-6xl font-bold mb-4 text-blue-900'>{slide.title}</h1>
-                  <p className='text-xl md:text-2xl text-slate-900 mt-5'>{slide.description}</p>
-                <button
-                  onClick={() => window.open(slide.buttonLink, '_blank')}
-                    className='bg-blue-500 py-2 px-5 rounded-md text-xl md:text-2xl mt-10 hover:bg-white hover:scale-[1] hover:border-blue-500 border-2 hover:text-blue-500'
+      {isLoadingSlides ? (
+        <div 
+          className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia -mt-6'
+          style={{
+            background: 'linear-gradient(90deg, rgba(9, 62, 127, 1) 0%, rgba(6, 159, 166, 1) 100%)',
+          }}
+        >
+          <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '70svh' }}>
+            <CircularProgress />
+          </Box>
+        </div>
+      ) : (
+        <div 
+          className='first-banner w-full max-w-[85svw] md:max-w-[85svw] my-0 mx-auto font-amelia -mt-6'
+          style={{
+            background: 'linear-gradient(90deg, rgba(9, 62, 127, 1) 0%, rgba(6, 159, 166, 1) 100%)',
+          }}
+        >
+          {slides.length > 0 && (
+            <Carousel className="h-[70svh] mb-8">
+            {slides.map((slide, i) => (
+                <Paper 
+                  key={i} 
+                  className="relative h-[70svh] w-full"
+                  sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}
                 >
-                  Saiba mais
-                </button>
-              </div>
-            </Paper>
-          ))}
-        </Carousel>
-        )}
-      </div>
+                  <div className="absolute inset-0 w-full h-[70svh]">
+                  {slide.image && (
+                    <Image
+                      src={slide.image}
+                      alt={slide.title}
+                      layout="fill"
+                      objectFit="cover"
+                      className="w-full h-full"
+                    />
+                  )}
+                </div>
+                  <div className="absolute top-0 right-0 w-full md:w-1/2 h-full flex flex-col justify-center items-start p-4 md:p-8 text-white md:pr-20" style={{ background: "rgba(255,255,255,.6)" }}>
+                    <h1 className='text-4xl md:text-6xl font-bold mb-4 text-blue-900'>{slide.title}</h1>
+                    <p className='text-xl md:text-2xl text-slate-900 mt-5'>{slide.description}</p>
+                  <button
+                    onClick={() => window.open(slide.buttonLink, '_blank')}
+                      className='bg-blue-500 py-2 px-5 rounded-md text-xl md:text-2xl mt-10 hover:bg-white hover:scale-[1] hover:border-blue-500 border-2 hover:text-blue-500'
+                  >
+                    Saiba mais
+                  </button>
+                </div>
+              </Paper>
+            ))}
+          </Carousel>
+          )}
+        </div>
+      )}
 
       {/* Stats Section - 2x2 grid on mobile */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mx-4 md:mx-40 mb-8 text-lg">
