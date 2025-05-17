@@ -245,7 +245,7 @@ const Navbar = () => {
 
           {/* User menu */}
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Open settings">
+            <Tooltip title="Fazer Login / Registrar">
               <IconButton onClick={handleUserIconClick} sx={{ p: 0 }}>
                 <PersonIcon />
               </IconButton>
