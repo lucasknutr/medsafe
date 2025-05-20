@@ -312,11 +312,11 @@ const Dashboard = () => {
       <div id="contact-section" className='h-auto md:h-[100svh] w-full bg-slate-300 flex justify-center items-center py-10 md:py-0'>
         <div className='flex flex-col md:flex-row justify-center md:items-stretch w-full md:w-[80%] max-w-6xl px-4 md:px-0'>
           {/* Form Section */}
-          <div className='bg-white p-6 md:p-8 rounded-lg shadow-lg w-full md:w-1/2 h-auto md:h-[87svh] mb-6 md:mb-0' style={{ background: "rgba(255,255,255,.5)" }}>
-            <h2 className='text-3xl md:text-5xl font-bold mb-6 text-center text-slate-700'>Contato</h2>
+          <div className='bg-white p-4 md:p-8 rounded-lg shadow-lg w-full md:w-1/2 h-auto md:h-[87svh] mb-6 md:mb-0 overflow-y-auto' style={{ background: "rgba(255,255,255,.5)" }}>
+            <h2 className='text-2xl md:text-4xl font-bold mb-4 md:mb-6 text-center text-slate-700'>Contato</h2>
             <form onSubmit={handleSubmit} className='space-y-4'>
               <div>
-                <label className='block text-lg md:text-xl font-medium text-gray-700'>Nome</label>
+                <label className='block text-base md:text-lg font-medium text-gray-700'>Nome</label>
                 <input
                   type='text'
                   name="name"
@@ -327,7 +327,7 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className='block text-lg md:text-xl font-medium text-gray-700'>E-mail</label>
+                <label className='block text-base md:text-lg font-medium text-gray-700'>E-mail</label>
                 <input
                   type='email'
                   name="email"
@@ -338,7 +338,7 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className='block text-lg md:text-xl font-medium text-gray-700'>Telefone</label>
+                <label className='block text-base md:text-lg font-medium text-gray-700'>Telefone</label>
                 <input
                   type='tel'
                   name="phone"
@@ -349,7 +349,7 @@ const Dashboard = () => {
                 />
               </div>
               <div>
-                <label className='block text-lg md:text-xl font-medium text-gray-700'>Mensagem</label>
+                <label className='block text-base md:text-lg font-medium text-gray-700'>Mensagem</label>
                 <textarea
                   name="message"
                   value={formData.message}
@@ -361,7 +361,7 @@ const Dashboard = () => {
               </div>
               <button
                 type='submit'
-                className='w-full font-bold bg-blue-400 text-white py-2 px-4 rounded-md hover:scale-[1] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:text-white'
+                className='w-full font-bold bg-blue-400 text-white py-2 px-3 rounded-md hover:scale-[1] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:text-white text-sm md:text-base md:px-4'
               >
                 Enviar
               </button>
