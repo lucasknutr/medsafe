@@ -272,11 +272,23 @@ const Dashboard = () => {
           <p className="text-base md:text-xl">Uma solução para simplificar o seu dia a dia. A sua plataforma completa para gerenciar seguros, processos jurídicos e muito mais, de forma simples e eficiente.</p>
           <button className='mr-auto px-4 md:px-6 py-3 md:py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Saiba mais</button>
         </div>
-        <div className='rounded'>
-          <Image src={hosp1} alt="Imagem de Hospital" className='rounded-xl w-full h-auto' />
+        <div className='relative rounded-xl overflow-hidden w-full h-[250px] md:h-full'>
+          <Image 
+            src={hosp1} 
+            alt="Imagem de Hospital" 
+            layout="fill" 
+            objectFit="cover" 
+            className='rounded-xl'
+          />
         </div>
-        <div>
-          <Image src={hosp2} alt="Imagem de Hospital" className='rounded-xl w-full h-auto' />
+        <div className='relative rounded-xl overflow-hidden w-full h-[250px] md:h-full'>
+          <Image 
+            src={hosp2} 
+            alt="Imagem de Hospital" 
+            layout="fill" 
+            objectFit="cover" 
+            className='rounded-xl'
+          />
         </div>
       </div>
 
