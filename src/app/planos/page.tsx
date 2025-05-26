@@ -36,9 +36,23 @@ const medsafeDefaultPlan: InsurancePlan = {
   is_active: true,
 };
 
+// Define the new 'Plano +100'
+const planoPlus100: InsurancePlan = {
+  id: 'plan_plus_100_temp_id', // IMPORTANT: Replace with actual unique ID
+  name: 'Plano +100',
+  description: 'Este plano oferece uma cobertura adicional para maior tranquilidade e segurança em sua prática profissional.', // TODO: Replace with actual description
+  price: 279.00,
+  features: [
+    'Cobertura adicional de R$ 100.000', // TODO: Replace/add actual features
+    'Suporte especializado',
+    'Proteção ampliada'
+  ],
+  is_active: true,
+};
+
 export default function InsurancePlansPage() {
-  // Initialize plans state with the hardcoded plan
-  const [plans, setPlans] = useState<InsurancePlan[]>([medsafeDefaultPlan]);
+  // Initialize plans state with both plans
+  const [plans, setPlans] = useState<InsurancePlan[]>([medsafeDefaultPlan, planoPlus100]);
   const [currentInsurance, setCurrentInsurance] = useState<CurrentUserInsurance | null>(null);
   // Loading now refers to fetching user's current insurance status
   const [loading, setLoading] = useState(true); 

@@ -47,13 +47,16 @@ const Navbar = () => {
 
   const basePages = [
     { name: 'Sobre Nós', path: '/sobre-nos' },
-    { name: 'Seguros', path: '/planos', requireAuth: true },
+    { name: 'Planos', path: '/planos', requireAuth: true },
     { name: 'Fale Conosco', path: '/#contact-section' },
   ];
 
   const adminPages = [
     { name: 'Área do Administrador', path: '/admin' },
   ];
+
+  const processCommunicationPage = { name: 'Comunicar Processo', path: '/comunicar-processo' };
+  const allowedRolesForProcessCommunication = ['USER', 'ADMIN', 'BROKER']; // Define allowed roles
 
   return (
     <AppBar 
@@ -170,6 +173,28 @@ const Navbar = () => {
                   </Typography>
                 </MenuItem>
               ))}
+              {/* Add Comunicar Processo to Mobile Menu */}
+              {cookies.role && allowedRolesForProcessCommunication.includes(cookies.role) && (
+                <MenuItem 
+                  key={processCommunicationPage.name} 
+                  onClick={() => {
+                    handleCloseNavMenu();
+                    router.push(processCommunicationPage.path);
+                  }}
+                >
+                  <Typography 
+                    textAlign="center"
+                    sx={{
+                      fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                      textTransform: 'capitalize',
+                      fontWeight: 'bold',
+                      fontSize: '1.05rem'
+                    }}
+                  >
+                    {processCommunicationPage.name}
+                  </Typography>
+                </MenuItem>
+              )}
             </Menu>
           </Box>
 
@@ -241,6 +266,24 @@ const Navbar = () => {
                 {page.name}
               </Button>
             ))}
+            {/* Add Comunicar Processo to Desktop Menu */}
+            {cookies.role && allowedRolesForProcessCommunication.includes(cookies.role) && (
+              <Button
+                key={processCommunicationPage.name}
+                onClick={() => router.push(processCommunicationPage.path)}
+                sx={{ 
+                  my: 2, 
+                  color: 'white', 
+                  display: 'block',
+                  fontFamily: '"Amelia UP W03 Regular", sans-serif',
+                  textTransform: 'capitalize',
+                  fontWeight: 'bold',
+                  fontSize: '1.05rem'
+                }}
+              >
+                {processCommunicationPage.name}
+              </Button>
+            )}
           </Box>
 
           {/* User menu */}

@@ -152,6 +152,20 @@ const medsafeDefaultPlan: InsurancePlan = {
   is_active: true,
 };
 
+// Define the new 'Plano +100'
+const planoPlus100: InsurancePlan = {
+  id: 'plan_plus_100_temp_id', // IMPORTANT: Replace with actual unique ID
+  name: 'Plano +100',
+  description: 'Este plano oferece uma cobertura adicional para maior tranquilidade e segurança em sua prática profissional.', // TODO: Replace with actual description
+  price: 279.00,
+  features: [
+    'Cobertura adicional de R$ 100.000', // TODO: Replace/add actual features
+    'Suporte especializado',
+    'Proteção ampliada'
+  ],
+  is_active: true,
+};
+
 export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -159,8 +173,8 @@ export default function RegisterForm() {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan', 'user_id', 'email', 'role']);
-  // Initialize availablePlans with the hardcoded plan
-  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([medsafeDefaultPlan]);
+  // Initialize availablePlans with both plans
+  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([medsafeDefaultPlan, planoPlus100]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 

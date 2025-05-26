@@ -48,7 +48,7 @@ const hardcodedServiceBoxes: ServiceBox[] = [
     id: 2,
     title: "Reportar Ocorrência",
     description: "Reportar ocorrência em detalhes para que possamos agir de forma adequada.",
-    imageUrl: "/images/plans.jpg",
+    imageUrl: "/images/report.jpg",
     link: "https://medsafeconsultoria.com.br/comunicar-processo",
     order: 2
   },
@@ -56,7 +56,7 @@ const hardcodedServiceBoxes: ServiceBox[] = [
     id: 3,
     title: "Planos e Valores",
     description: "Verifique os planos e valores de cada seguro.",
-    imageUrl: "/images/report.jpg",
+    imageUrl: "/images/plans.jpg",
     link: "/planos",
     order: 3
   },
