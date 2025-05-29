@@ -6,6 +6,7 @@ interface PersonalInfoProps {
     lastName: string;
     cpf: string;
     birthDate: string;
+    graduationYear: string;
     rg: string;
     orgaoExpedidor: string;
     residenceSince: string;
@@ -15,7 +16,7 @@ interface PersonalInfoProps {
     socioProprietario: string;
     entidadeExerce: string;
     realizaProcedimento: string;
-    atividadeProfissional: string; // Changed from string[] to string
+    atividadeProfissional: string;
     pais: string;
     estado: string;
     cep: string;
@@ -34,6 +35,7 @@ interface PersonalInfoProps {
     lastName?: string;
     cpf?: string;
     birthDate?: string;
+    graduationYear?: string;
     email?: string;
     telefone?: string;
   };
@@ -224,12 +226,28 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
             type="text"
             value={formData.birthDate}
             onChange={handleBirthDateChange}
-            placeholder="DD/MM/YYYY"
+            placeholder="DD/MM/AAAA"
             maxLength={10}
             className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.birthDate ? 'border-red-500' : 'border-gray-300'}`}
             required
           />
           {errors?.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            ANO DE FORMATURA (Medicina) *
+          </label>
+          <input
+            type="text"
+            value={formData.graduationYear}
+            onChange={(e) => onInputChange('graduationYear', e.target.value.replace(/\D/g, '').slice(0, 4))}
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+            placeholder="AAAA"
+            maxLength={4}
+            required
+          />
+          {/* Add error display if needed, e.g., errors?.graduationYear */}
         </div>
 
         <div>
@@ -337,11 +355,11 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
             ATUALMENTE EXERCE SUA ATIVIDADE PROFISSIONAL COMO:
           </label>
           <select
-            value={formData.atividadeProfissional || ''} // Assuming it will be a string, provide default empty string
+            value={formData.atividadeProfissional || ''}
             onChange={(e) => {
-              onInputChange('atividadeProfissional', e.target.value); // Pass single value
+              onInputChange('atividadeProfissional', e.target.value);
             }}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500" // Removed h-32
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Selecione uma profissão...</option>
             {profissoes.map((profissao) => (

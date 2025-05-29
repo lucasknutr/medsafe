@@ -50,6 +50,22 @@ const plano200: InsurancePlan = {
   is_active: true,
 };
 
+// New Standard Plano +500
+const plano500Standard: InsurancePlan = {
+  id: 'plan_plus_500_standard_v1',
+  name: 'Plano +500',
+  price: 458.00,
+  description: 'Cobertura de R$ 500.000. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
+  features: [
+    'Cobertura de R$ 500.000',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+  ],
+  is_active: true,
+  customQuote: false, // Explicitly false to distinguish from the custom quote version
+};
+
 const plano500Custom: InsurancePlan = {
   id: 'plan_plus_500_custom_v1',
   name: 'Plano +500 e Coberturas Especiais',
@@ -67,8 +83,8 @@ const plano500Custom: InsurancePlan = {
 };
 
 export default function InsurancePlansPage() {
-  // Initialize plans state with the hardcoded plan
-  const [plans, setPlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Custom]);
+  // Initialize plans state with the hardcoded plan, including the new standard +500
+  const [plans, setPlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Standard, plano500Custom]);
   const [currentInsurance, setCurrentInsurance] = useState<CurrentUserInsurance | null>(null);
   // Loading now refers to fetching user's current insurance status
   const [loading, setLoading] = useState(true); 
@@ -184,9 +200,14 @@ export default function InsurancePlansPage() {
                   <Typography variant="h5" component="h2" className="mb-4">
                     {plan.name}
                   </Typography>
-                  <Typography variant="h6" color="primary" className="mb-4">
+                  <Typography variant="h6" color="primary" className="mb-1">
                     {plan.customQuote ? 'Consulte-nos' : `R$ ${plan.price.toFixed(2)}/mês`}
                   </Typography>
+                  {plan.id === 'plan_plus_500_standard_v1' && (
+                    <Typography variant="caption" display="block" color="textSecondary" className="mb-3">
+                      *R$ 279,00/mês para médicos com até 3 anos de formação.
+                    </Typography>
+                  )}
                   <Typography variant="body1" className="mb-4">
                     {plan.description}
                   </Typography>

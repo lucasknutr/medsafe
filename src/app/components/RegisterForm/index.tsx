@@ -56,6 +56,7 @@ interface FormData {
   recusaSeguro: string;
   conhecimentoReclamacoes: string;
   envolvidoReclamacoes: string;
+  informacoesAdicionais: string;
   assessoradoPorVendas: string;
   carteiraProfissional: string; // CRM Number
   comprovanteResidencia: string; // Details about residence proof, if any
@@ -91,6 +92,8 @@ interface FormData {
   emailLogin: string;
   passwordLogin: string;
   confirmPasswordLogin: string;
+  contractAgreed: boolean; // Added for contract agreement
+  graduationYear: string; // Added for new graduate discount
 }
 
 const initialFormData: FormData = {
@@ -127,6 +130,7 @@ const initialFormData: FormData = {
   recusaSeguro: '',
   conhecimentoReclamacoes: '',
   envolvidoReclamacoes: '',
+  informacoesAdicionais: '',
   assessoradoPorVendas: '',
   carteiraProfissional: '',
   comprovanteResidencia: '',
@@ -162,6 +166,8 @@ const initialFormData: FormData = {
   emailLogin: '',
   passwordLogin: '',
   confirmPasswordLogin: '',
+  contractAgreed: false, // Initialize contractAgreed
+  graduationYear: '', // Initialize graduationYear
 };
 
 const steps = [
@@ -208,6 +214,21 @@ const plano200: InsurancePlan = {
   is_active: true,
 };
 
+const plano500Standard: InsurancePlan = {
+  id: 'plan_plus_500_standard_v1',
+  name: 'Plano +500',
+  price: 458.00,
+  description: 'Cobertura de R$ 500.000. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
+  features: [
+    'Cobertura de R$ 500.000',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+  ],
+  is_active: true,
+  customQuote: false,
+};
+
 const plano500Custom: InsurancePlan = {
   id: 'plan_plus_500_custom_v1',
   name: 'Plano +500 e Coberturas Especiais',
@@ -230,23 +251,32 @@ export default function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
   const router = useRouter();
-  const [cookies, setCookie] = useCookies(['selected_plan', 'user_id', 'email', 'role']);
+  const [cookies, setCookie, removeCookie] = useCookies([
+    'selected_plan', // CHANGED: Was 'selected_plan_id', now stores the object
+    'user_id',
+    'email',         // ADDED: For storing user's email after registration
+    'role',
+    'registration_completed_token' 
+  ]);
   // Initialize availablePlans with the updated plans
-  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Custom]);
+  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Standard, plano500Custom]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
     // Set initial plan from cookie if exists
-    const savedPlanId = cookies.selected_plan?.id;
-    if (savedPlanId) {
-      const planFromCookie = availablePlans.find(p => p.id === savedPlanId);
+    const savedPlanObject = cookies.selected_plan; // Access the plan object directly
+    if (savedPlanObject && savedPlanObject.id) {
+      const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
       if (planFromCookie) {
-        setSelectedPlan(planFromCookie);
+        // Potentially re-apply discount logic if graduationYear is available
+        // For simplicity now, just setting the plan as stored.
+        // If graduationYear is part of formData already, handlePlanSelect could be called.
+        setSelectedPlan(planFromCookie); 
       }
     }
-  }, [availablePlans, cookies.selected_plan]);
+  }, [availablePlans, cookies.selected_plan, formData.graduationYear]); // Added formData.graduationYear if dynamic price on load is needed
 
   const validatePersonalInfoStep = (): Partial<Record<keyof FormData, string>> => {
     const errors: Partial<Record<keyof FormData, string>> = {};
@@ -407,19 +437,22 @@ export default function RegisterForm() {
         return true;
       case 3: // PlanAndPayment + TermsAndConditions (Terms are usually validated by a checkbox)
         if (selectedPlan && !formData.paymentMethod) {
-          // If a plan is selected (not 'Ainda Vou Decidir'), a payment method should be chosen.
-          // setError('Por favor, selecione um método de pagamento.');
-          // return false; 
+          setError('Por favor, selecione um método de pagamento.');
+          return false;
+        }
+        if (formData.paymentMethod === 'BOLETO' && !formData.contractAgreed) {
+          setError('Você deve ler e concordar com os termos do contrato para prosseguir com o pagamento via Boleto.');
+          return false;
         }
         // If card, basic checks (more thorough validation happens on submit)
         if (selectedPlan && formData.paymentMethod === 'CARTAO') {
-          // return Boolean(
-          //   formData.cardHolderName &&
-          //   formData.cardNumber &&
-          //   formData.cardExpiryMonth &&
-          //   formData.cardExpiryYear &&
-          //   formData.cardCcv
-          // );
+          return Boolean(
+            formData.cardHolderName &&
+            formData.cardNumber &&
+            formData.cardExpiryMonth &&
+            formData.cardExpiryYear &&
+            formData.cardCcv
+          );
         }
         return true; // For Boleto, PIX, or 'Ainda Vou Decidir'
       case 4: // AdditionalInfo
@@ -546,11 +579,36 @@ export default function RegisterForm() {
     }
   };
 
-  const handlePlanChange = (plan: InsurancePlan | null) => {
-    setSelectedPlan(plan);
-    setCookie('selected_plan', plan, { path: '/' });
+  const handlePlanSelect = (plan: InsurancePlan | null) => {
+    if (plan) {
+      let planToSet = { ...plan }; // Create a copy to modify price if needed
+
+      if (planToSet.id === 'plan_plus_500_standard_v1' && formData.graduationYear) {
+        const currentYear = new Date().getFullYear();
+        const graduationYear = parseInt(formData.graduationYear, 10);
+        if (!isNaN(graduationYear) && graduationYear >= currentYear - 2 && graduationYear <= currentYear) {
+          planToSet.price = 279.00; // Apply discounted price
+        }
+        // If not a recent graduate, or graduationYear is not set/invalid, original price remains
+      }
+      setSelectedPlan(planToSet);
+      setCookie('selected_plan', planToSet, { path: '/' });
+      // If a plan is selected, clear any 'Ainda Vou Decidir' error
+      if (error === 'Por favor, selecione um plano ou marque "Ainda Vou Decidir".') {
+        setError(null);
+      }
+    } else {
+      setSelectedPlan(null); // For 'Ainda Vou Decidir'
+      removeCookie('selected_plan', { path: '/' });
+    }
   };
 
+  // Renamed from handlePlanSelect to handlePlanChange to match prop name
+  const handlePlanChange = (plan: InsurancePlan | null) => {
+    handlePlanSelect(plan); // Call the existing logic
+  };
+
+  // Function to handle user registration API call
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -642,58 +700,47 @@ export default function RegisterForm() {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 1:
-        return <PersonalInfo formData={formData} onInputChange={updateFormData} />;
-      case 2:
+      case 1: // Informações Pessoais
+        return (
+          <PersonalInfo
+            formData={formData}
+            onInputChange={updateFormData}
+            errors={formErrors}
+          />
+        );
+      case 2: // Informações Adicionais
+        return <AdditionalInfo formData={formData} onInputChange={updateFormData} />;
+      case 3: // Plano e Pagamento
+        return (
+          <PlanAndPayment
+            formData={formData}
+            onInputChange={updateFormData}
+            onPlanChange={handlePlanChange}
+            selectedPlan={selectedPlan}
+            availablePlans={availablePlans} // Correct prop name
+          />
+        );
+      case 4: // Credenciais de Acesso
         return <CredentialsInfo formData={formData} onInputChange={updateFormData} errors={formErrors} />;
-      case 3:
+      case 5: // Concluído
         return (
           <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
             <Typography variant="h5" className="mb-4 text-green-700">
               Cadastro Realizado com Sucesso!
             </Typography>
-            
-            {/* This message primarily applies if no plan was chosen, as they'd be redirected otherwise */}
-            {!selectedPlan && (
-              <Typography variant="body1" className="mb-6 text-gray-700">
-                Seu perfil foi criado. Você pode agora explorar nossos planos ou retornar à página inicial.
-              </Typography>
-            )}
-            {selectedPlan && (
-               <Typography variant="body1" className="mb-6 text-gray-700">
-                Você selecionou o plano: <strong>{selectedPlan.name}</strong>. Você já foi redirecionado para a página de pagamento.
-                Se o redirecionamento falhou, por favor, clique abaixo para tentar novamente ou escolha outra opção.
-              </Typography>
-            )}
-
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-6">
-              {selectedPlan && (
-                   <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => router.push(`/pagamento?planId=${selectedPlan.id}`)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                      Ir para Pagamento do Plano: {selectedPlan.name}
-                  </Button>
-              )}
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={() => router.push('/planos')}
-                className="bg-teal-500 hover:bg-teal-600 text-white"
-              >
-                Ver Planos
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit" // Using inherit to make it less prominent if plan was selected
-                onClick={() => router.push('/')}
-                className="border-gray-400 text-gray-700 hover:bg-gray-100"
-              >
-                Ir para Início
-              </Button>
-            </div>
+            <Typography className="mb-2">
+              Seu ID de usuário é: {registeredUserId}
+            </Typography>
+            <Typography className="mb-4">
+              Você será redirecionado para a página de login em alguns segundos...
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => router.push('/login')}
+            >
+              Ir para Login Agora
+            </Button>
           </div>
         );
       default:
@@ -706,11 +753,13 @@ export default function RegisterForm() {
       <Paper className="p-2 sm:p-4 md:p-6">
         <Typography variant="h4" className="mb-2 text-center font-semibold">
           {currentStep === 1 && 'Informações Pessoais e Plano'}
-          {currentStep === 2 && 'Credenciais de Acesso'}
-          {currentStep === 3 && 'Conclusão do Cadastro'}
+          {currentStep === 2 && 'Informações Adicionais'}
+          {currentStep === 3 && 'Plano e Pagamento'}
+          {currentStep === 4 && 'Credenciais de Acesso'}
+          {currentStep === 5 && 'Concluído'}
         </Typography>
         <Stepper activeStep={currentStep - 1} alternativeLabel className="mb-6">
-          {['Informações Pessoais', 'Credenciais', 'Concluído'].map((label) => (
+          {['Informações Pessoais', 'Informações Adicionais', 'Plano e Pagamento', 'Credenciais de Acesso', 'Concluído'].map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
@@ -721,7 +770,7 @@ export default function RegisterForm() {
           {renderStep()}
         </div>
 
-        {currentStep < 3 && (
+        {currentStep < 5 && (
            <div className="mt-8 flex justify-between">
             {currentStep > 1 && (
               <button
@@ -738,7 +787,7 @@ export default function RegisterForm() {
               disabled={loading || !validateStep(currentStep)} 
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : (currentStep === 2 ? 'Finalizar Cadastro' : 'Próximo')}
+              {loading ? <CircularProgress size={24} color="inherit" /> : (currentStep === 4 ? 'Finalizar Cadastro' : 'Próximo')}
             </button>
           </div>
         )}

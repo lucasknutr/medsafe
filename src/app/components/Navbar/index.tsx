@@ -47,7 +47,7 @@ const Navbar = () => {
 
   const basePages = [
     { name: 'Sobre Nós', path: '/sobre-nos' },
-    { name: 'Planos', path: '/planos', requireAuth: true },
+    { name: 'Planos', path: '/planos', requireAuth: false },
     { name: 'Fale Conosco', path: '/#contact-section' },
   ];
 
