@@ -12,6 +12,7 @@ interface InsurancePlan {
   price: number;
   features: string[];
   is_active: boolean;
+  customQuote?: boolean;
 }
 
 interface CurrentUserInsurance {
@@ -20,39 +21,54 @@ interface CurrentUserInsurance {
   status: string;
 }
 
-// Define the single hardcoded plan with user-provided details
-const medsafeDefaultPlan: InsurancePlan = {
-  id: 'cmabutev30000ec8p7nanpru7',
-  name: 'Plano de Proteção Profissional MedSafe',
-  description: 'Cobertura de R$ 200.000 para defesa em processos éticos, cíveis e criminais decorrentes da atividade profissional.',
-  price: 450.00,
+// Updated Plan Definitions
+const plano100: InsurancePlan = {
+  id: 'plan_plus_100_v1',
+  name: 'Plano +100',
+  price: 279.00,
+  description: 'Cobertura de R$ 100.000. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
+  features: [
+    'Cobertura de R$ 100.000',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+  ],
+  is_active: true,
+};
+
+const plano200: InsurancePlan = {
+  id: 'cmabutev30000ec8p7nanpru7', // Existing ID, plan renamed and price updated
+  name: 'Plano +200',
+  price: 449.00,
+  description: 'Cobertura de R$ 200.000. Abrange todas as especialidades médicas, exceto Cirurgia Plástica Estética.',
   features: [
     'Cobertura de R$ 200.000',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
     'Honorários de sucumbência',
-    'Custas processuais'
   ],
   is_active: true,
 };
 
-// Define the new 'Plano +100'
-const planoPlus100: InsurancePlan = {
-  id: 'plan_plus_100_temp_id', // IMPORTANT: Replace with actual unique ID
-  name: 'Plano +100',
-  description: 'Este plano oferece uma cobertura adicional para maior tranquilidade e segurança em sua prática profissional.', // TODO: Replace with actual description
-  price: 279.00,
+const plano500Custom: InsurancePlan = {
+  id: 'plan_plus_500_custom_v1',
+  name: 'Plano +500 e Coberturas Especiais',
+  price: 0, // Symbolic, UI will show 'Consulte-nos'
+  description: 'Coberturas a partir de R$ 500.000, Cirurgia Plástica Estética, ou outras necessidades específicas. Entre em contato para uma cotação personalizada.',
   features: [
-    'Cobertura adicional de R$ 100.000', // TODO: Replace/add actual features
-    'Suporte especializado',
-    'Proteção ampliada'
+    'Cobertura a partir de R$ 500.000 (personalizável)',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+    'Ideal para Cirurgia Plástica Estética e casos de alta complexidade',
   ],
   is_active: true,
+  customQuote: true,
 };
 
 export default function InsurancePlansPage() {
-  // Initialize plans state with both plans
-  const [plans, setPlans] = useState<InsurancePlan[]>([medsafeDefaultPlan, planoPlus100]);
+  // Initialize plans state with the hardcoded plan
+  const [plans, setPlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Custom]);
   const [currentInsurance, setCurrentInsurance] = useState<CurrentUserInsurance | null>(null);
   // Loading now refers to fetching user's current insurance status
   const [loading, setLoading] = useState(true); 
@@ -169,7 +185,7 @@ export default function InsurancePlansPage() {
                     {plan.name}
                   </Typography>
                   <Typography variant="h6" color="primary" className="mb-4">
-                    R$ {plan.price.toFixed(2)}/mês
+                    {plan.customQuote ? 'Consulte-nos' : `R$ ${plan.price.toFixed(2)}/mês`}
                   </Typography>
                   <Typography variant="body1" className="mb-4">
                     {plan.description}
@@ -192,7 +208,7 @@ export default function InsurancePlansPage() {
                   >
                     {currentInsurance?.plan === plan.name && currentInsurance?.status === 'ACTIVE' 
                       ? 'Seu Plano Atual'
-                      : 'Selecionar Plano'}
+                      : plan.customQuote ? 'Solicitar Cotação' : 'Selecionar Plano'}
                   </Button>
                 </CardActions>
               </Card>

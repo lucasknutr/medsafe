@@ -10,16 +10,23 @@ interface AdditionalInfoProps {
     envolvidoReclamacoes: string;
     informacoesAdicionais: string;
     assessoradoPorVendas: string;
-    carteiraProfissional: File | null;
-    comprovanteResidencia: File | null;
+    carteiraProfissional: string;
+    comprovanteResidencia: string;
+    crmFile: File | null;
+    addressProofFile: File | null;
   };
-  onInputChange: (field: string, value: string | File | null) => void;
+  onInputChange: (field: string, value: string | File | null | boolean) => void;
 }
 
 export default function AdditionalInfo({ formData, onInputChange }: AdditionalInfoProps) {
   const handleFileChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     onInputChange(field, file);
+  };
+
+  // Generic handler for radio buttons and textareas/text inputs
+  const handleChange = (field: string, value: string) => {
+    onInputChange(field, value);
   };
 
   return (
@@ -198,10 +205,55 @@ export default function AdditionalInfo({ formData, onInputChange }: AdditionalIn
         </label>
         <textarea
           value={formData.informacoesAdicionais}
-          onChange={(e) => onInputChange('informacoesAdicionais', e.target.value)}
-          className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 h-32"
-          placeholder="Informações especiais sobre o seu pedido"
+          onChange={(e) => handleChange('informacoesAdicionais', e.target.value)}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          rows={3}
         />
+      </div>
+
+      <div>
+        <label htmlFor="carteiraProfissional" className="block text-sm font-medium text-gray-700 mb-1">
+          Número do CRM
+        </label>
+        <input
+          type="text"
+          name="carteiraProfissional"
+          id="carteiraProfissional"
+          value={formData.carteiraProfissional}
+          onChange={(e) => handleChange('carteiraProfissional', e.target.value)}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          placeholder="Ex: 123456/SP"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="crmFile" className="block text-sm font-medium text-gray-700 mb-1">
+          Upload do CRM (PDF ou Imagem)
+        </label>
+        <input
+          type="file"
+          name="crmFile"
+          id="crmFile"
+          accept=".pdf,image/*"
+          onChange={handleFileChange('crmFile')}
+          className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+        />
+        {formData.crmFile && <p className="text-xs text-gray-500 mt-1">Arquivo selecionado: {formData.crmFile.name}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="addressProofFile" className="block text-sm font-medium text-gray-700 mb-1">
+          Upload do Comprovante de Endereço (PDF ou Imagem)
+        </label>
+        <input
+          type="file"
+          name="addressProofFile"
+          id="addressProofFile"
+          accept=".pdf,image/*"
+          onChange={handleFileChange('addressProofFile')}
+          className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+        />
+        {formData.addressProofFile && <p className="text-xs text-gray-500 mt-1">Arquivo selecionado: {formData.addressProofFile.name}</p>}
       </div>
 
       <div className="border-t pt-6">
@@ -237,36 +289,6 @@ export default function AdditionalInfo({ formData, onInputChange }: AdditionalIn
 
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            CARTEIRA PROFISSIONAL (CRM/CRO)
-          </label>
-          <div className="flex items-center justify-center w-full">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                </svg>
-                <p className="mb-2 text-sm text-gray-500">
-                  <span className="font-semibold">Clique para fazer upload</span>
-                </p>
-                <p className="text-xs text-gray-500">PDF, PNG ou JPG</p>
-              </div>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleFileChange('carteiraProfissional')}
-                accept=".pdf,.png,.jpg,.jpeg"
-              />
-            </label>
-          </div>
-          {formData.carteiraProfissional && (
-            <p className="mt-2 text-sm text-gray-600">
-              Arquivo selecionado: {formData.carteiraProfissional.name}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
             COMPROVANTE DE RESIDÊNCIA
           </label>
           <div className="flex items-center justify-center w-full">
@@ -288,11 +310,7 @@ export default function AdditionalInfo({ formData, onInputChange }: AdditionalIn
               />
             </label>
           </div>
-          {formData.comprovanteResidencia && (
-            <p className="mt-2 text-sm text-gray-600">
-              Arquivo selecionado: {formData.comprovanteResidencia.name}
-            </p>
-          )}
+          {/* Removed line trying to access .name on formData.comprovanteResidencia */}
         </div>
       </div>
     </div>

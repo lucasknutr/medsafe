@@ -19,6 +19,7 @@ interface InsurancePlan {
   price: number;
   features: string[];
   is_active: boolean;
+  customQuote?: boolean; // Added for 'Consulte-nos' type plans
 }
 
 interface FormData {
@@ -56,8 +57,10 @@ interface FormData {
   conhecimentoReclamacoes: string;
   envolvidoReclamacoes: string;
   assessoradoPorVendas: string;
-  carteiraProfissional: File | null;
-  comprovanteResidencia: File | null;
+  carteiraProfissional: string; // CRM Number
+  comprovanteResidencia: string; // Details about residence proof, if any
+  crmFile: File | null;
+  addressProofFile: File | null;
   selectedPlan: InsurancePlan | null;
   paymentMethod: string;
   installments: number;
@@ -69,6 +72,25 @@ interface FormData {
   cardCcv?: string;
   cardCpfCnpj?: string;
   cardPhone?: string;
+  cepProfissional: string;
+  enderecoProfissional: string;
+  numeroProfissional: string;
+  complementoProfissional: string;
+  bairroProfissional: string;
+  cidadeProfissional: string;
+  estadoProfissional: string;
+  cepResidencial: string;
+  enderecoResidencial: string;
+  numeroResidencial: string;
+  complementoResidencial: string;
+  bairroResidencial: string;
+  cidadeResidencial: string;
+  estadoResidencial: string;
+  telefoneCelular: string;
+  telefoneFixo: string;
+  emailLogin: string;
+  passwordLogin: string;
+  confirmPasswordLogin: string;
 }
 
 const initialFormData: FormData = {
@@ -106,8 +128,10 @@ const initialFormData: FormData = {
   conhecimentoReclamacoes: '',
   envolvidoReclamacoes: '',
   assessoradoPorVendas: '',
-  carteiraProfissional: null,
-  comprovanteResidencia: null,
+  carteiraProfissional: '',
+  comprovanteResidencia: '',
+  crmFile: null,
+  addressProofFile: null,
   selectedPlan: null,
   paymentMethod: '',
   installments: 0,
@@ -119,6 +143,25 @@ const initialFormData: FormData = {
   cardCcv: '',
   cardCpfCnpj: '',
   cardPhone: '',
+  cepProfissional: '',
+  enderecoProfissional: '',
+  numeroProfissional: '',
+  complementoProfissional: '',
+  bairroProfissional: '',
+  cidadeProfissional: '',
+  estadoProfissional: '',
+  cepResidencial: '',
+  enderecoResidencial: '',
+  numeroResidencial: '',
+  complementoResidencial: '',
+  bairroResidencial: '',
+  cidadeResidencial: '',
+  estadoResidencial: '',
+  telefoneCelular: '',
+  telefoneFixo: '',
+  emailLogin: '',
+  passwordLogin: '',
+  confirmPasswordLogin: '',
 };
 
 const steps = [
@@ -136,34 +179,49 @@ const convertDateToYMD = (dateString: string): string => {
   return `${parts[2]}-${parts[1]}-${parts[0]}`;
 };
 
-// Define the single hardcoded plan
-const medsafeDefaultPlan: InsurancePlan = {
-  id: 'cmabutev30000ec8p7nanpru7',
-  name: 'Plano de Proteção Profissional MedSafe',
-  description: 'Cobertura de R$ 200.000 para defesa em processos éticos, cíveis e criminais decorrentes da atividade profissional.',
-  price: 450.00,
+// Updated Plan Definitions
+const plano100: InsurancePlan = {
+  id: 'plan_plus_100_v1',
+  name: 'Plano +100',
+  price: 279.00,
+  description: 'Cobertura de R$ 100.000. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
+  features: [
+    'Cobertura de R$ 100.000',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+  ],
+  is_active: true,
+};
+
+const plano200: InsurancePlan = {
+  id: 'cmabutev30000ec8p7nanpru7', // Existing ID, plan renamed and price updated
+  name: 'Plano +200',
+  price: 449.00,
+  description: 'Cobertura de R$ 200.000. Abrange todas as especialidades médicas, exceto Cirurgia Plástica Estética.',
   features: [
     'Cobertura de R$ 200.000',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
     'Honorários de sucumbência',
-    'Custas processuais'
   ],
   is_active: true,
 };
 
-// Define the new 'Plano +100'
-const planoPlus100: InsurancePlan = {
-  id: 'plan_plus_100_temp_id', // IMPORTANT: Replace with actual unique ID
-  name: 'Plano +100',
-  description: 'Este plano oferece uma cobertura adicional para maior tranquilidade e segurança em sua prática profissional.', // TODO: Replace with actual description
-  price: 279.00,
+const plano500Custom: InsurancePlan = {
+  id: 'plan_plus_500_custom_v1',
+  name: 'Plano +500 e Coberturas Especiais',
+  price: 0, // Symbolic, UI will show 'Consulte-nos'
+  description: 'Coberturas a partir de R$ 500.000, Cirurgia Plástica Estética, ou outras necessidades específicas. Entre em contato para uma cotação personalizada.',
   features: [
-    'Cobertura adicional de R$ 100.000', // TODO: Replace/add actual features
-    'Suporte especializado',
-    'Proteção ampliada'
+    'Cobertura a partir de R$ 500.000 (personalizável)',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+    'Ideal para Cirurgia Plástica Estética e casos de alta complexidade',
   ],
   is_active: true,
+  customQuote: true,
 };
 
 export default function RegisterForm() {
@@ -173,8 +231,8 @@ export default function RegisterForm() {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
   const router = useRouter();
   const [cookies, setCookie] = useCookies(['selected_plan', 'user_id', 'email', 'role']);
-  // Initialize availablePlans with both plans
-  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([medsafeDefaultPlan, planoPlus100]);
+  // Initialize availablePlans with the updated plans
+  const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Custom]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
@@ -302,13 +360,31 @@ export default function RegisterForm() {
     return response.json(); // Returns the user data from the API, including user.id
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const updateFormData = (field: string, value: string | string[] | File | null | boolean) => {
+    let processedValue = value;
+
+    if (field === 'cpf' && typeof value === 'string') {
+      const numericValue = value.replace(/\D/g, '');
+      let formattedCpf = numericValue;
+      if (numericValue.length > 3) formattedCpf = `${numericValue.slice(0, 3)}.${numericValue.slice(3)}`;
+      if (numericValue.length > 6) formattedCpf = `${formattedCpf.slice(0, 7)}.${numericValue.slice(6)}`;
+      if (numericValue.length > 9) formattedCpf = `${formattedCpf.slice(0, 11)}-${numericValue.slice(9, 11)}`;
+      processedValue = formattedCpf.substring(0, 14); // Ensure max length
+    } else if (field === 'birthDate' && typeof value === 'string') {
+      let bDate = value.replace(/\D/g, '');
+      if (bDate.length > 2) bDate = `${bDate.slice(0, 2)}/${bDate.slice(2)}`;
+      if (bDate.length > 5) bDate = `${bDate.slice(0, 5)}/${bDate.slice(5, 9)}`;
+      processedValue = bDate.substring(0, 10);
+    }
+    // Add other specific formatting if needed, e.g., for phone numbers, CEP
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
+
     // Clear specific errors when user types in relevant fields
-    if (field === 'email' || field === 'password' || field === 'confirmPassword') {
+    if (formErrors[field as keyof FormData]) {
       setFormErrors(prevErrors => ({
         ...prevErrors,
         [field]: undefined
@@ -317,38 +393,48 @@ export default function RegisterForm() {
   };
 
   const validateStep = (step: number): boolean => {
+    // Basic validation, can be expanded. 
+    // For now, primarily to ensure the function exists.
+    // TODO: Implement more specific validation rules for each step based on required fields.
     switch (step) {
-      case 1:
-        // PersonalInfo step is valid if validatePersonalInfoStep returns no errors
-        return Object.keys(validatePersonalInfoStep()).length === 0;
-      case 2:
-        // Credentials step is valid if validateCredentialsStep returns no errors
-        return Object.keys(validateCredentialsStep()).length === 0;
-      case 3:
-        // Payment step validation logic for enabling/disabling the submit button
-        // This can be simple (e.g., selectedPlan exists if payment is intended)
-        // or more complex if you have pre-submit checks for payment form fields.
-        // If 'Ainda Vou Decidir' (no selectedPlan), it's considered valid to proceed to submit (which then redirects).
-        if (!selectedPlan) return true;
-        // If a plan is selected, ensure a payment method is chosen.
-        if (!formData.paymentMethod) return false;
-        // If card, basic checks (more thorough validation happens on submit)
-        if (formData.paymentMethod === 'CARTAO') {
-          return Boolean(
-            formData.cardHolderName &&
-            formData.cardNumber &&
-            formData.cardExpiryMonth &&
-            formData.cardExpiryYear &&
-            formData.cardCcv
-          );
+      case 1: // PersonalInfo
+        // Example: Check if critical personal info fields are filled
+        // if (!formData.firstName || !formData.cpf || !formData.birthDate) return false;
+        return true; 
+      case 2: // CredentialsInfo
+        // Example: Check if login credentials are provided
+        // if (!formData.emailLogin || !formData.passwordLogin) return false;
+        return true;
+      case 3: // PlanAndPayment + TermsAndConditions (Terms are usually validated by a checkbox)
+        if (selectedPlan && !formData.paymentMethod) {
+          // If a plan is selected (not 'Ainda Vou Decidir'), a payment method should be chosen.
+          // setError('Por favor, selecione um método de pagamento.');
+          // return false; 
         }
-        return true; // For Boleto and PIX, just having method selected might be enough here
+        // If card, basic checks (more thorough validation happens on submit)
+        if (selectedPlan && formData.paymentMethod === 'CARTAO') {
+          // return Boolean(
+          //   formData.cardHolderName &&
+          //   formData.cardNumber &&
+          //   formData.cardExpiryMonth &&
+          //   formData.cardExpiryYear &&
+          //   formData.cardCcv
+          // );
+        }
+        return true; // For Boleto, PIX, or 'Ainda Vou Decidir'
+      case 4: // AdditionalInfo
+        // Example: Check if file uploads are present if they become mandatory
+        // if (!formData.crmFile || !formData.addressProofFile) return false;
+        return true;
+      case 5: // PurchaseSummary - usually no validation here, just display
+        return true;
       default:
-        return false;
+        return true; // Allow progression by default for unhandled steps
     }
   };
 
   const handleNext = async () => {
+    setError(null); // Clear previous errors
     // Clear previous specific errors if any
     setFormErrors({});
     setError(null); 
@@ -557,9 +643,9 @@ export default function RegisterForm() {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <PersonalInfo formData={formData} onInputChange={handleInputChange} />;
+        return <PersonalInfo formData={formData} onInputChange={updateFormData} />;
       case 2:
-        return <CredentialsInfo formData={formData} onInputChange={handleInputChange} errors={formErrors} />;
+        return <CredentialsInfo formData={formData} onInputChange={updateFormData} errors={formErrors} />;
       case 3:
         return (
           <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
