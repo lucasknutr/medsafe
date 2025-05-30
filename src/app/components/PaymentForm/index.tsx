@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Paper, Typography, Grid, Card, CardContent, Button, CircularProgress, Alert } from "@mui/material";
+import { Paper, Typography, Grid, Card, CardContent, Button, CircularProgress, Alert, TextField } from "@mui/material";
 import { useCookies } from "react-cookie";
 
 interface InsurancePlan {
@@ -12,6 +12,20 @@ interface InsurancePlan {
   features: string[];
   is_active: boolean;
 }
+
+// Added validateCoupon function (copied from RegisterForm)
+const validateCoupon = (code: string): number => {
+  switch (code.toUpperCase()) {
+    case 'MEDSAFE10':
+      return 0.10;
+    case 'QUERO15':
+      return 0.15;
+    case 'MED20SAFE':
+      return 0.20;
+    default:
+      return 0;
+  }
+};
 
 export default function PaymentForm() {
   const router = useRouter();
@@ -25,6 +39,12 @@ export default function PaymentForm() {
   const [error, setError] = useState<string | null>(null);
   const [showGoToHomeButton, setShowGoToHomeButton] = useState(false);
 
+  // Coupon state variables
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (!planId) {
       setError("Nenhum plano selecionado.");
@@ -36,8 +56,11 @@ export default function PaymentForm() {
         const response = await fetch(`/api/insurance-plans?id=${planId}`);
         if (!response.ok) throw new Error("Erro ao buscar o plano");
         const data = await response.json();
-        // If endpoint returns array
-        setPlan(Array.isArray(data) ? data[0] : data);
+        const fetchedPlan = Array.isArray(data) ? data[0] : data;
+        setPlan(fetchedPlan);
+        if (fetchedPlan) {
+          setFinalPrice(fetchedPlan.price); // Initialize finalPrice
+        }
       } catch (err) {
         setError("Erro ao carregar o plano selecionado.");
       } finally {
@@ -47,9 +70,23 @@ export default function PaymentForm() {
     fetchPlan();
   }, [planId]);
 
+  const handleApplyCoupon = () => {
+    if (!plan) return;
+    const discount = validateCoupon(couponCode);
+    if (discount > 0) {
+      setAppliedDiscount(discount);
+      setFinalPrice(plan.price * (1 - discount));
+      setCouponMessage("Cupom aplicado com sucesso!");
+    } else {
+      setAppliedDiscount(0);
+      setFinalPrice(plan.price);
+      setCouponMessage("Cupom inválido ou expirado.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!plan) return;
+    if (!plan || finalPrice === null) return;
 
     let boletoWindow: Window | null = null;
 
@@ -71,6 +108,9 @@ export default function PaymentForm() {
         paymentMethod: paymentMethod === "CARTAO" ? "CREDIT_CARD" : paymentMethod,
         email: cookies.email,
         customerId: cookies.user_id,
+        originalAmount: plan.price,
+        finalAmount: finalPrice, // Send final price
+        couponCode: appliedDiscount > 0 ? couponCode : undefined, // Send coupon if applied
       };
       if (paymentMethod === "CARTAO") {
         paymentData.cardInfo = cardDetails;
@@ -120,14 +160,49 @@ export default function PaymentForm() {
 
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
-  if (!plan) return <Alert severity="warning">Plano não encontrado.</Alert>;
+  if (!plan || finalPrice === null) return <Alert severity="warning">Plano não encontrado ou preço não calculado.</Alert>;
 
   return (
     <Paper className="p-6 max-w-xl mx-auto mt-10">
       <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name}</Typography>
-      <Typography variant="h6" color="primary" className="mb-4">
-        R$ {plan.price.toFixed(2)}/mês
+      <Typography variant="h6" color="primary" className="mb-1">
+        R$ {finalPrice.toFixed(2)}/mês
       </Typography>
+      {appliedDiscount > 0 && plan.price !== finalPrice && (
+        <Typography variant="subtitle2" color="textSecondary" className="mb-4 line-through">
+          De: R$ {plan.price.toFixed(2)}
+        </Typography>
+      )}
+
+      {/* Coupon Section */}
+      <div className="my-4 p-4 border rounded">
+        <Typography variant="subtitle1" className="mb-2">Cupom de Desconto</Typography>
+        <div className="flex gap-2 items-start">
+          <TextField
+            label="Código do Cupom"
+            variant="outlined"
+            size="small"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            className="flex-grow"
+          />
+          <Button
+            variant="contained"
+            onClick={handleApplyCoupon}
+            disabled={!couponCode.trim()}
+          >
+            Aplicar
+          </Button>
+        </div>
+        {couponMessage && (
+          <Typography 
+            variant="caption" 
+            className={`mt-2 ${appliedDiscount > 0 ? 'text-green-600' : 'text-red-600'}`}
+          >
+            {couponMessage}
+          </Typography>
+        )}
+      </div>
 
       {!showGoToHomeButton ? (
         <form onSubmit={handleSubmit}>

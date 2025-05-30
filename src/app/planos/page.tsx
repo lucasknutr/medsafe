@@ -66,25 +66,9 @@ const plano500Standard: InsurancePlan = {
   customQuote: false, // Explicitly false to distinguish from the custom quote version
 };
 
-const plano500Custom: InsurancePlan = {
-  id: 'plan_plus_500_custom_v1',
-  name: 'Plano +500 e Coberturas Especiais',
-  price: 0, // Symbolic, UI will show 'Consulte-nos'
-  description: 'Coberturas a partir de R$ 500.000, Cirurgia Plástica Estética, ou outras necessidades específicas. Entre em contato para uma cotação personalizada.',
-  features: [
-    'Cobertura a partir de R$ 500.000 (personalizável)',
-    'Defesas em processos Éticos, Cíveis e Criminais',
-    'Perícias e custas judiciais',
-    'Honorários de sucumbência',
-    'Ideal para Cirurgia Plástica Estética e casos de alta complexidade',
-  ],
-  is_active: true,
-  customQuote: true,
-};
-
 export default function InsurancePlansPage() {
   // Initialize plans state with the hardcoded plan, including the new standard +500
-  const [plans, setPlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Standard, plano500Custom]);
+  const [plans, setPlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Standard]);
   const [currentInsurance, setCurrentInsurance] = useState<CurrentUserInsurance | null>(null);
   // Loading now refers to fetching user's current insurance status
   const [loading, setLoading] = useState(true); 
