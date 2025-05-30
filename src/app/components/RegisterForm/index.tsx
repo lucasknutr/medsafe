@@ -711,31 +711,13 @@ export default function RegisterForm() {
   const renderStep = () => {
     switch (currentStep) {
       case 1: // Informações Pessoais
-        return (
-          <PersonalInfo
-            formData={formData}
-            onInputChange={updateFormData}
-            errors={formErrors}
-          />
-        );
+        return <div>Placeholder for Personal Info</div>;
       case 2: // Informações Adicionais
-        return <AdditionalInfo formData={formData} onInputChange={updateFormData} />;
+        return <div>Placeholder for Additional Info</div>;
       case 3: // Plano e Pagamento
-        return (
-          <PlanAndPayment
-            formData={formData}
-            onInputChange={updateFormData}
-            onPlanChange={handlePlanChange}
-            selectedPlan={selectedPlan}
-            availablePlans={availablePlans}
-            finalPrice={finalPrice}
-            couponCode={formData.couponCode}
-            onApplyCoupon={handleApplyCoupon}
-            couponMessage={couponMessage}
-          />
-        );
+        return <div>Placeholder for Plan & Payment</div>;
       case 4: // Credenciais de Acesso
-        return <CredentialsInfo formData={formData} onInputChange={updateFormData} errors={formErrors} />;
+        return <div>Placeholder for Credentials Info</div>;
       case 5: // Concluído
         return (
           <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
@@ -821,6 +803,7 @@ export default function RegisterForm() {
   };
 
   // Simplified return for diagnostics
+  /*
   return (
     <div>
       <h1>Register Form Diagnostic Test</h1>
@@ -828,5 +811,54 @@ export default function RegisterForm() {
       <p>Loading: {loading ? 'Yes' : 'No'}</p>
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
     </div>
+  );
+  */
+
+  // Restore main layout and Stepper
+  return (
+    <Box className="max-w-4xl mx-auto p-4">
+      <Paper className="p-2 sm:p-4 md:p-6">
+        <Typography variant="h4" className="mb-2 text-center font-semibold">
+          {currentStep === 1 && 'Informações Pessoais e Plano'}
+          {currentStep === 2 && 'Informações Adicionais'}
+          {currentStep === 3 && 'Plano e Pagamento'}
+          {currentStep === 4 && 'Credenciais de Acesso'}
+          {currentStep === 5 && 'Concluído'}
+        </Typography>
+        <Stepper activeStep={currentStep - 1} alternativeLabel className="mb-6">
+          {['Informações Pessoais', 'Informações Adicionais', 'Plano e Pagamento', 'Credenciais de Acesso', 'Concluído'].map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        <div className="mb-6">
+          {renderStep()} 
+        </div>
+
+        {currentStep < 5 && (
+           <div className="mt-8 flex justify-between">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Voltar
+              </button>
+            )}
+            <button
+              type="button" 
+              onClick={handleNext} 
+              disabled={loading || !validateStep(currentStep)} 
+              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : (currentStep === 4 ? 'Finalizar Cadastro' : 'Próximo')}
+            </button>
+          </div>
+        )}
+      </Paper>
+    </Box>
   );
 }
