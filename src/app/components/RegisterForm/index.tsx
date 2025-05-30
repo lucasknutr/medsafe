@@ -10,7 +10,7 @@ import PurchaseSummary from './PurchaseSummary';
 import CredentialsInfo from './CredentialsInfo';
 import TermsAndConditions from './TermsAndConditions';
 import PlanAndPayment from './PlanAndPayment';
-import { useCookies } from 'react-cookie';
+// import { useCookies } from 'react-cookie';
 
 interface InsurancePlan {
   id: string;
@@ -254,13 +254,13 @@ export default function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
   const router = useRouter();
-  const [cookies, setCookie, removeCookie] = useCookies([
-    'selected_plan', // CHANGED: Was 'selected_plan_id', now stores the object
-    'user_id',
-    'email',         // ADDED: For storing user's email after registration
-    'role',
-    'registration_completed_token' 
-  ]);
+  // const [cookies, setCookie, removeCookie] = useCookies([
+  //   'selected_plan', // CHANGED: Was 'selected_plan_id', now stores the object
+  //   'user_id',
+  //   'email',         // ADDED: For storing user's email after registration
+  //   'role',
+  //   'registration_completed_token' 
+  // ]);
   // Initialize availablePlans with the updated plans
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Standard, plano500Custom]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
@@ -310,31 +310,31 @@ export default function RegisterForm() {
     }
   }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
 
-  useEffect(() => {
-    if (!isClientMounted) {
-      return; // Don't run cookie logic until mounted on client
-    }
-    console.log('REGISTER_FORM_DEBUG: Cookie effect triggered (client-mounted). Cookie selected_plan:', cookies.selected_plan);
-    const savedPlanObject = cookies.selected_plan;
-    if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
-      const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
-      if (planFromCookie) {
-        console.log('REGISTER_FORM_DEBUG: Setting selectedPlan from cookie:', planFromCookie.id);
-        setSelectedPlan(planFromCookie); 
-      } else {
-        console.log('REGISTER_FORM_DEBUG: Plan from cookie not in availablePlans. Removing cookie.');
-        removeCookie('selected_plan', { path: '/' });
-        setSelectedPlan(null);
-      }
-    } else if (savedPlanObject) {
-      console.log('REGISTER_FORM_DEBUG: Cookie selected_plan is invalid. Removing cookie.');
-      removeCookie('selected_plan', { path: '/' });
-      setSelectedPlan(null);
-    } else {
-      // console.log('REGISTER_FORM_DEBUG: No selected_plan cookie found. Setting selectedPlan to null.'); // This might be too noisy
-      setSelectedPlan(null); // No cookie, ensure selectedPlan is null
-    }
-  }, [isClientMounted, cookies.selected_plan, availablePlans, removeCookie]); // Added isClientMounted and using cookies.selected_plan directly
+  // useEffect(() => {
+  //   if (!isClientMounted) {
+  //     return; // Don't run cookie logic until mounted on client
+  //   }
+  //   console.log('REGISTER_FORM_DEBUG: Cookie effect triggered (client-mounted). Cookie selected_plan:', cookies.selected_plan);
+  //   const savedPlanObject = cookies.selected_plan;
+  //   if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
+  //     const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
+  //     if (planFromCookie) {
+  //       console.log('REGISTER_FORM_DEBUG: Setting selectedPlan from cookie:', planFromCookie.id);
+  //       setSelectedPlan(planFromCookie); 
+  //     } else {
+  //       console.log('REGISTER_FORM_DEBUG: Plan from cookie not in availablePlans. Removing cookie.');
+  //       removeCookie('selected_plan', { path: '/' });
+  //       setSelectedPlan(null);
+  //     }
+  //   } else if (savedPlanObject) {
+  //     console.log('REGISTER_FORM_DEBUG: Invalid/old format selected_plan cookie found. Removing cookie.');
+  //     removeCookie('selected_plan', { path: '/' });
+  //     setSelectedPlan(null);
+  //   } else {
+  //     // console.log('REGISTER_FORM_DEBUG: No selected_plan cookie found. Setting selectedPlan to null.'); // This might be too noisy
+  //     setSelectedPlan(null); // No cookie, ensure selectedPlan is null
+  //   }
+  // }, [isClientMounted, cookies?.selected_plan, availablePlans, removeCookie]); // Added isClientMounted and using cookies.selected_plan directly
 
   const updateFormData = useCallback((field: string, value: string | boolean | string[] | File | null | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -380,27 +380,13 @@ export default function RegisterForm() {
   }, [formData.couponCode, selectedPlan, calculateFinalPrice]);
 
   const handlePlanSelect = useCallback((plan: InsurancePlan | null) => {
-    if (plan) {
-      let planToSet = { ...plan }; // Create a copy to modify price if needed
-
-      if (planToSet.id === 'plan_plus_500_standard_v1' && formData.graduationYear) {
-        const currentYear = new Date().getFullYear();
-        const graduationYear = parseInt(formData.graduationYear, 10);
-        if (!isNaN(graduationYear) && graduationYear >= currentYear - 2 && graduationYear <= currentYear) {
-          planToSet.price = 279.00; // Apply discounted price
-        }
-      }
-      setSelectedPlan(planToSet);
-      setCookie('selected_plan', planToSet, { path: '/' });
-      // If a plan is selected, clear any 'Ainda Vou Decidir' error
-      if (error === 'Por favor, selecione um plano ou marque "Ainda Vou Decidir".') {
-        setError(null);
-      }
-    } else {
-      setSelectedPlan(null); // For 'Ainda Vou Decidir'
-      removeCookie('selected_plan', { path: '/' });
-    }
-  }, [formData.graduationYear, setCookie, removeCookie, setSelectedPlan, setError]);
+    setSelectedPlan(plan);
+    // if (plan) {
+    //   setCookie('selected_plan', plan, { path: '/', maxAge: 3600 * 24 * 30 }); // Store for 30 days
+    // } else {
+    //   removeCookie('selected_plan', { path: '/' });
+    // }
+  }, [setSelectedPlan]); // Removed setCookie, removeCookie from dependencies
 
   const handlePlanChange = useCallback((plan: InsurancePlan | null) => {
     handlePlanSelect(plan);
@@ -585,9 +571,9 @@ export default function RegisterForm() {
         // Manually set cookies, similar to the login page logic
         try {
           console.log('Attempting to set cookies for user:', userData.user.email, 'ID:', userData.user.id, 'Role:', userData.user.role);
-          setCookie('user_id', userData.user.id, { path: '/' });
-          setCookie('email', userData.user.email, { path: '/' });
-          setCookie('role', userData.user.role, { path: '/' }); // Crucial for session consistency
+          // setCookie('user_id', userData.user.id, { path: '/' });
+          // setCookie('email', userData.user.email, { path: '/' });
+          // setCookie('role', userData.user.role, { path: '/' }); // Crucial for session consistency
           console.log('Cookies set successfully.');
 
           // NEW LOGIC: Check if a plan was selected during registration
