@@ -16,6 +16,10 @@ interface PlanAndPaymentProps {
   onPlanChange: (plan: InsurancePlan | null) => void;
   formData: any;
   onInputChange: (field: string, value: any) => void;
+  finalPrice: number | null;
+  couponCode?: string;
+  onApplyCoupon: () => void;
+  couponMessage?: string;
 }
 
 const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
@@ -24,6 +28,10 @@ const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
   onPlanChange,
   formData,
   onInputChange,
+  finalPrice,
+  couponCode,
+  onApplyCoupon,
+  couponMessage,
 }) => {
   // Disable payment options if 'Ainda Vou Decidir' is selected
   const paymentDisabled = !selectedPlan;
@@ -77,6 +85,63 @@ const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
           </Grid>
         </Grid>
       </div>
+
+      {/* Coupon Code Section - Only show if a plan is selected */}
+      {selectedPlan && (
+        <div>
+          <Typography variant="h6" className="mb-2">
+            Cupom de Desconto
+          </Typography>
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              placeholder="Digite seu cupom"
+              value={couponCode || ''}
+              onChange={(e) => onInputChange('couponCode', e.target.value)}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              disabled={paymentDisabled}
+            />
+            <button
+              type="button"
+              onClick={onApplyCoupon}
+              className={`px-4 py-2 border rounded text-white ${paymentDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              disabled={paymentDisabled}
+            >
+              Aplicar
+            </button>
+          </div>
+          {couponMessage && (
+            <Typography variant="body2" className={couponMessage.includes('aplicado') ? 'text-green-600' : 'text-red-600'}>
+              {couponMessage}
+            </Typography>
+          )}
+        </div>
+      )}
+
+      {/* Final Price Display - Only show if a plan is selected */}
+      {selectedPlan && (
+        <div className="mt-4 p-4 border rounded bg-gray-50">
+          <Typography variant="h6" className="mb-2">
+            Resumo do Plano: {selectedPlan.name}
+          </Typography>
+          <div className="flex justify-between">
+            <Typography variant="body1">Preço Original:</Typography>
+            <Typography variant="body1">R$ {selectedPlan.price.toFixed(2)}</Typography>
+          </div>
+          {finalPrice !== null && finalPrice !== selectedPlan.price && (
+            <div className="flex justify-between text-green-600 font-semibold">
+              <Typography variant="body1" color="inherit">Preço com Desconto:</Typography>
+              <Typography variant="body1" color="inherit">R$ {finalPrice.toFixed(2)}</Typography>
+            </div>
+          )}
+          {finalPrice !== null && finalPrice === selectedPlan.price && (
+            <div className="flex justify-between">
+              <Typography variant="body1">Preço Final:</Typography>
+              <Typography variant="body1">R$ {finalPrice.toFixed(2)}</Typography>
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <Typography variant="h6" className="mb-4">

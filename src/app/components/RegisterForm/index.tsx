@@ -94,6 +94,7 @@ interface FormData {
   confirmPasswordLogin: string;
   contractAgreed: boolean; // Added for contract agreement
   graduationYear: string; // Added for new graduate discount
+  couponCode?: string; // ADDED FOR COUPON
 }
 
 const initialFormData: FormData = {
@@ -168,6 +169,7 @@ const initialFormData: FormData = {
   confirmPasswordLogin: '',
   contractAgreed: false, // Initialize contractAgreed
   graduationYear: '', // Initialize graduationYear
+  couponCode: '', // Initialize couponCode
 };
 
 const steps = [
@@ -261,6 +263,9 @@ export default function RegisterForm() {
   // Initialize availablePlans with the updated plans
   const [availablePlans, setAvailablePlans] = useState<InsurancePlan[]>([plano100, plano200, plano500Standard, plano500Custom]);
   const [selectedPlan, setSelectedPlan] = useState<InsurancePlan | null>(null);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null); // State to hold the price after all discounts
+  const [appliedCouponDiscount, setAppliedCouponDiscount] = useState<number>(0); // e.g., 0.10 for 10%
+  const [couponMessage, setCouponMessage] = useState<string>(''); // To give feedback on coupon application
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
 
@@ -277,6 +282,83 @@ export default function RegisterForm() {
       }
     }
   }, [availablePlans, cookies.selected_plan, formData.graduationYear]); // Added formData.graduationYear if dynamic price on load is needed
+
+  const updateFormData = (field: string, value: string | boolean | string[] | File | null | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'couponCode') {
+      // If user types in coupon field, reset applied discount until they click "Apply"
+      setAppliedCouponDiscount(0);
+      setCouponMessage('');
+    }
+  };
+
+  // Validates coupon and returns discount percentage
+  const validateCoupon = (code: string): number => {
+    switch (code.toUpperCase()) {
+      case 'MEDSAFE10':
+        return 0.10;
+      case 'QUERO15':
+        return 0.15;
+      case 'MED20SAFE':
+        return 0.20;
+      default:
+        return 0;
+    }
+  };
+
+  const handleApplyCoupon = () => {
+    if (!formData.couponCode) {
+      setCouponMessage('Por favor, insira um código de cupom.');
+      setAppliedCouponDiscount(0);
+      return;
+    }
+    const discount = validateCoupon(formData.couponCode);
+    if (discount > 0) {
+      setAppliedCouponDiscount(discount);
+      setCouponMessage(`Cupom "${formData.couponCode}" aplicado! Desconto de ${discount * 100}%.`);
+    } else {
+      setAppliedCouponDiscount(0);
+      setCouponMessage('Cupom inválido ou expirado.');
+    }
+    // Recalculate price with the new coupon status
+    if (selectedPlan) {
+      calculateFinalPrice(selectedPlan, formData.graduationYear, discount);
+    }
+  };
+
+  const calculateFinalPrice = (plan: InsurancePlan, gradYear: string, couponDiscountRate: number) => {
+    let currentPrice = plan.price;
+    // 1. Apply graduation year discount (if applicable)
+    if (plan.id === 'plan_plus_500_standard_v1') {
+      const currentYear = new Date().getFullYear();
+      const graduationYearNum = parseInt(gradYear, 10);
+      if (!isNaN(graduationYearNum) && graduationYearNum >= currentYear - 2 && graduationYearNum <= currentYear) {
+        currentPrice = 279.00; // Apply discounted price for recent graduates
+      }
+    }
+    // 2. Apply coupon discount to the (potentially already discounted) price
+    currentPrice = currentPrice * (1 - couponDiscountRate);
+    setFinalPrice(parseFloat(currentPrice.toFixed(2)));
+  };
+
+  useEffect(() => {
+    const savedPlanObject = cookies.selected_plan;
+    if (savedPlanObject && savedPlanObject.id) {
+      const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
+      if (planFromCookie) {
+        setSelectedPlan(planFromCookie);
+        // Initial price calculation on load if plan exists
+        calculateFinalPrice(planFromCookie, formData.graduationYear, appliedCouponDiscount);
+      }
+    }
+  }, [availablePlans, cookies.selected_plan]); // Removed formData.graduationYear, appliedCouponDiscount to avoid loops, handle in specific functions
+
+  useEffect(() => {
+    // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
+    if (selectedPlan) {
+      calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
+    }
+  }, [selectedPlan, formData.graduationYear, appliedCouponDiscount]);
 
   const validatePersonalInfoStep = (): Partial<Record<keyof FormData, string>> => {
     const errors: Partial<Record<keyof FormData, string>> = {};
@@ -388,82 +470,6 @@ export default function RegisterForm() {
     }
 
     return response.json(); // Returns the user data from the API, including user.id
-  };
-
-  const updateFormData = (field: string, value: string | string[] | File | null | boolean) => {
-    let processedValue = value;
-
-    if (field === 'cpf' && typeof value === 'string') {
-      const numericValue = value.replace(/\D/g, '');
-      let formattedCpf = numericValue;
-      if (numericValue.length > 3) formattedCpf = `${numericValue.slice(0, 3)}.${numericValue.slice(3)}`;
-      if (numericValue.length > 6) formattedCpf = `${formattedCpf.slice(0, 7)}.${numericValue.slice(6)}`;
-      if (numericValue.length > 9) formattedCpf = `${formattedCpf.slice(0, 11)}-${numericValue.slice(9, 11)}`;
-      processedValue = formattedCpf.substring(0, 14); // Ensure max length
-    } else if (field === 'birthDate' && typeof value === 'string') {
-      let bDate = value.replace(/\D/g, '');
-      if (bDate.length > 2) bDate = `${bDate.slice(0, 2)}/${bDate.slice(2)}`;
-      if (bDate.length > 5) bDate = `${bDate.slice(0, 5)}/${bDate.slice(5, 9)}`;
-      processedValue = bDate.substring(0, 10);
-    }
-    // Add other specific formatting if needed, e.g., for phone numbers, CEP
-
-    setFormData(prev => ({
-      ...prev,
-      [field]: processedValue
-    }));
-
-    // Clear specific errors when user types in relevant fields
-    if (formErrors[field as keyof FormData]) {
-      setFormErrors(prevErrors => ({
-        ...prevErrors,
-        [field]: undefined
-      }));
-    }
-  };
-
-  const validateStep = (step: number): boolean => {
-    // Basic validation, can be expanded. 
-    // For now, primarily to ensure the function exists.
-    // TODO: Implement more specific validation rules for each step based on required fields.
-    switch (step) {
-      case 1: // PersonalInfo
-        // Example: Check if critical personal info fields are filled
-        // if (!formData.firstName || !formData.cpf || !formData.birthDate) return false;
-        return true; 
-      case 2: // CredentialsInfo
-        // Example: Check if login credentials are provided
-        // if (!formData.emailLogin || !formData.passwordLogin) return false;
-        return true;
-      case 3: // PlanAndPayment + TermsAndConditions (Terms are usually validated by a checkbox)
-        if (selectedPlan && !formData.paymentMethod) {
-          setError('Por favor, selecione um método de pagamento.');
-          return false;
-        }
-        if (formData.paymentMethod === 'BOLETO' && !formData.contractAgreed) {
-          setError('Você deve ler e concordar com os termos do contrato para prosseguir com o pagamento via Boleto.');
-          return false;
-        }
-        // If card, basic checks (more thorough validation happens on submit)
-        if (selectedPlan && formData.paymentMethod === 'CARTAO') {
-          return Boolean(
-            formData.cardHolderName &&
-            formData.cardNumber &&
-            formData.cardExpiryMonth &&
-            formData.cardExpiryYear &&
-            formData.cardCcv
-          );
-        }
-        return true; // For Boleto, PIX, or 'Ainda Vou Decidir'
-      case 4: // AdditionalInfo
-        // Example: Check if file uploads are present if they become mandatory
-        // if (!formData.crmFile || !formData.addressProofFile) return false;
-        return true;
-      case 5: // PurchaseSummary - usually no validation here, just display
-        return true;
-      default:
-        return true; // Allow progression by default for unhandled steps
-    }
   };
 
   const handleNext = async () => {
@@ -717,7 +723,11 @@ export default function RegisterForm() {
             onInputChange={updateFormData}
             onPlanChange={handlePlanChange}
             selectedPlan={selectedPlan}
-            availablePlans={availablePlans} // Correct prop name
+            availablePlans={availablePlans}
+            finalPrice={finalPrice}
+            couponCode={formData.couponCode}
+            onApplyCoupon={handleApplyCoupon}
+            couponMessage={couponMessage}
           />
         );
       case 4: // Credenciais de Acesso
@@ -745,6 +755,64 @@ export default function RegisterForm() {
         );
       default:
         return null;
+    }
+  };
+
+  const validateStep = (step: number): boolean => {
+    // TODO: Implement more specific validation rules for each step based on required fields.
+    // This is a basic placeholder. You should expand this with actual checks.
+    switch (step) {
+      case 1: // PersonalInfo & Initial Plan Selection (part of PersonalInfo step in UI)
+        // Example: Check if critical personal info fields are filled
+        const personalInfoErrors = validatePersonalInfoStep();
+        if (Object.keys(personalInfoErrors).length > 0) {
+          setFormErrors(prev => ({ ...prev, ...personalInfoErrors }));
+          setError('Por favor, corrija os erros no formulário.');
+          return false;
+        }
+        // Check if a plan is selected OR if user explicitly chose 'Ainda Vou Decidir'
+        // This logic might be better placed within validatePersonalInfoStep or handled by form state
+        if (!selectedPlan && currentStep === 1) { // Assuming plan selection is part of step 1
+           // setError('Por favor, selecione um plano ou marque "Ainda Vou Decidir" para prosseguir.');
+           // return false; // This might be too strict if plan selection is optional at this stage
+        }
+        return true; 
+      case 2: // AdditionalInfo
+        // Example: Check if file uploads are present if they become mandatory
+        // if (!formData.crmFile || !formData.addressProofFile) { 
+        //   setError('Por favor, envie os documentos obrigatórios.');
+        //   return false; 
+        // }
+        return true;
+      case 3: // PlanAndPayment (if plan not yet selected, or payment details)
+        if (selectedPlan && !formData.paymentMethod) {
+          setError('Por favor, selecione um método de pagamento.');
+          return false;
+        }
+        if (formData.paymentMethod === 'BOLETO' && !formData.contractAgreed) {
+          setError('Você deve ler e concordar com os termos do contrato para prosseguir com o pagamento via Boleto.');
+          return false;
+        }
+        // Basic card validation (more thorough validation happens on actual payment submission)
+        if (selectedPlan && formData.paymentMethod === 'CARTAO') {
+          if (!formData.cardHolderName || !formData.cardNumber || !formData.cardExpiryMonth || !formData.cardExpiryYear || !formData.cardCcv) {
+            setError('Por favor, preencha todos os dados do cartão.');
+            return false;
+          }
+        }
+        return true; 
+      case 4: // CredentialsInfo
+        const credentialsErrors = validateCredentialsStep(); // Assuming you have/will have this function
+        if (Object.keys(credentialsErrors).length > 0) {
+          setFormErrors(prev => ({ ...prev, ...credentialsErrors }));
+          setError('Por favor, corrija os erros nas credenciais.');
+          return false;
+        }
+        return true;
+      // case 5: // Concluído - usually no validation here, just display
+      //   return true;
+      default:
+        return true; // Allow progression by default for unhandled steps
     }
   };
 
