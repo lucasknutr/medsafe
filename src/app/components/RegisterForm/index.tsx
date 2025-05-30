@@ -851,7 +851,7 @@ export default function RegisterForm() {
             <button
               type="button" 
               onClick={handleNext} 
-              disabled={loading || !validateStep(currentStep)} 
+              disabled={loading} // Temporarily removed !validateStep(currentStep)
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : (currentStep === 4 ? 'Finalizar Cadastro' : 'Próximo')}
