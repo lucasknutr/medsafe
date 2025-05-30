@@ -62,6 +62,8 @@ interface FormData {
   comprovanteResidencia: string; // Details about residence proof, if any
   crmFile: File | null;
   addressProofFile: File | null;
+  medicalLicenseFile: File | null; // ADDED
+  specialistCertificateFile: File | null; // ADDED
   selectedPlan: InsurancePlan | null;
   paymentMethod: string;
   installments: number;
@@ -112,7 +114,7 @@ const initialFormData: FormData = {
   entidadeExerce: '',
   realizaProcedimento: '',
   atividadeProfissional: '',
-  pais: '',
+  pais: 'BR',
   estado: '',
   cep: '',
   cidade: '',
@@ -122,24 +124,26 @@ const initialFormData: FormData = {
   complemento: '',
   email: '',
   telefone: '',
-  role: '',
+  role: 'SEGURADO', // Default role
   password: '',
   confirmPassword: '',
-  penalRestritiva: '',
-  penaAdministrativa: '',
-  dependenteQuimico: '',
-  recusaSeguro: '',
-  conhecimentoReclamacoes: '',
-  envolvidoReclamacoes: '',
+  penalRestritiva: 'NAO',
+  penaAdministrativa: 'NAO',
+  dependenteQuimico: 'NAO',
+  recusaSeguro: 'NAO',
+  conhecimentoReclamacoes: 'NAO',
+  envolvidoReclamacoes: 'NAO',
   informacoesAdicionais: '',
-  assessoradoPorVendas: '',
+  assessoradoPorVendas: 'NAO',
   carteiraProfissional: '',
   comprovanteResidencia: '',
   crmFile: null,
   addressProofFile: null,
+  medicalLicenseFile: null, // ADDED
+  specialistCertificateFile: null, // ADDED
   selectedPlan: null,
   paymentMethod: '',
-  installments: 0,
+  installments: 1,
   acceptedTerms: false,
   cardHolderName: '',
   cardNumber: '',
@@ -167,9 +171,9 @@ const initialFormData: FormData = {
   emailLogin: '',
   passwordLogin: '',
   confirmPasswordLogin: '',
-  contractAgreed: false, // Initialize contractAgreed
-  graduationYear: '', // Initialize graduationYear
-  couponCode: '', // Initialize couponCode
+  contractAgreed: false,
+  graduationYear: '',
+  couponCode: '',
 };
 
 const initialFormErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = {};
@@ -271,6 +275,7 @@ export default function RegisterForm() {
   const [couponMessage, setCouponMessage] = useState<string>(''); // To give feedback on coupon application
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
+  const [loadingCoupon, setLoadingCoupon] = useState(false); // ADDED
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [isStepValid, setIsStepValid] = useState<boolean>(false);
 
@@ -324,21 +329,28 @@ export default function RegisterForm() {
     if (!formData.couponCode) {
       setCouponMessage('Por favor, insira um código de cupom.');
       setAppliedCouponDiscount(0);
+      // Ensure price is recalculated if coupon is removed or invalid
+      if (selectedPlan) calculateFinalPrice(selectedPlan, formData.graduationYear, 0);
       return;
     }
-    const discount = validateCoupon(formData.couponCode);
-    if (discount > 0) {
-      setAppliedCouponDiscount(discount);
-      setCouponMessage(`Cupom "${formData.couponCode}" aplicado! Desconto de ${discount * 100}%.`);
-    } else {
-      setAppliedCouponDiscount(0);
-      setCouponMessage('Cupom inválido ou expirado.');
-    }
-    // Recalculate price with the new coupon status
-    if (selectedPlan) {
-      calculateFinalPrice(selectedPlan, formData.graduationYear, discount);
-    }
-  }, [formData.couponCode, selectedPlan, calculateFinalPrice]);
+    setLoadingCoupon(true); // Start loading
+    // Simulate API call for coupon validation if needed, otherwise direct validation:
+    setTimeout(() => { // Simulating async validation
+      const discount = validateCoupon(formData.couponCode as string);
+      if (discount > 0) {
+        setAppliedCouponDiscount(discount);
+        setCouponMessage(`Cupom "${formData.couponCode}" aplicado! Desconto de ${discount * 100}%.`);
+      } else {
+        setAppliedCouponDiscount(0);
+        setCouponMessage('Cupom inválido ou expirado.');
+      }
+      // Recalculate price with the new coupon status
+      if (selectedPlan) {
+        calculateFinalPrice(selectedPlan, formData.graduationYear, discount);
+      }
+      setLoadingCoupon(false); // End loading
+    }, 500); // Simulate 0.5 second delay
+  }, [formData.couponCode, selectedPlan, formData.graduationYear, calculateFinalPrice, validateCoupon]);
 
   const handlePlanSelect = useCallback((plan: InsurancePlan | null) => {
     setSelectedPlan(plan);
@@ -736,16 +748,51 @@ export default function RegisterForm() {
     }
   };
 
+  const handleFileUpload = useCallback((field: keyof FormData, file: File | null) => {
+    setFormData(prev => ({ ...prev, [field]: file }));
+  }, [setFormData]);
+
   const renderStep = () => {
     switch (currentStep) {
       case 1: // Informações Pessoais
-        return <div>Placeholder for Personal Info</div>;
+        return (
+          <PersonalInfo
+            formData={formData}
+            onInputChange={updateFormData}
+            errors={formErrors}
+          />
+        );
       case 2: // Informações Adicionais
-        return <div>Placeholder for Additional Info</div>;
+        return (
+          <AdditionalInfo
+            formData={formData}
+            onInputChange={updateFormData} // Corrected: Use onInputChange, file handling is internal or via this
+          />
+        );
       case 3: // Plano e Pagamento
-        return <div>Placeholder for Plan & Payment</div>;
+        return (
+          <PlanAndPayment
+            availablePlans={availablePlans}
+            selectedPlan={selectedPlan}
+            onPlanChange={handlePlanSelect} // Corrected: Maps to handlePlanSelect
+            formData={formData}
+            onInputChange={updateFormData} // Corrected
+            finalPrice={finalPrice}
+            couponCode={formData.couponCode}
+            onApplyCoupon={handleApplyCoupon} // Corrected: Maps to handleApplyCoupon
+            couponMessage={couponMessage}
+            // Pass other necessary props like paymentMethod, contractAgreed from formData if PlanAndPayment needs them directly
+            // For now, assuming PlanAndPayment uses formData for these, passed via onInputChange
+          />
+        );
       case 4: // Credenciais de Acesso
-        return <div>Placeholder for Credentials Info</div>;
+        return (
+          <CredentialsInfo
+            formData={formData} // CredentialsInfo expects specific fields from formData
+            onInputChange={updateFormData} // Corrected
+            errors={formErrors} // Corrected: Maps to formErrors
+          />
+        );
       case 5: // Concluído
         return (
           <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
