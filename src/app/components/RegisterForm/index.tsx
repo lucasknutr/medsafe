@@ -294,21 +294,21 @@ export default function RegisterForm() {
     setFinalPrice(parseFloat(currentPrice.toFixed(2)));
   }, [setFinalPrice]); // setFinalPrice from useState is stable and its reference doesn't change
 
-  useEffect(() => {
-    console.log('REGISTER_FORM_DEBUG: Price calculation effect triggered. Dependencies:', 
-      JSON.stringify({ 
-        planId: selectedPlan?.id, 
-        gradYear: formData.graduationYear, 
-        couponDiscount: appliedCouponDiscount 
-      })
-    );
-    // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
-    if (selectedPlan) {
-      calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
-    } else {
-      setFinalPrice(null); // Ensure finalPrice is null if no plan is selected
-    }
-  }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
+  // useEffect(() => {
+  //   console.log('REGISTER_FORM_DEBUG: Price calculation effect triggered. Dependencies:', 
+  //     JSON.stringify({ 
+  //       planId: selectedPlan?.id, 
+  //       gradYear: formData.graduationYear, 
+  //       couponDiscount: appliedCouponDiscount 
+  //     })
+  //   );
+  //   // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
+  //   if (selectedPlan) {
+  //     calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
+  //   } else {
+  //     setFinalPrice(null); // Ensure finalPrice is null if no plan is selected
+  //   }
+  // }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]);
 
   // useEffect(() => {
   //   if (!isClientMounted) {
