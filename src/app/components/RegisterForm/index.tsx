@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react'; 
 import { Paper, Stepper, Step, StepLabel, Box, Grid, Card, CardContent, Typography, Button, CircularProgress, Alert } from '@mui/material';
@@ -326,7 +326,11 @@ export default function RegisterForm() {
     }
   };
 
-  const calculateFinalPrice = (plan: InsurancePlan, gradYear: string, couponDiscountRate: number) => {
+  const calculateFinalPrice = useCallback((plan: InsurancePlan | null, gradYear: string, couponDiscountRate: number) => {
+    if (!plan) { // Guard if plan is null, though useEffect should prevent this call path
+      setFinalPrice(null);
+      return;
+    }
     let currentPrice = plan.price;
     // 1. Apply graduation year discount (if applicable)
     if (plan.id === 'plan_plus_500_standard_v1') {
@@ -339,26 +343,36 @@ export default function RegisterForm() {
     // 2. Apply coupon discount to the (potentially already discounted) price
     currentPrice = currentPrice * (1 - couponDiscountRate);
     setFinalPrice(parseFloat(currentPrice.toFixed(2)));
-  };
+  }, [setFinalPrice]); // setFinalPrice from useState is stable and its reference doesn't change
 
   useEffect(() => {
     const savedPlanObject = cookies.selected_plan;
-    if (savedPlanObject && savedPlanObject.id) {
+    if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
       const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
       if (planFromCookie) {
         setSelectedPlan(planFromCookie);
-        // Initial price calculation on load if plan exists
-        calculateFinalPrice(planFromCookie, formData.graduationYear, appliedCouponDiscount);
+      } else {
+        // If plan from cookie doesn't exist in available plans, remove invalid cookie and reset selected plan
+        removeCookie('selected_plan', { path: '/' });
+        setSelectedPlan(null);
       }
+    } else if (savedPlanObject) {
+      // If cookie exists but is not a valid plan object, remove it
+      removeCookie('selected_plan', { path: '/' });
+      setSelectedPlan(null);
+    } else {
+      setSelectedPlan(null); // No cookie, ensure selectedPlan is null
     }
-  }, [availablePlans, cookies.selected_plan]); // Removed formData.graduationYear, appliedCouponDiscount to avoid loops, handle in specific functions
+  }, [availablePlans, cookies.selected_plan, removeCookie]); // removeCookie from useCookies is stable
 
   useEffect(() => {
     // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
     if (selectedPlan) {
       calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
+    } else {
+      setFinalPrice(null); // Ensure finalPrice is null if no plan is selected
     }
-  }, [selectedPlan, formData.graduationYear, appliedCouponDiscount]);
+  }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
 
   const validatePersonalInfoStep = (): Partial<Record<keyof FormData, string>> => {
     const errors: Partial<Record<keyof FormData, string>> = {};
