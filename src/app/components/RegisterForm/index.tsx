@@ -248,6 +248,7 @@ const plano500Custom: InsurancePlan = {
 };
 
 export default function RegisterForm() {
+  console.log('REGISTER_FORM_DEBUG: RegisterForm component function CALLED'); // <<< ADDED THIS LOG
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
