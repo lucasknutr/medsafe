@@ -152,6 +152,10 @@ model Transaction {
   status          String
   type            String
   transactionId   String?
+  couponCode      String?
+  paymentDetails  String? 
+  planNameSnapshot String? 
+  planPriceSnapshot Float?    
   boletoUrl       String?
   boletoCode      String?
   insuranceId     Int?

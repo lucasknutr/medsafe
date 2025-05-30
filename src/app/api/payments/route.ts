@@ -13,11 +13,11 @@ export async function POST(request: Request) {
     } catch (e) {}
 
     const body = await request.json();
-    const { planId, paymentMethod, cardInfo, email, customerId } = body;
+    const { planId, paymentMethod, cardInfo, email, customerId, finalAmount, couponCode, originalAmount } = body;
 
-    if (!planId || !paymentMethod) {
+    if (!planId || !paymentMethod || finalAmount === undefined || finalAmount === null) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (planId, paymentMethod, finalAmount)' },
         { status: 400 }
       );
     }
@@ -36,6 +36,9 @@ export async function POST(request: Request) {
       customerId: userId,
       paymentMethod,
       cardInfo,
+      finalAmount,
+      originalAmount,
+      couponCode,
     });
 
     return NextResponse.json(payment);
