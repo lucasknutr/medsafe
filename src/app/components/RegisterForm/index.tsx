@@ -363,7 +363,7 @@ export default function RegisterForm() {
     } else {
       setSelectedPlan(null); // No cookie, ensure selectedPlan is null
     }
-  }, [availablePlans, cookies.selected_plan, removeCookie]); // removeCookie from useCookies is stable
+  }, [availablePlans, cookies.selected_plan?.id, removeCookie]); // <<< CHANGED HERE: use cookies.selected_plan?.id
 
   useEffect(() => {
     // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
