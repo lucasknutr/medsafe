@@ -269,19 +269,63 @@ export default function RegisterForm() {
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
 
-  useEffect(() => {
-    // Set initial plan from cookie if exists
-    const savedPlanObject = cookies.selected_plan; // Access the plan object directly
-    if (savedPlanObject && savedPlanObject.id) {
-      const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
-      if (planFromCookie) {
-        // Potentially re-apply discount logic if graduationYear is available
-        // For simplicity now, just setting the plan as stored.
-        // If graduationYear is part of formData already, handlePlanSelect could be called.
-        setSelectedPlan(planFromCookie); 
+  const calculateFinalPrice = useCallback((plan: InsurancePlan | null, gradYear: string, couponDiscountRate: number) => {
+    if (!plan) { // Guard if plan is null, though useEffect should prevent this call path
+      setFinalPrice(null);
+      return;
+    }
+    let currentPrice = plan.price;
+    // 1. Apply graduation year discount (if applicable)
+    if (plan.id === 'plan_plus_500_standard_v1') {
+      const currentYear = new Date().getFullYear();
+      const graduationYearNum = parseInt(gradYear, 10);
+      if (!isNaN(graduationYearNum) && graduationYearNum >= currentYear - 2 && graduationYearNum <= currentYear) {
+        currentPrice = 279.00; // Apply discounted price for recent graduates
       }
     }
-  }, [availablePlans, cookies.selected_plan, formData.graduationYear]); // Added formData.graduationYear if dynamic price on load is needed
+    // 2. Apply coupon discount to the (potentially already discounted) price
+    currentPrice = currentPrice * (1 - couponDiscountRate);
+    setFinalPrice(parseFloat(currentPrice.toFixed(2)));
+  }, [setFinalPrice]); // setFinalPrice from useState is stable and its reference doesn't change
+
+  useEffect(() => {
+    console.log('REGISTER_FORM_DEBUG: Price calculation effect triggered. Dependencies:', 
+      JSON.stringify({ 
+        planId: selectedPlan?.id, 
+        gradYear: formData.graduationYear, 
+        couponDiscount: appliedCouponDiscount 
+      })
+    );
+    // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
+    if (selectedPlan) {
+      calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
+    } else {
+      setFinalPrice(null); // Ensure finalPrice is null if no plan is selected
+    }
+  }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
+
+  useEffect(() => {
+    console.log('REGISTER_FORM_DEBUG: Cookie effect triggered. Cookie selected_plan:', cookies.selected_plan);
+    const savedPlanObject = cookies.selected_plan;
+    if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
+      const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
+      if (planFromCookie) {
+        console.log('REGISTER_FORM_DEBUG: Setting selectedPlan from cookie:', planFromCookie.id);
+        setSelectedPlan(planFromCookie); 
+      } else {
+        console.log('REGISTER_FORM_DEBUG: Plan from cookie not in availablePlans. Removing cookie.');
+        removeCookie('selected_plan', { path: '/' });
+        setSelectedPlan(null);
+      }
+    } else if (savedPlanObject) {
+      console.log('REGISTER_FORM_DEBUG: Cookie selected_plan is invalid. Removing cookie.');
+      removeCookie('selected_plan', { path: '/' });
+      setSelectedPlan(null);
+    } else {
+      // console.log('REGISTER_FORM_DEBUG: No selected_plan cookie found. Setting selectedPlan to null.'); // This might be too noisy
+      setSelectedPlan(null); // No cookie, ensure selectedPlan is null
+    }
+  }, [availablePlans, cookies.selected_plan?.id, removeCookie]); // <<< CHANGED HERE: use cookies.selected_plan?.id
 
   const updateFormData = useCallback((field: string, value: string | boolean | string[] | File | null | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -306,25 +350,6 @@ export default function RegisterForm() {
     }
   };
 
-  const calculateFinalPrice = useCallback((plan: InsurancePlan | null, gradYear: string, couponDiscountRate: number) => {
-    if (!plan) { // Guard if plan is null, though useEffect should prevent this call path
-      setFinalPrice(null);
-      return;
-    }
-    let currentPrice = plan.price;
-    // 1. Apply graduation year discount (if applicable)
-    if (plan.id === 'plan_plus_500_standard_v1') {
-      const currentYear = new Date().getFullYear();
-      const graduationYearNum = parseInt(gradYear, 10);
-      if (!isNaN(graduationYearNum) && graduationYearNum >= currentYear - 2 && graduationYearNum <= currentYear) {
-        currentPrice = 279.00; // Apply discounted price for recent graduates
-      }
-    }
-    // 2. Apply coupon discount to the (potentially already discounted) price
-    currentPrice = currentPrice * (1 - couponDiscountRate);
-    setFinalPrice(parseFloat(currentPrice.toFixed(2)));
-  }, [setFinalPrice]); // setFinalPrice from useState is stable and its reference doesn't change
-
   const handleApplyCoupon = useCallback(() => {
     if (!formData.couponCode) {
       setCouponMessage('Por favor, insira um código de cupom.');
@@ -344,35 +369,6 @@ export default function RegisterForm() {
       calculateFinalPrice(selectedPlan, formData.graduationYear, discount);
     }
   }, [formData.couponCode, selectedPlan, calculateFinalPrice]);
-
-  useEffect(() => {
-    const savedPlanObject = cookies.selected_plan;
-    if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
-      const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
-      if (planFromCookie) {
-        setSelectedPlan(planFromCookie);
-      } else {
-        // If plan from cookie doesn't exist in available plans, remove invalid cookie and reset selected plan
-        removeCookie('selected_plan', { path: '/' });
-        setSelectedPlan(null);
-      }
-    } else if (savedPlanObject) {
-      // If cookie exists but is not a valid plan object, remove it
-      removeCookie('selected_plan', { path: '/' });
-      setSelectedPlan(null);
-    } else {
-      setSelectedPlan(null); // No cookie, ensure selectedPlan is null
-    }
-  }, [availablePlans, cookies.selected_plan?.id, removeCookie]); // <<< CHANGED HERE: use cookies.selected_plan?.id
-
-  useEffect(() => {
-    // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
-    if (selectedPlan) {
-      calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
-    } else {
-      setFinalPrice(null); // Ensure finalPrice is null if no plan is selected
-    }
-  }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
 
   const handlePlanSelect = useCallback((plan: InsurancePlan | null) => {
     if (plan) {
