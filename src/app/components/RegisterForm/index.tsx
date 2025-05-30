@@ -283,14 +283,14 @@ export default function RegisterForm() {
     }
   }, [availablePlans, cookies.selected_plan, formData.graduationYear]); // Added formData.graduationYear if dynamic price on load is needed
 
-  const updateFormData = (field: string, value: string | boolean | string[] | File | null | number) => {
+  const updateFormData = useCallback((field: string, value: string | boolean | string[] | File | null | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === 'couponCode') {
       // If user types in coupon field, reset applied discount until they click "Apply"
       setAppliedCouponDiscount(0);
       setCouponMessage('');
     }
-  };
+  }, [setFormData, setAppliedCouponDiscount, setCouponMessage]);
 
   // Validates coupon and returns discount percentage
   const validateCoupon = (code: string): number => {
@@ -303,26 +303,6 @@ export default function RegisterForm() {
         return 0.20;
       default:
         return 0;
-    }
-  };
-
-  const handleApplyCoupon = () => {
-    if (!formData.couponCode) {
-      setCouponMessage('Por favor, insira um código de cupom.');
-      setAppliedCouponDiscount(0);
-      return;
-    }
-    const discount = validateCoupon(formData.couponCode);
-    if (discount > 0) {
-      setAppliedCouponDiscount(discount);
-      setCouponMessage(`Cupom "${formData.couponCode}" aplicado! Desconto de ${discount * 100}%.`);
-    } else {
-      setAppliedCouponDiscount(0);
-      setCouponMessage('Cupom inválido ou expirado.');
-    }
-    // Recalculate price with the new coupon status
-    if (selectedPlan) {
-      calculateFinalPrice(selectedPlan, formData.graduationYear, discount);
     }
   };
 
@@ -344,6 +324,26 @@ export default function RegisterForm() {
     currentPrice = currentPrice * (1 - couponDiscountRate);
     setFinalPrice(parseFloat(currentPrice.toFixed(2)));
   }, [setFinalPrice]); // setFinalPrice from useState is stable and its reference doesn't change
+
+  const handleApplyCoupon = useCallback(() => {
+    if (!formData.couponCode) {
+      setCouponMessage('Por favor, insira um código de cupom.');
+      setAppliedCouponDiscount(0);
+      return;
+    }
+    const discount = validateCoupon(formData.couponCode);
+    if (discount > 0) {
+      setAppliedCouponDiscount(discount);
+      setCouponMessage(`Cupom "${formData.couponCode}" aplicado! Desconto de ${discount * 100}%.`);
+    } else {
+      setAppliedCouponDiscount(0);
+      setCouponMessage('Cupom inválido ou expirado.');
+    }
+    // Recalculate price with the new coupon status
+    if (selectedPlan) {
+      calculateFinalPrice(selectedPlan, formData.graduationYear, discount);
+    }
+  }, [formData.couponCode, selectedPlan, calculateFinalPrice]);
 
   useEffect(() => {
     const savedPlanObject = cookies.selected_plan;
@@ -374,6 +374,33 @@ export default function RegisterForm() {
     }
   }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
 
+  const handlePlanSelect = useCallback((plan: InsurancePlan | null) => {
+    if (plan) {
+      let planToSet = { ...plan }; // Create a copy to modify price if needed
+
+      if (planToSet.id === 'plan_plus_500_standard_v1' && formData.graduationYear) {
+        const currentYear = new Date().getFullYear();
+        const graduationYear = parseInt(formData.graduationYear, 10);
+        if (!isNaN(graduationYear) && graduationYear >= currentYear - 2 && graduationYear <= currentYear) {
+          planToSet.price = 279.00; // Apply discounted price
+        }
+      }
+      setSelectedPlan(planToSet);
+      setCookie('selected_plan', planToSet, { path: '/' });
+      // If a plan is selected, clear any 'Ainda Vou Decidir' error
+      if (error === 'Por favor, selecione um plano ou marque "Ainda Vou Decidir".') {
+        setError(null);
+      }
+    } else {
+      setSelectedPlan(null); // For 'Ainda Vou Decidir'
+      removeCookie('selected_plan', { path: '/' });
+    }
+  }, [formData.graduationYear, setCookie, removeCookie, setSelectedPlan, setError]);
+
+  const handlePlanChange = useCallback((plan: InsurancePlan | null) => {
+    handlePlanSelect(plan);
+  }, [handlePlanSelect]);
+
   const validatePersonalInfoStep = (): Partial<Record<keyof FormData, string>> => {
     const errors: Partial<Record<keyof FormData, string>> = {};
     if (!formData.firstName) errors.firstName = 'Nome é obrigatório';
@@ -381,10 +408,8 @@ export default function RegisterForm() {
     if (!formData.cpf) errors.cpf = 'CPF é obrigatório';
     else if (formData.cpf.replace(/\D/g, '').length !== 11) errors.cpf = 'CPF inválido';
     if (!formData.birthDate) errors.birthDate = 'Data de Nascimento é obrigatória';
-    // Add other personal info validations as needed based on your FormData interface
     if (!formData.rg) errors.rg = 'RG é obrigatório';
     if (!formData.orgaoExpedidor) errors.orgaoExpedidor = 'Órgão Expedidor é obrigatório';
-    // Skipping residenceSince, fezResidencia, especialidadeAtual, pertenceAlgumaAssociacao, socioProprietario, realizaProcedimento as they might be optional or part of AdditionalInfo
     if (!formData.entidadeExerce) errors.entidadeExerce = 'Entidade onde exerce a profissão é obrigatória';
     if (!formData.atividadeProfissional) errors.atividadeProfissional = 'Atividade profissional é obrigatória';
     if (!formData.pais) errors.pais = 'País é obrigatório';
@@ -394,6 +419,8 @@ export default function RegisterForm() {
     if (!formData.bairro) errors.bairro = 'Bairro é obrigatório';
     if (!formData.endereco) errors.endereco = 'Endereço é obrigatório';
     if (!formData.numero) errors.numero = 'Número é obrigatório';
+    // Email and telefone are often part of personal info but also sometimes validated in credentials or contact steps
+    // For now, including basic checks here. Adjust if they are primarily validated elsewhere.
     if (!formData.email) errors.email = 'Email é obrigatório';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email inválido';
     if (!formData.telefone) errors.telefone = 'Telefone é obrigatório';
@@ -403,6 +430,8 @@ export default function RegisterForm() {
 
   const validateCredentialsStep = (): Partial<Record<'email' | 'password' | 'confirmPassword', string>> => {
     const newErrors: Partial<Record<'email' | 'password' | 'confirmPassword', string>> = {};
+    // Email validation can be duplicated here if this step is solely for credentials
+    // Or rely on PersonalInfo validation if email is set there and not editable here
     if (!formData.email) {
       newErrors.email = 'E-mail é obrigatório.';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -447,7 +476,7 @@ export default function RegisterForm() {
       rg: userData.rg,
       orgaoExpedidor: userData.orgaoExpedidor,
       entidadeExerce: userData.entidadeExerce,
-      // atividadeProfissional is now part of 'profession', remove if not needed separately
+      atividadeProfissional: userData.atividadeProfissional,
       pais: userData.pais,
       // estado, cep, cidade, bairro, endereco, numero, complemento are used in combined fields above
       // telefone is now 'phone'
@@ -599,36 +628,6 @@ export default function RegisterForm() {
     }
   };
 
-  const handlePlanSelect = (plan: InsurancePlan | null) => {
-    if (plan) {
-      let planToSet = { ...plan }; // Create a copy to modify price if needed
-
-      if (planToSet.id === 'plan_plus_500_standard_v1' && formData.graduationYear) {
-        const currentYear = new Date().getFullYear();
-        const graduationYear = parseInt(formData.graduationYear, 10);
-        if (!isNaN(graduationYear) && graduationYear >= currentYear - 2 && graduationYear <= currentYear) {
-          planToSet.price = 279.00; // Apply discounted price
-        }
-        // If not a recent graduate, or graduationYear is not set/invalid, original price remains
-      }
-      setSelectedPlan(planToSet);
-      setCookie('selected_plan', planToSet, { path: '/' });
-      // If a plan is selected, clear any 'Ainda Vou Decidir' error
-      if (error === 'Por favor, selecione um plano ou marque "Ainda Vou Decidir".') {
-        setError(null);
-      }
-    } else {
-      setSelectedPlan(null); // For 'Ainda Vou Decidir'
-      removeCookie('selected_plan', { path: '/' });
-    }
-  };
-
-  // Renamed from handlePlanSelect to handlePlanChange to match prop name
-  const handlePlanChange = (plan: InsurancePlan | null) => {
-    handlePlanSelect(plan); // Call the existing logic
-  };
-
-  // Function to handle user registration API call
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
