@@ -172,6 +172,8 @@ const initialFormData: FormData = {
   couponCode: '', // Initialize couponCode
 };
 
+const initialFormErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = {};
+
 const steps = [
   { label: 'CADASTRO', icon: '📝' },
   { label: 'INFORMAÇÕES ADICIONAIS', icon: 'ℹ️' },
@@ -252,7 +254,7 @@ export default function RegisterForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>({}); 
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>(initialFormErrors); 
   const router = useRouter();
   // const [cookies, setCookie, removeCookie] = useCookies([
   //   'selected_plan', // CHANGED: Was 'selected_plan_id', now stores the object
@@ -270,6 +272,7 @@ export default function RegisterForm() {
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
   const [isClientMounted, setIsClientMounted] = useState(false);
+  const [isStepValid, setIsStepValid] = useState<boolean>(false);
 
   useEffect(() => {
     setIsClientMounted(true);
@@ -293,48 +296,6 @@ export default function RegisterForm() {
     currentPrice = currentPrice * (1 - couponDiscountRate);
     setFinalPrice(parseFloat(currentPrice.toFixed(2)));
   }, [setFinalPrice]); // setFinalPrice from useState is stable and its reference doesn't change
-
-  // useEffect(() => {
-  //   console.log('REGISTER_FORM_DEBUG: Price calculation effect triggered. Dependencies:', 
-  //     JSON.stringify({ 
-  //       planId: selectedPlan?.id, 
-  //       gradYear: formData.graduationYear, 
-  //       couponDiscount: appliedCouponDiscount 
-  //     })
-  //   );
-  //   // Recalculate price if selectedPlan, graduationYear, or appliedCouponDiscount changes
-  //   if (selectedPlan) {
-  //     calculateFinalPrice(selectedPlan, formData.graduationYear, appliedCouponDiscount);
-  //   } else {
-  //     setFinalPrice(null); // Ensure finalPrice is null if no plan is selected
-  //   }
-  // }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]);
-
-  // useEffect(() => {
-  //   if (!isClientMounted) {
-  //     return; // Don't run cookie logic until mounted on client
-  //   }
-  //   console.log('REGISTER_FORM_DEBUG: Cookie effect triggered (client-mounted). Cookie selected_plan:', cookies.selected_plan);
-  //   const savedPlanObject = cookies.selected_plan;
-  //   if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
-  //     const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
-  //     if (planFromCookie) {
-  //       console.log('REGISTER_FORM_DEBUG: Setting selectedPlan from cookie:', planFromCookie.id);
-  //       setSelectedPlan(planFromCookie); 
-  //     } else {
-  //       console.log('REGISTER_FORM_DEBUG: Plan from cookie not in availablePlans. Removing cookie.');
-  //       removeCookie('selected_plan', { path: '/' });
-  //       setSelectedPlan(null);
-  //     }
-  //   } else if (savedPlanObject) {
-  //     console.log('REGISTER_FORM_DEBUG: Invalid/old format selected_plan cookie found. Removing cookie.');
-  //     removeCookie('selected_plan', { path: '/' });
-  //     setSelectedPlan(null);
-  //   } else {
-  //     // console.log('REGISTER_FORM_DEBUG: No selected_plan cookie found. Setting selectedPlan to null.'); // This might be too noisy
-  //     setSelectedPlan(null); // No cookie, ensure selectedPlan is null
-  //   }
-  // }, [isClientMounted, cookies?.selected_plan, availablePlans, removeCookie]); // Added isClientMounted and using cookies.selected_plan directly
 
   const updateFormData = useCallback((field: string, value: string | boolean | string[] | File | null | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -506,11 +467,78 @@ export default function RegisterForm() {
     return response.json(); // Returns the user data from the API, including user.id
   };
 
+  const validateStep = useCallback((step: number): { isValid: boolean; newErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>; newErrorMessage: string | null } => {
+    let isValid = true;
+    let newErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = { ...initialFormErrors }; // Start with clean errors for the current validation pass
+    let newErrorMessage: string | null = null;
+
+    switch (step) {
+      case 1: {
+        const personalInfoErrors = validatePersonalInfoStep();
+        if (Object.keys(personalInfoErrors).length > 0) {
+          newErrors = { ...newErrors, ...personalInfoErrors };
+          newErrorMessage = 'Por favor, corrija os erros no formulário.';
+          isValid = false;
+        }
+        // Plan selection check can remain or be adapted
+        if (!selectedPlan && step === 1) { 
+          // newErrorMessage = newErrorMessage ? newErrorMessage + ' Selecione um plano.' : 'Por favor, selecione um plano ou marque "Ainda Vou Decidir" para prosseguir.';
+          // isValid = false; // This might be too strict if plan selection is optional at this stage
+        }
+        break;
+      }
+      case 2: {
+        // Add validation for AdditionalInfo if needed
+        break;
+      }
+      case 3: {
+        if (selectedPlan && !formData.paymentMethod) {
+          newErrorMessage = 'Por favor, selecione um método de pagamento.';
+          isValid = false;
+        }
+        if (formData.paymentMethod === 'BOLETO' && !formData.contractAgreed) {
+          newErrorMessage = newErrorMessage ? newErrorMessage + ' Concorde com o contrato.' : 'Você deve ler e concordar com os termos do contrato para prosseguir com o pagamento via Boleto.';
+          isValid = false;
+        }
+        if (selectedPlan && formData.paymentMethod === 'CARTAO') {
+          if (!formData.cardHolderName || !formData.cardNumber || !formData.cardExpiryMonth || !formData.cardExpiryYear || !formData.cardCcv) {
+            newErrorMessage = newErrorMessage ? newErrorMessage + ' Preencha dados do cartão.' : 'Por favor, preencha todos os dados do cartão.';
+            isValid = false;
+          }
+        }
+        break;
+      }
+      case 4: {
+        const credentialsErrors = validateCredentialsStep();
+        if (Object.keys(credentialsErrors).length > 0) {
+          newErrors = { ...newErrors, ...credentialsErrors };
+          newErrorMessage = 'Por favor, corrija os erros nas credenciais.';
+          isValid = false;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    return { isValid, newErrors, newErrorMessage };
+  }, [formData, selectedPlan]); // Add dependencies for validateStep
+
+  useEffect(() => {
+    const { isValid, newErrors, newErrorMessage } = validateStep(currentStep);
+    setIsStepValid(isValid);
+    setFormErrors(newErrors);
+    setError(newErrorMessage);
+  }, [currentStep, formData, selectedPlan, validateStep]);
+
   const handleNext = async () => {
-    setError(null); // Clear previous errors
-    // Clear previous specific errors if any
-    setFormErrors({});
-    setError(null); 
+    setError(null); // Clear previous general errors
+    // Validation is now handled by useEffect, just check isStepValid
+    if (!isStepValid) {
+      // Errors are already set by the useEffect, so just prevent progression.
+      // Optionally, you could re-set a generic message or focus the first error field.
+      // setError(prevError => prevError || 'Por favor, corrija os erros antes de prosseguir.');
+      return;
+    }
 
     if (currentStep === 1) {
       const personalInfoErrors = validatePersonalInfoStep();
@@ -744,64 +772,6 @@ export default function RegisterForm() {
     }
   };
 
-  const validateStep = (step: number): boolean => {
-    // TODO: Implement more specific validation rules for each step based on required fields.
-    // This is a basic placeholder. You should expand this with actual checks.
-    switch (step) {
-      case 1: // PersonalInfo & Initial Plan Selection (part of PersonalInfo step in UI)
-        // Example: Check if critical personal info fields are filled
-        const personalInfoErrors = validatePersonalInfoStep();
-        if (Object.keys(personalInfoErrors).length > 0) {
-          setFormErrors(prev => ({ ...prev, ...personalInfoErrors }));
-          setError('Por favor, corrija os erros no formulário.');
-          return false;
-        }
-        // Check if a plan is selected OR if user explicitly chose 'Ainda Vou Decidir'
-        // This logic might be better placed within validatePersonalInfoStep or handled by form state
-        if (!selectedPlan && currentStep === 1) { // Assuming plan selection is part of step 1
-           // setError('Por favor, selecione um plano ou marque "Ainda Vou Decidir" para prosseguir.');
-           // return false; // This might be too strict if plan selection is optional at this stage
-        }
-        return true; 
-      case 2: // AdditionalInfo
-        // Example: Check if file uploads are present if they become mandatory
-        // if (!formData.crmFile || !formData.addressProofFile) { 
-        //   setError('Por favor, envie os documentos obrigatórios.');
-        //   return false; 
-        // }
-        return true;
-      case 3: // PlanAndPayment (if plan not yet selected, or payment details)
-        if (selectedPlan && !formData.paymentMethod) {
-          setError('Por favor, selecione um método de pagamento.');
-          return false;
-        }
-        if (formData.paymentMethod === 'BOLETO' && !formData.contractAgreed) {
-          setError('Você deve ler e concordar com os termos do contrato para prosseguir com o pagamento via Boleto.');
-          return false;
-        }
-        // Basic card validation (more thorough validation happens on actual payment submission)
-        if (selectedPlan && formData.paymentMethod === 'CARTAO') {
-          if (!formData.cardHolderName || !formData.cardNumber || !formData.cardExpiryMonth || !formData.cardExpiryYear || !formData.cardCcv) {
-            setError('Por favor, preencha todos os dados do cartão.');
-            return false;
-          }
-        }
-        return true; 
-      case 4: // CredentialsInfo
-        const credentialsErrors = validateCredentialsStep(); // Assuming you have/will have this function
-        if (Object.keys(credentialsErrors).length > 0) {
-          setFormErrors(prev => ({ ...prev, ...credentialsErrors }));
-          setError('Por favor, corrija os erros nas credenciais.');
-          return false;
-        }
-        return true;
-      // case 5: // Concluído - usually no validation here, just display
-      //   return true;
-      default:
-        return true; // Allow progression by default for unhandled steps
-    }
-  };
-
   // Simplified return for diagnostics
   /*
   return (
@@ -851,7 +821,7 @@ export default function RegisterForm() {
             <button
               type="button" 
               onClick={handleNext} 
-              disabled={loading} // Temporarily removed !validateStep(currentStep)
+              disabled={loading || !isStepValid} // Use isStepValid state
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : (currentStep === 4 ? 'Finalizar Cadastro' : 'Próximo')}
