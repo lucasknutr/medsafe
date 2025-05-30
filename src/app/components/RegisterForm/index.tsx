@@ -269,6 +269,11 @@ export default function RegisterForm() {
   const [couponMessage, setCouponMessage] = useState<string>(''); // To give feedback on coupon application
   const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false); 
+  const [isClientMounted, setIsClientMounted] = useState(false);
+
+  useEffect(() => {
+    setIsClientMounted(true);
+  }, []);
 
   const calculateFinalPrice = useCallback((plan: InsurancePlan | null, gradYear: string, couponDiscountRate: number) => {
     if (!plan) { // Guard if plan is null, though useEffect should prevent this call path
@@ -306,7 +311,10 @@ export default function RegisterForm() {
   }, [selectedPlan, formData.graduationYear, appliedCouponDiscount, calculateFinalPrice]); // <<< ADDED calculateFinalPrice
 
   useEffect(() => {
-    console.log('REGISTER_FORM_DEBUG: Cookie effect triggered. Cookie selected_plan:', cookies.selected_plan);
+    if (!isClientMounted) {
+      return; // Don't run cookie logic until mounted on client
+    }
+    console.log('REGISTER_FORM_DEBUG: Cookie effect triggered (client-mounted). Cookie selected_plan:', cookies.selected_plan);
     const savedPlanObject = cookies.selected_plan;
     if (savedPlanObject && typeof savedPlanObject === 'object' && savedPlanObject.id) { // Ensure savedPlanObject is an object with id
       const planFromCookie = availablePlans.find(p => p.id === savedPlanObject.id);
@@ -326,7 +334,7 @@ export default function RegisterForm() {
       // console.log('REGISTER_FORM_DEBUG: No selected_plan cookie found. Setting selectedPlan to null.'); // This might be too noisy
       setSelectedPlan(null); // No cookie, ensure selectedPlan is null
     }
-  }, [availablePlans, cookies.selected_plan?.id, removeCookie]); // <<< CHANGED HERE: use cookies.selected_plan?.id
+  }, [isClientMounted, cookies.selected_plan, availablePlans, removeCookie]); // Added isClientMounted and using cookies.selected_plan directly
 
   const updateFormData = useCallback((field: string, value: string | boolean | string[] | File | null | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
