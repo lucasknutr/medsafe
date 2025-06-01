@@ -197,51 +197,79 @@ export async function createPayment(data: PaymentData) {
     const asaasPayment: AsaasPaymentResponse = await asaasClient.createPayment(paymentPayload);
     console.log('[createPayment] Asaas payment created:', asaasPayment);
 
+    // --- START: Upsert User's Insurance Policy ---
+    console.log(`[createPayment] Upserting insurance policy for user ${user.id} with plan ${plan.name}`);
+    const userInsurancePolicy = await prisma.insurance.upsert({
+      where: {
+        userId: user.id, // userId is @unique in Insurance model
+      },
+      update: {
+        plan: plan.name, // Update to the new plan's name from InsurancePlan
+        status: 'ACTIVE', // Set status (can be refined based on asaasPayment.status later)
+      },
+      create: {
+        userId: user.id,
+        plan: plan.name, // Set to the new plan's name from InsurancePlan
+        status: 'ACTIVE', // Set status
+      },
+    });
+    console.log('[createPayment] User insurance policy upserted:', userInsurancePolicy);
+    // --- END: Upsert User's Insurance Policy ---
+
+    // --- START: Upsert PaymentMethod ---
+    console.log(`[createPayment] Upserting payment method for user ${user.id}, type ${data.paymentMethod}`);
+    const paymentMethodRecord = await prisma.paymentMethod.upsert({
+      where: {
+        userId_type_type: { // Using the @@unique([userId, type]) constraint
+          userId: user.id,
+          type: data.paymentMethod,
+        }
+      },
+      update: {
+        // Update card details if it's a credit card and info is provided
+        ...(data.paymentMethod === 'CREDIT_CARD' && data.cardInfo && asaasPayment.creditCardNumber ? {
+          lastFour: asaasPayment.creditCardNumber.slice(-4), // Store last four of the card number from Asaas response
+          brand: asaasPayment.creditCardBrand,     
+          holderName: data.cardInfo.holderName,
+          // expiryMonth: data.cardInfo.expiryMonth, // If you collect these
+          // expiryYear: data.cardInfo.expiryYear,   // If you collect these
+        } : {}),
+      },
+      create: {
+        userId: user.id, // Direct assignment for foreign key
+        type: data.paymentMethod,
+        ...(data.paymentMethod === 'CREDIT_CARD' && data.cardInfo && asaasPayment.creditCardNumber ? {
+          lastFour: asaasPayment.creditCardNumber.slice(-4), // Store last four
+          brand: asaasPayment.creditCardBrand,
+          holderName: data.cardInfo.holderName,
+        } : {}),
+      },
+    });
+    console.log('[createPayment] Payment method upserted:', paymentMethodRecord);
+    // --- END: Upsert PaymentMethod ---
+
     // 6. Store Transaction in your Database
     console.log('[createPayment] Storing transaction in local database.');
 
-    const numericPlanId = parseInt(data.planId, 10);
-    if (isNaN(numericPlanId)) {
-      console.error(`[createPayment] Invalid planId: '${data.planId}' is not a valid number.`);
-      throw new Error('ID do plano inválido. Deve ser um número.');
-    }
-
-    // @ts-ignore Temporarily ignore TypeScript error to focus on runtime fix
+    // @ts-ignore // Re-added as a precaution, though this structure should be type-correct.
     const transaction = await prisma.transaction.create({
-      // @ts-ignore
       data: {
-        userId: user.id, // Reverted to direct assignment
-        insuranceId: numericPlanId, // Reverted to direct assignment
+        // Foreign Key IDs
+        userId: user.id, 
+        insuranceId: userInsurancePolicy.id,
+        paymentMethodId: paymentMethodRecord.id,
+
+        // Scalar fields
         transactionId: asaasPayment.id,
         status: asaasPayment.status,
-        amount: data.finalAmount, // Store final amount
+        amount: data.finalAmount,
         couponCode: data.couponCode,
-        type: data.paymentMethod === 'BOLETO' ? 'BOLETO' : 'CREDIT_CARD', // Keep: 'type' is non-optional
-        paymentMethod: { 
-          connectOrCreate: {
-            where: {
-              userId_type_type: { 
-                userId: user.id,
-                type: data.paymentMethod 
-              }
-            },
-            create: {
-              user: { connect: { id: user.id } },
-              type: data.paymentMethod, // 'BOLETO' or 'CREDIT_CARD'
-              // Add card details if it's a credit card and you store them in PaymentMethod table
-              ...(data.paymentMethod === 'CREDIT_CARD' && data.cardInfo && asaasPayment.creditCardNumber ? {
-                lastFour: asaasPayment.creditCardNumber, 
-                brand: asaasPayment.creditCardBrand,     
-                holderName: data.cardInfo.holderName,
-              } : {})
-            }
-          }
-        },
+        type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: JSON.stringify(asaasPayment),
         planNameSnapshot: plan.name, 
         planPriceSnapshot: plan.price, 
-        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, // Keep
-        boletoCode: asaasPayment.barCode, // Keep
+        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
+        boletoCode: asaasPayment.barCode,
       },
     });
     console.log('[createPayment] Transaction stored with ID:', transaction.id);
