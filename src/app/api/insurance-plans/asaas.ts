@@ -266,8 +266,8 @@ export async function createPayment(data: PaymentData) {
         couponCode: data.couponCode,
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: null, // Simplified to null for debugging
-        planNameSnapshot: plan.name, // Reverted to original
-        planPriceSnapshot: plan.price, // Reverted to original
+        planNameSnapshot: "Test Plan Name Simple", // Simplified for debugging
+        planPriceSnapshot: plan.price, // Keep dynamic
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
         boletoCode: asaasPayment.barCode,
       },
