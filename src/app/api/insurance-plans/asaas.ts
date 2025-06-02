@@ -270,7 +270,7 @@ export async function createPayment(data: PaymentData) {
         couponCode: data.couponCode || null, // Ensure null instead of undefined
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: JSON.stringify(asaasPayment), // Restore original value
-        planNameSnapshot: plan.name, // Restore original value
+        planNameSnapshot: "Test Plan Name Simple", // Use a known simple string
         planPriceSnapshot: priceSnapshot, // Use explicitly converted value
         boletoUrl: null, // Keep null
         boletoCode: null, // Keep null
