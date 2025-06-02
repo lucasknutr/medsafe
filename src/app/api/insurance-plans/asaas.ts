@@ -267,7 +267,7 @@ export async function createPayment(data: PaymentData) {
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: null, // Simplified to null for debugging
         planNameSnapshot: "Test Plan Name Simple", // Simplified for debugging
-        planPriceSnapshot: plan.price, // Keep dynamic
+        planPriceSnapshot: 1.0, // Simplified for debugging
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
         boletoCode: asaasPayment.barCode,
       },
