@@ -266,10 +266,10 @@ export async function createPayment(data: PaymentData) {
         couponCode: data.couponCode || null, // Ensure null instead of undefined
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: null, // Simplified to null for debugging
-        planNameSnapshot: null, // Set to null for debugging parameter 10
-        planPriceSnapshot: 1.0, // Keep simplified
-        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
-        boletoCode: asaasPayment.barCode,
+        planNameSnapshot: null, // Keep null
+        planPriceSnapshot: null, // Simplify further to null
+        boletoUrl: null, // Simplify to null
+        boletoCode: null, // Simplify to null
       },
     });
     console.log('[createPayment] Transaction stored with ID:', transaction.id);
