@@ -265,9 +265,9 @@ export async function createPayment(data: PaymentData) {
         amount: data.finalAmount,
         couponCode: data.couponCode,
         type: data.paymentMethod, // This 'type' is for the transaction itself
-        paymentDetails: JSON.stringify(asaasPayment), // Reverted to original
-        planNameSnapshot: "Test Plan Name Snapshot", // Simplified for debugging
-        planPriceSnapshot: 100.0, // Simplified for debugging
+        paymentDetails: null, // Simplified to null for debugging
+        planNameSnapshot: plan.name, // Reverted to original
+        planPriceSnapshot: plan.price, // Reverted to original
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
         boletoCode: asaasPayment.barCode,
       },
