@@ -263,7 +263,7 @@ export async function createPayment(data: PaymentData) {
         transactionId: asaasPayment.id,
         status: asaasPayment.status,
         amount: data.finalAmount,
-        couponCode: data.couponCode,
+        couponCode: data.couponCode || null, // Ensure null instead of undefined
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: null, // Simplified to null for debugging
         planNameSnapshot: "Test Plan Name Simple", // Simplified for debugging
