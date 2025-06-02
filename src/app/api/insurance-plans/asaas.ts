@@ -267,7 +267,7 @@ export async function createPayment(data: PaymentData) {
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: JSON.stringify(asaasPayment), // Reverted to original
         planNameSnapshot: "Test Plan Name Snapshot", // Simplified for debugging
-        planPriceSnapshot: plan.price, 
+        planPriceSnapshot: 100.0, // Simplified for debugging
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
         boletoCode: asaasPayment.barCode,
       },
