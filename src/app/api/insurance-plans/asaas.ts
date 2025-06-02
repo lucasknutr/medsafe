@@ -267,7 +267,7 @@ export async function createPayment(data: PaymentData) {
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: JSON.stringify(asaasPayment), // Restore original value
         planNameSnapshot: plan.name, // Restore original value
-        planPriceSnapshot: null, // Keep null
+        planPriceSnapshot: plan.price, // Restore original value
         boletoUrl: null, // Keep null
         boletoCode: null, // Keep null
       },
