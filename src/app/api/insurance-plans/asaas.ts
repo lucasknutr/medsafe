@@ -92,6 +92,10 @@ export async function createPayment(data: PaymentData) {
     // Ensure originalAmount is set if not provided, for consistency
     const originalAmount = data.originalAmount !== undefined ? data.originalAmount : plan.price;
 
+    // Log plan.price and its type
+    console.log(`[createPayment] plan.price value: ${plan.price}, typeof plan.price: ${typeof plan.price}`);
+    const priceSnapshot = Number(plan.price); // Explicit conversion
+
     // 2. Get User Details (Try by ID first, then email)
     let userIdentifier = typeof data.customerId === 'number' ? { id: data.customerId } : { email: data.customerId };
     console.log('[createPayment] Fetching user with identifier:', userIdentifier);
@@ -267,7 +271,7 @@ export async function createPayment(data: PaymentData) {
         type: data.paymentMethod, // This 'type' is for the transaction itself
         paymentDetails: JSON.stringify(asaasPayment), // Restore original value
         planNameSnapshot: plan.name, // Restore original value
-        planPriceSnapshot: plan.price, // Restore original value
+        planPriceSnapshot: priceSnapshot, // Use explicitly converted value
         boletoUrl: null, // Keep null
         boletoCode: null, // Keep null
       },
