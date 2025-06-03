@@ -266,14 +266,14 @@ export async function createPayment(data: PaymentData) {
         // Scalar fields
         transactionId: asaasPayment.id,
         status: asaasPayment.status,
-        amount: data.finalAmount,
-        couponCode: data.couponCode || null, // Ensure null instead of undefined
-        type: data.paymentMethod, // This 'type' is for the transaction itself
-        paymentDetails: JSON.stringify(asaasPayment), // Restore original value
-        planNameSnapshot: null, // Set back to null
-        planPriceSnapshot: data.finalAmount, // Use the same float as 'amount'
-        boletoUrl: null, // Keep null
-        boletoCode: null, // Keep null
+        amount: Number(data.finalAmount), // Ensure it's a number, matches Float schema & DB
+        couponCode: data.couponCode || null, 
+        type: data.paymentMethod, 
+        paymentDetails: JSON.stringify(asaasPayment),
+        planNameSnapshot: plan.name, // Restore intended dynamic value
+        planPriceSnapshot: priceSnapshot, // Restore intended dynamic value (priceSnapshot is Number(plan.price))
+        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, // Restore intended dynamic value
+        boletoCode: asaasPayment.barCode || null, // Restore intended dynamic value, fallback to null if undefined
       },
     });
     console.log('[createPayment] Transaction stored with ID:', transaction.id);

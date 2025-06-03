@@ -148,7 +148,7 @@ model Transaction {
   id              Int            @id @default(autoincrement())
   userId          Int
   paymentMethodId Int?
-  amount          Int
+  amount          Float
   status          String
   type            String
   transactionId   String?
