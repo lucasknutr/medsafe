@@ -96,6 +96,9 @@ export async function createPayment(data: PaymentData) {
     console.log(`[createPayment] plan.price value: ${plan.price}, typeof plan.price: ${typeof plan.price}`);
     const priceSnapshot = Number(plan.price); // Explicit conversion
 
+    console.log(`[createPayment] Debug: plan.name = '${plan.name}', typeof plan.name = ${typeof plan.name}`);
+    console.log(`[createPayment] Debug: plan.price = ${plan.price}, typeof plan.price = ${typeof plan.price}, priceSnapshot = ${priceSnapshot}`);
+
     // 2. Get User Details (Try by ID first, then email)
     let userIdentifier = typeof data.customerId === 'number' ? { id: data.customerId } : { email: data.customerId };
     console.log('[createPayment] Fetching user with identifier:', userIdentifier);
@@ -270,10 +273,10 @@ export async function createPayment(data: PaymentData) {
         couponCode: data.couponCode || null, 
         type: data.paymentMethod, 
         paymentDetails: JSON.stringify(asaasPayment),
-        planNameSnapshot: plan.name, // Restore intended dynamic value
-        planPriceSnapshot: priceSnapshot, // Restore intended dynamic value (priceSnapshot is Number(plan.price))
-        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, // Restore intended dynamic value
-        boletoCode: asaasPayment.barCode || null, // Restore intended dynamic value, fallback to null if undefined
+        planNameSnapshot: "Test Plan Name", // Hardcoded for debugging
+        planPriceSnapshot: priceSnapshot, 
+        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, 
+        boletoCode: asaasPayment.barCode || null, 
       },
     });
     console.log('[createPayment] Transaction stored with ID:', transaction.id);
