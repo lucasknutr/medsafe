@@ -273,8 +273,8 @@ export async function createPayment(data: PaymentData) {
         couponCode: data.couponCode || null, 
         type: data.paymentMethod, 
         paymentDetails: JSON.stringify(asaasPayment),
-        planNameSnapshot: null, // Set to null
-        planPriceSnapshot: null, // Set to null
+        planNameSnapshot: plan.name, // Restore dynamic value
+        planPriceSnapshot: null, // Keep as null
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, 
         boletoCode: asaasPayment.barCode || null, 
       },
