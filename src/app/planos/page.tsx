@@ -190,15 +190,15 @@ function PlanosContentWrapper() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/user/status', { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error('Failed to fetch user status');
-        }
+        const response = await fetch('/api/user/insurance-status', { cache: 'no-store' }); 
         const data = await response.json();
-        if (data.currentInsurance) {
-          setCurrentInsurance(data.currentInsurance);
-        } else {
+
+        if (response.ok) {
+          setCurrentInsurance(data);
+        } else if (response.status === 404) {
           setCurrentInsurance(null);
+        } else {
+          throw new Error(data.error || data.message || 'Failed to fetch user status');
         }
       } catch (err) {
         if (err instanceof Error) {
