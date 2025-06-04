@@ -274,7 +274,7 @@ export async function createPayment(data: PaymentData) {
         type: data.paymentMethod, 
         paymentDetails: null, // Temporarily set to null for debugging
         planNameSnapshot: plan.name, // Restore dynamic value
-        planPriceSnapshot: priceSnapshot, // Restore dynamic value (Number(plan.price))
+        planPriceSnapshot: Number(data.finalAmount), // Test with the same value as 'amount'
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, 
         boletoCode: asaasPayment.barCode || null, 
       },
