@@ -1,9 +1,16 @@
 "use client"
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardActions, Typography, Button, Grid, Container, CircularProgress, Alert } from '@mui/material';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, CardContent, CardActions, Typography, Button, Grid, Container, CircularProgress, Alert, TextField, Box } from '@mui/material';
 import { useCookies } from 'react-cookie';
 import Navbar from '@/app/components/Navbar';
+
+interface MyCookies {
+  selected_plan?: string;
+  role?: string;
+  user_id?: string;
+  email?: string;
+}
 
 interface InsurancePlan {
   id: string;
@@ -73,8 +80,111 @@ export default function InsurancePlansPage() {
   // Loading now refers to fetching user's current insurance status
   const [loading, setLoading] = useState(true); 
   const [error, setError] = useState<string | null>(null);
-  const [cookies, setCookie] = useCookies(['selected_plan', 'role', 'user_id']);
+  const [cookies, setCookie] = useCookies<string, MyCookies>(['selected_plan', 'role', 'user_id', 'email']);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // State for pending status from payment page
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
+  const [pendingStatusMessage, setPendingStatusMessage] = useState<React.ReactNode | null>(null);
+
+  // State for document upload
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      if (event.target.files[0].type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        setSelectedFile(event.target.files[0]);
+        setUploadError(null); // Clear previous error if new file is selected
+        setUploadSuccessMessage(null); // Clear previous success message
+      } else {
+        setSelectedFile(null);
+        setUploadError("Por favor, selecione um arquivo .docx.");
+        setUploadSuccessMessage(null);
+      }
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !pendingTransactionId) {
+      setUploadError("Nenhum arquivo selecionado ou ID da transação ausente.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadSuccessMessage(null);
+
+    const formData = new FormData();
+    formData.append('contract', selectedFile);
+    formData.append('transactionId', pendingTransactionId);
+    if (pendingPlanId) formData.append('planId', pendingPlanId);
+    if (cookies.email) formData.append('userEmail', cookies.email);
+
+    try {
+      const response = await fetch('/api/upload-contract', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setUploadSuccessMessage(result.message || 'Contrato enviado com sucesso! Aguarde a confirmação.');
+        setSelectedFile(null); // Clear file input
+        // Consider if the input itself should be cleared e.g. event.target.value = '' if it's part of the input element directly
+      } else {
+        setUploadError(result.message || 'Falha ao enviar o contrato.');
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      setUploadError('Ocorreu um erro ao enviar o contrato. Tente novamente.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  useEffect(() => {
+    const queryPlanId = searchParams.get('planId');
+    const queryStatus = searchParams.get('status');
+    const queryTransactionId = searchParams.get('transactionId');
+
+    if (queryPlanId) setPendingPlanId(queryPlanId);
+    if (queryStatus) setPendingStatus(queryStatus);
+    if (queryTransactionId) setPendingTransactionId(queryTransactionId);
+
+    if (queryPlanId && queryStatus) {
+      const planDetails = plans.find(p => p.id === queryPlanId);
+      let message = '';
+      let severity: 'info' | 'warning' | 'success' = 'info';
+
+      if (queryStatus === 'pending_payment') {
+        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} está pendente. Por favor, conclua o pagamento do boleto.`;
+        severity = 'warning';
+      } else if (queryStatus === 'pending_document') {
+        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} recebido! Agora, por favor, envie o contrato assinado para finalizar a ativação.`;
+        severity = 'info';
+      } else if (queryStatus === 'active') { // Example if redirected after direct activation
+        message = `Seu ${planDetails?.name || 'plano'} foi ativado com sucesso!`;
+        severity = 'success';
+      }
+      
+      if (message) {
+        setPendingStatusMessage(
+          <Alert severity={severity} className="mb-8">
+            <Typography variant="h6">{message}</Typography>
+          </Alert>
+        );
+      }
+    } else {
+      setPendingStatusMessage(null); // Clear if no relevant query params
+    }
+  }, [searchParams, plans]);
 
   useEffect(() => {
     const fetchUserStatus = async () => {
@@ -157,6 +267,9 @@ export default function InsurancePlansPage() {
           Planos de Seguro
         </Typography>
 
+        {/* Display message from payment redirection */}
+        {pendingStatusMessage}
+
         {currentInsurance && (
           <Alert severity={currentInsurance.status === 'ACTIVE' ? 'success' : 'info'} className="mb-8">
             <Typography variant="h6">
@@ -174,6 +287,31 @@ export default function InsurancePlansPage() {
            <Typography variant="subtitle1" className="text-center mb-8">
               Escolha um plano abaixo ou <Button onClick={() => router.push('/')}>Ainda Vou Decidir</Button>.
           </Typography>
+        )}
+
+        {/* Document Upload Section - To be detailed later */}
+        {pendingStatus === 'pending_document' && pendingTransactionId && (
+          <Box my={4} p={3} border={1} borderColor="grey.300" borderRadius={2}>
+            <Typography variant="h6" gutterBottom>
+              Envio de Contrato Assinado
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              Para o plano: {plans.find(p => p.id === pendingPlanId)?.name || 'Plano Selecionado'}<br/>
+              ID da Transação: {pendingTransactionId}
+            </Typography>
+            {/* File input and upload button will go here */}
+            <input type="file" accept=".docx" onChange={handleFileChange} />
+            <Button 
+              variant="contained" 
+              onClick={handleFileUpload} // Connect the handler
+              disabled={!selectedFile || uploading}
+              sx={{ mt: 2 }}
+            >
+              {uploading ? <CircularProgress size={24} /> : 'Enviar Contrato'}
+            </Button>
+            {uploadError && <Alert severity="error" sx={{ mt: 2 }}>{uploadError}</Alert>}
+            {uploadSuccessMessage && <Alert severity="success" sx={{ mt: 2 }}>{uploadSuccessMessage}</Alert>}
+          </Box>
         )}
 
         <Grid container spacing={4}>
