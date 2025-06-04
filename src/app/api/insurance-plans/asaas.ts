@@ -272,9 +272,9 @@ export async function createPayment(data: PaymentData) {
         amount: Number(data.finalAmount), // Ensure it's a number, matches Float schema & DB
         couponCode: data.couponCode || null, 
         type: data.paymentMethod, 
-        paymentDetails: null, // Temporarily set to null for debugging
+        paymentDetails: JSON.stringify(asaasPayment), // Restore original value
         planNameSnapshot: plan.name, // Restore dynamic value
-        planPriceSnapshot: Number(data.finalAmount), // Test with the same value as 'amount'
+        planPriceSnapshot: null, // Set to null as requested
         boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, 
         boletoCode: asaasPayment.barCode || null, 
       },
