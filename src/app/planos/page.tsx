@@ -149,6 +149,46 @@ function PlanosContentWrapper() {
   };
 
   useEffect(() => {
+    const fetchUserStatus = async () => {
+      setLoading(true);
+      setError(null);
+      // @ts-ignore
+      console.log('Checking for user_id cookie in PlanosContentWrapper:', cookies.user_id);
+      try {
+        const response = await fetch('/api/user/insurance-status', { cache: 'no-store' }); 
+        const data = await response.json();
+
+        if (response.ok) {
+          setCurrentInsurance(data);
+        } else if (response.status === 404) {
+          setCurrentInsurance(null);
+        } else {
+          throw new Error(data.error || data.message || 'Failed to fetch user status');
+        }
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred');
+        }
+        setCurrentInsurance(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // @ts-ignore
+    if (cookies.user_id) {
+      fetchUserStatus();
+    } else {
+      // Se não há user_id, não estamos logados, então não há status para buscar.
+      setLoading(false);
+      setCurrentInsurance(null); // Garante que não há plano ativo mostrado
+    }
+  // @ts-ignore
+  }, [cookies.user_id]); // Adicionar cookies.user_id como dependência
+
+  useEffect(() => {
     const queryPlanId = searchParams.get('planId');
     const queryStatus = searchParams.get('status');
     const queryTransactionId = searchParams.get('transactionId');
@@ -184,37 +224,6 @@ function PlanosContentWrapper() {
       setPendingStatusMessage(null); 
     }
   }, [searchParams]); 
-
-  useEffect(() => {
-    const fetchUserStatus = async () => {
-      setLoading(true);
-      setError(null);
-      // @ts-ignore
-      console.log('Checking for user_id cookie in PlanosContentWrapper:', cookies.user_id);
-      try {
-        const response = await fetch('/api/user/insurance-status', { cache: 'no-store' }); 
-        const data = await response.json();
-
-        if (response.ok) {
-          setCurrentInsurance(data);
-        } else if (response.status === 404) {
-          setCurrentInsurance(null);
-        } else {
-          throw new Error(data.error || data.message || 'Failed to fetch user status');
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unknown error occurred');
-        }
-        setCurrentInsurance(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserStatus();
-  }, []);
 
   const handleSelectPlan = (planId: string) => {
     setCookie('selected_plan', planId, { path: '/' });
