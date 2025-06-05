@@ -149,46 +149,11 @@ function PlanosContentWrapper() {
   };
 
   useEffect(() => {
-    const queryPlanId = searchParams.get('planId');
-    const queryStatus = searchParams.get('status');
-    const queryTransactionId = searchParams.get('transactionId');
-
-    if (queryPlanId) setPendingPlanId(queryPlanId);
-    if (queryStatus) setPendingStatus(queryStatus);
-    if (queryTransactionId) setPendingTransactionId(queryTransactionId);
-
-    if (queryPlanId && queryStatus) {
-      const planDetails = plans.find(p => p.id === queryPlanId);
-      let message = '';
-      let severity: 'info' | 'warning' | 'success' = 'info';
-
-      if (queryStatus === 'pending_payment') {
-        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} está pendente. Por favor, conclua o pagamento do boleto.`;
-        severity = 'warning';
-      } else if (queryStatus === 'pending_document') {
-        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} recebido! Agora, por favor, envie o contrato assinado para finalizar a ativação.`;
-        severity = 'info';
-      } else if (queryStatus === 'active') {
-        message = `Seu ${planDetails?.name || 'plano'} foi ativado com sucesso!`;
-        severity = 'success';
-      }
-      
-      if (message) {
-        setPendingStatusMessage(
-          <Alert severity={severity} className="mb-8">
-            <Typography variant="h6">{message}</Typography>
-          </Alert>
-        );
-      }
-    } else {
-      setPendingStatusMessage(null); 
-    }
-  }, [searchParams]); 
-
-  useEffect(() => {
     const fetchUserStatus = async () => {
       setLoading(true);
       setError(null);
+      // @ts-ignore
+      console.log('Checking for user_id cookie in PlanosContentWrapper:', cookies.user_id);
       try {
         const response = await fetch('/api/user/insurance-status', { cache: 'no-store' }); 
         const data = await response.json();
