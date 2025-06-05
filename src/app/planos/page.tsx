@@ -41,7 +41,7 @@ const plano100: InsurancePlan = {
     'Honorários de sucumbência',
   ],
   is_active: true,
-  customQuote: true,
+  customQuote: false,
 };
 
 const plano200: InsurancePlan = {
@@ -149,6 +149,43 @@ function PlanosContentWrapper() {
   };
 
   useEffect(() => {
+    const queryPlanId = searchParams.get('planId');
+    const queryStatus = searchParams.get('status');
+    const queryTransactionId = searchParams.get('transactionId');
+
+    if (queryPlanId) setPendingPlanId(queryPlanId);
+    if (queryStatus) setPendingStatus(queryStatus);
+    if (queryTransactionId) setPendingTransactionId(queryTransactionId);
+
+    if (queryPlanId && queryStatus) {
+      const planDetails = plans.find(p => p.id === queryPlanId);
+      let message = '';
+      let severity: 'info' | 'warning' | 'success' = 'info';
+
+      if (queryStatus === 'pending_payment') {
+        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} está pendente. Por favor, conclua o pagamento do boleto.`;
+        severity = 'warning';
+      } else if (queryStatus === 'pending_document') {
+        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} recebido! Agora, por favor, envie o contrato assinado para finalizar a ativação.`;
+        severity = 'info';
+      } else if (queryStatus === 'active') {
+        message = `Seu ${planDetails?.name || 'plano'} foi ativado com sucesso!`;
+        severity = 'success';
+      }
+      
+      if (message) {
+        setPendingStatusMessage(
+          <Alert severity={severity} className="mb-8">
+            <Typography variant="h6">{message}</Typography>
+          </Alert>
+        );
+      }
+    } else {
+      setPendingStatusMessage(null); 
+    }
+  }, [searchParams]); 
+
+  useEffect(() => {
     const fetchUserStatus = async () => {
       setLoading(true);
       setError(null);
@@ -181,7 +218,12 @@ function PlanosContentWrapper() {
 
   const handleSelectPlan = (planId: string) => {
     setCookie('selected_plan', planId, { path: '/' });
-    router.push('/pagamentos');
+    // @ts-ignore
+    if (cookies.user_id) {
+      router.push('/pagamentos');
+    } else {
+      router.push('/register'); 
+    }
   };
 
   if (loading) {
