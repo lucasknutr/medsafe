@@ -80,7 +80,7 @@ export default function SobreNos() {
                 Suporte financeiro em honorários sucumbenciais e indenizações por danos morais, materiais, corporais e/ou lucros cessantes decorrentes de eventuais condenações transitadas em julgado;
               </Typography>
               <Typography component="li" variant="body1" sx={{ mb: 1 }}>
-                Disponibilidade de pronto atendimento através do telefone 0800 000 0000, 24 (vinte e quatro) horas por dia, 07 (sete) vezes por semana.
+                Disponibilidade de pronto atendimento através do telefone 0800 544 7000, 24 (vinte e quatro) horas por dia, 07 (sete) vezes por semana.
               </Typography>
             </Box>
 
