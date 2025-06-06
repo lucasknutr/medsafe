@@ -2,13 +2,11 @@ import React from 'react';
 import { FormControlLabel, Checkbox, Typography, Link } from '@mui/material';
 
 interface TermsAndConditionsProps {
-  formData: {
-    acceptedTerms: boolean;
-  };
-  onInputChange: (field: string, value: boolean) => void;
+  acceptedTerms: boolean;
+  onInputChange: (field: 'termsAgreed', value: boolean) => void;
 }
 
-const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ formData, onInputChange }) => {
+const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ acceptedTerms, onInputChange }) => {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold mb-6">Termos e Condições</h2>
@@ -35,8 +33,8 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ formData, onInp
         <FormControlLabel
           control={
             <Checkbox
-              checked={formData.acceptedTerms}
-              onChange={(e) => onInputChange('acceptedTerms', e.target.checked)}
+              checked={acceptedTerms}
+              onChange={(e) => onInputChange('termsAgreed', e.target.checked)}
               color="primary"
             />
           }
