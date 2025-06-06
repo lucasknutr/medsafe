@@ -249,7 +249,7 @@ function PlanosContentWrapper() {
     setCookie('selected_plan', planId, { path: '/' });
     // @ts-ignore
     if (cookies.user_id) {
-      router.push('/pagamentos');
+      router.push(`/pagamentos?planId=${planId}`); 
     } else {
       router.push('/register'); 
     }
