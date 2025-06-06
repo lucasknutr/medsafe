@@ -261,7 +261,7 @@ export default function AdditionalInfo({ formData, onInputChange }: AdditionalIn
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            ESTÁ SENDO ASSESSORADO POR ALGUÉM DA EQUIPE DE VENDAS DA JUSPROMED? *
+            ESTÁ SENDO ASSESSORADO POR ALGUÉM DA EQUIPE DE VENDAS DA MEDSAFE? *
           </label>
           <div className="flex gap-4">
             <label className="flex items-center">
