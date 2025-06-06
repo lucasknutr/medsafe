@@ -235,6 +235,8 @@ export default function RegisterForm(): React.ReactElement {
 
     switch (currentStep) {
       case 1: // Informações Pessoais
+        console.log('REGISTER_FORM_DEBUG: Validating Step 1. formData:', JSON.parse(JSON.stringify(formData))); // Log formData for step 1
+
         if (!formData.firstName?.trim()) newErrors.firstName = 'Nome é obrigatório.';
         if (!formData.lastName?.trim()) newErrors.lastName = 'Sobrenome é obrigatório.';
         if (!formData.cpf?.trim()) {
@@ -263,6 +265,8 @@ export default function RegisterForm(): React.ReactElement {
         if (!formData.estado?.trim()) newErrors.estado = 'Estado é obrigatório.';
         // formData.pais has a default, so validation might not be strictly needed unless it can be cleared
         if (!formData.carteiraProfissional?.trim()) newErrors.carteiraProfissional = 'Número do conselho (CRM, CRO, etc.) é obrigatório.';
+        
+        console.log('REGISTER_FORM_DEBUG: Step 1 newErrors:', JSON.parse(JSON.stringify(newErrors))); // Log errors for step 1
         break;
 
       case 2: // Informações Adicionais - Placeholder for now
@@ -298,6 +302,7 @@ export default function RegisterForm(): React.ReactElement {
 
     setFormErrors(newErrors);
     setIsStepValid(Object.keys(newErrors).length === 0);
+    console.log('REGISTER_FORM_DEBUG: Final isStepValid:', Object.keys(newErrors).length === 0, 'Errors:', JSON.parse(JSON.stringify(newErrors))); // Log final validation status
   }, [formData, currentStep]);
 
   useEffect(() => {
