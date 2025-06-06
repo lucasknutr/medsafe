@@ -148,6 +148,26 @@ function PlanosContentWrapper() {
     }
   };
 
+  const translateStatus = (status: string | undefined): string => {
+    if (!status) return "Status Desconhecido";
+    const statusMap: { [key: string]: string } = {
+      "ACTIVE": "Ativo",
+      "PENDING_PAYMENT": "Pagamento Pendente",
+      "PENDING_DOCUMENT": "Documento Pendente",
+      "PENDING_APPROVAL": "Aprovação Pendente", // Adicionando um possível futuro status
+      "PENDING": "Pendente",
+      "INACTIVE": "Inativo",
+      "CANCELED": "Cancelado",
+      "EXPIRED": "Expirado",
+      "OVERDUE": "Vencido",
+      "CONFIRMED": "Confirmado", // Status comuns da ASAAS
+      "RECEIVED": "Recebido",
+      "RECEIVED_IN_CASH": "Recebido em Dinheiro",
+      // Adicione outros mapeamentos conforme necessário
+    };
+    return statusMap[status.toUpperCase()] || status;
+  };
+
   useEffect(() => {
     const fetchUserStatus = async () => {
       setLoading(true);
@@ -265,7 +285,7 @@ function PlanosContentWrapper() {
       {currentInsurance && (
         <Alert severity={currentInsurance.status === 'ACTIVE' ? 'success' : 'info'} className="mb-8">
           <Typography variant="h6">
-            Seu plano atual: {currentInsurance.plan} (Status: {currentInsurance.status})
+            Seu plano atual: {currentInsurance.plan} (Status: {translateStatus(currentInsurance.status)})
           </Typography>
           {currentInsurance.status !== 'ACTIVE' &&
             <Typography>Aguardando confirmação ou ação necessária.</Typography>
@@ -360,7 +380,10 @@ const InsurancePlansPage = () => {
           <Typography sx={{ ml: 2 }}>Carregando planos...</Typography>
         </Container>
       }>
-        <PlanosContentWrapper />
+        {/* Apply padding to the Container wrapping PlanosContentWrapper */}
+        <Container sx={{ pt: { xs: 8, md: 10 }, pb: 8 }}> {/* xs: 64px, md: 80px padding-top */}
+          <PlanosContentWrapper />
+        </Container>
       </Suspense>
     </>
   );
