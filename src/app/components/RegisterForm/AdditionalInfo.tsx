@@ -11,9 +11,8 @@ interface AdditionalInfoProps {
     informacoesAdicionais: string;
     assessoradoPorVendas: string;
     carteiraProfissional: string;
-    comprovanteResidencia: string;
+    comprovanteResidencia: File | null;
     crmFile: File | null;
-    addressProofFile: File | null;
   };
   onInputChange: (field: string, value: string | File | null | boolean) => void;
 }
@@ -239,21 +238,6 @@ export default function AdditionalInfo({ formData, onInputChange }: AdditionalIn
           className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
         />
         {formData.crmFile && <p className="text-xs text-gray-500 mt-1">Arquivo selecionado: {formData.crmFile.name}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="addressProofFile" className="block text-sm font-medium text-gray-700 mb-1">
-          Upload do Comprovante de Endereço (PDF ou Imagem)
-        </label>
-        <input
-          type="file"
-          name="addressProofFile"
-          id="addressProofFile"
-          accept=".pdf,image/*"
-          onChange={handleFileChange('addressProofFile')}
-          className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-        />
-        {formData.addressProofFile && <p className="text-xs text-gray-500 mt-1">Arquivo selecionado: {formData.addressProofFile.name}</p>}
       </div>
 
       <div className="border-t pt-6">

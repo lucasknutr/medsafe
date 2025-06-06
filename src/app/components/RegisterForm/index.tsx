@@ -59,9 +59,8 @@ interface FormData {
   informacoesAdicionais: string;
   assessoradoPorVendas: string;
   carteiraProfissional: string; // CRM Number
-  comprovanteResidencia: string; // Details about residence proof, if any
+  comprovanteResidencia: File | null;
   crmFile: File | null;
-  addressProofFile: File | null;
   medicalLicenseFile: File | null; // ADDED
   specialistCertificateFile: File | null; // ADDED
   selectedPlan: InsurancePlan | null;
@@ -136,9 +135,8 @@ const initialFormData: FormData = {
   informacoesAdicionais: '',
   assessoradoPorVendas: 'NAO',
   carteiraProfissional: '',
-  comprovanteResidencia: '',
+  comprovanteResidencia: null,
   crmFile: null,
-  addressProofFile: null,
   medicalLicenseFile: null, // ADDED
   specialistCertificateFile: null, // ADDED
   selectedPlan: null,
@@ -479,68 +477,151 @@ export default function RegisterForm() {
     return response.json(); // Returns the user data from the API, including user.id
   };
 
-  const validateStep = useCallback((step: number): { isValid: boolean; newErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>; newErrorMessage: string | null } => {
-    let isValid = true;
-    let newErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = { ...initialFormErrors }; // Start with clean errors for the current validation pass
-    let newErrorMessage: string | null = null;
-
-    switch (step) {
-      case 1: {
-        const personalInfoErrors = validatePersonalInfoStep();
-        if (Object.keys(personalInfoErrors).length > 0) {
-          newErrors = { ...newErrors, ...personalInfoErrors };
-          newErrorMessage = 'Por favor, corrija os erros no formulário.';
-          isValid = false;
-        }
-        // Plan selection check can remain or be adapted
-        if (!selectedPlan && step === 1) { 
-          // newErrorMessage = newErrorMessage ? newErrorMessage + ' Selecione um plano.' : 'Por favor, selecione um plano ou marque "Ainda Vou Decidir" para prosseguir.';
-          // isValid = false; // This might be too strict if plan selection is optional at this stage
-        }
-        break;
-      }
-      case 2: {
-        // Add validation for AdditionalInfo if needed
-        break;
-      }
-      case 3: {
-        if (selectedPlan && !formData.paymentMethod) {
-          newErrorMessage = 'Por favor, selecione um método de pagamento.';
-          isValid = false;
-        }
-        if (formData.paymentMethod === 'BOLETO' && !formData.contractAgreed) {
-          newErrorMessage = newErrorMessage ? newErrorMessage + ' Concorde com o contrato.' : 'Você deve ler e concordar com os termos do contrato para prosseguir com o pagamento via Boleto.';
-          isValid = false;
-        }
-        if (selectedPlan && formData.paymentMethod === 'CARTAO') {
-          if (!formData.cardHolderName || !formData.cardNumber || !formData.cardExpiryMonth || !formData.cardExpiryYear || !formData.cardCcv) {
-            newErrorMessage = newErrorMessage ? newErrorMessage + ' Preencha dados do cartão.' : 'Por favor, preencha todos os dados do cartão.';
-            isValid = false;
-          }
-        }
-        break;
-      }
-      case 4: {
-        const credentialsErrors = validateCredentialsStep();
-        if (Object.keys(credentialsErrors).length > 0) {
-          newErrors = { ...newErrors, ...credentialsErrors };
-          newErrorMessage = 'Por favor, corrija os erros nas credenciais.';
-          isValid = false;
-        }
-        break;
-      }
-      default:
-        break;
-    }
-    return { isValid, newErrors, newErrorMessage };
-  }, [formData, selectedPlan]); // Add dependencies for validateStep
-
   useEffect(() => {
-    const { isValid, newErrors, newErrorMessage } = validateStep(currentStep);
-    setIsStepValid(isValid);
-    setFormErrors(newErrors);
-    setError(newErrorMessage);
-  }, [currentStep, formData, selectedPlan, validateStep]);
+    console.log(`REGISTER_FORM_DEBUG: useEffect for validation CALLED - currentStep: ${currentStep}`); // <<< ADDED THIS LOG
+    let errors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = {};
+    let valid = true;
+
+    if (currentStep === 1) { // CADASTRO
+      // Basic Personal Info Validation (Can be expanded)
+      const personalInfoErrors = validatePersonalInfoStep();
+      errors = { ...errors, ...personalInfoErrors };
+      if (Object.keys(personalInfoErrors).length > 0) valid = false;
+
+      // Credentials validation (only if not yet registered)
+      if (!registeredUserId) {
+        if (!formData.emailLogin) {
+          errors.emailLogin = 'E-mail de login é obrigatório.';
+          valid = false;
+        } else if (!/\S+@\S+\.\S+/.test(formData.emailLogin)) {
+          errors.emailLogin = 'E-mail de login inválido.';
+          valid = false;
+        }
+        if (!formData.passwordLogin) {
+          errors.passwordLogin = 'Senha é obrigatória.';
+          valid = false;
+        } else if (formData.passwordLogin.length < 6) {
+          errors.passwordLogin = 'Senha deve ter no mínimo 6 caracteres.';
+          valid = false;
+        }
+        if (formData.passwordLogin !== formData.confirmPasswordLogin) {
+          errors.confirmPasswordLogin = 'As senhas não coincidem.';
+          valid = false;
+        }
+      }
+      console.log('REGISTER_FORM_DEBUG: Step 1 Validation - Errors:', errors, 'Valid:', valid); // <<< ADDED THIS LOG
+
+    } else if (currentStep === 2) { // INFORMAÇÕES ADICIONAIS
+      console.log('REGISTER_FORM_DEBUG: Validating Step 2 - Additional Info'); // <<< ADDED THIS LOG
+      if (!formData.carteiraProfissional) {
+        errors.carteiraProfissional = 'Número do CRM é obrigatório.';
+        valid = false;
+      }
+      if (!formData.crmFile) { // Check if CRM file is uploaded
+        errors.crmFile = 'Upload do CRM é obrigatório.';
+        valid = false;
+      }
+      // Removed check for formData.addressProofFile
+      // if (!formData.addressProofFile) { 
+      //   errors.addressProofFile = 'Upload do Comprovante de Endereço é obrigatório.';
+      //   valid = false;
+      // }
+      
+      // NEW CHECK for formData.comprovanteResidencia
+      if (!formData.comprovanteResidencia) { 
+          errors.comprovanteResidencia = 'Upload do Comprovante de Residência é obrigatório.';
+          valid = false;
+      }
+
+      if (!formData.assessoradoPorVendas) { 
+          errors.assessoradoPorVendas = 'Por favor, selecione se está sendo assessorado.';
+          valid = false;
+      }
+      // Ensure other radio button groups have valid selections if they are mandatory
+      // Example: if 'penalRestritiva' must be chosen
+      if (!formData.penalRestritiva) { // Assuming 'NAO' or 'SIM' must be selected
+        errors.penalRestritiva = 'Resposta para "Questões Penais Restritivas" é obrigatória.';
+        valid = false;
+      }
+      if (!formData.penaAdministrativa) {
+        errors.penaAdministrativa = 'Resposta para "Questões de Pena Administrativa" é obrigatória.';
+        valid = false;
+      }
+      if (!formData.dependenteQuimico) {
+        errors.dependenteQuimico = 'Resposta para "Dependente Químico" é obrigatória.';
+        valid = false;
+      }
+      if (!formData.recusaSeguro) {
+        errors.recusaSeguro = 'Resposta para "Recusa de Seguro" é obrigatória.';
+        valid = false;
+      }
+      if (!formData.conhecimentoReclamacoes) {
+        errors.conhecimentoReclamacoes = 'Resposta para "Conhecimento de Reclamações" é obrigatória.';
+        valid = false;
+      }
+      // If 'conhecimentoReclamacoes' is 'SIM', then 'envolvidoReclamacoes' might become mandatory
+      if (formData.conhecimentoReclamacoes === 'SIM' && !formData.envolvidoReclamacoes) {
+        errors.envolvidoReclamacoes = 'Detalhes sobre o envolvimento em reclamações são obrigatórios.';
+        valid = false;
+      }
+
+      console.log('REGISTER_FORM_DEBUG: Step 2 Validation - Errors:', errors, 'Valid:', valid); // <<< ADDED THIS LOG
+
+    } else if (currentStep === 3) { // RESUMO DA COMPRA (was PlanAndPayment)
+      // Validation for step 3 (Purchase Summary)
+      // This step primarily depends on selectedPlan and paymentMethod chosen
+      console.log('REGISTER_FORM_DEBUG: Validating Step 3 - Resumo da Compra');
+      if (!selectedPlan) {
+        // This might be an unlikely scenario if navigation to step 3 requires a plan,
+        // but good for robustness.
+        setError('Por favor, selecione um plano antes de prosseguir para o resumo.');
+        valid = false;
+      } else {
+        // If a plan is selected, check payment method specific validations
+        if (formData.paymentMethod === 'CREDIT_CARD') {
+          if (!formData.cardHolderName) { errors.cardHolderName = 'Nome no cartão é obrigatório.'; valid = false; }
+          if (!formData.cardNumber) { errors.cardNumber = 'Número do cartão é obrigatório.'; valid = false; }
+          // Add more specific card validation if needed (Luhn, length, etc.)
+          if (!formData.cardExpiryMonth) { errors.cardExpiryMonth = 'Mês de validade é obrigatório.'; valid = false; }
+          if (!formData.cardExpiryYear) { errors.cardExpiryYear = 'Ano de validade é obrigatório.'; valid = false; }
+          if (!formData.cardCcv) { errors.cardCcv = 'CCV é obrigatório.'; valid = false; }
+          if (!formData.cardCpfCnpj) { errors.cardCpfCnpj = 'CPF/CNPJ do titular é obrigatório.'; valid = false; }
+          // Basic check for CPF/CNPJ length
+          const cpfCnpjLength = formData.cardCpfCnpj?.replace(/\D/g, '').length;
+          if (cpfCnpjLength !== 11 && cpfCnpjLength !== 14) {
+            errors.cardCpfCnpj = 'CPF/CNPJ do titular inválido.'; valid = false;
+          }
+          if (!formData.cardPhone) { errors.cardPhone = 'Telefone do titular é obrigatório.'; valid = false; }
+          if (formData.installments === undefined || formData.installments < 1) {
+            // @ts-ignore
+            errors.installments = 'Número de parcelas inválido.';
+            valid = false;
+          }
+        } else if (formData.paymentMethod === 'BOLETO') {
+          // No specific field validations for Boleto at this stage usually
+        } else if (!formData.paymentMethod && selectedPlan?.id !== 'consultar') { // A plan is selected (not 'consultar'), but no payment method
+          errors.paymentMethod = 'Método de pagamento é obrigatório.';
+          valid = false;
+        }
+      }
+      if (!formData.acceptedTerms) {
+        errors.acceptedTerms = 'Você deve aceitar os Termos e Condições.';
+        valid = false;
+      }
+      console.log('REGISTER_FORM_DEBUG: Step 3 Validation - Errors:', errors, 'Valid:', valid);
+    }
+
+    setFormErrors(errors);
+    setIsStepValid(valid);
+    // Set general error message if not valid and no specific errors were set (or to override)
+    // if (!valid && Object.keys(errors).length === 0) {
+    //   setError('Por favor, preencha todos os campos obrigatórios corretamente.');
+    // }
+    // Optionally, clear general error if now valid
+    // if (valid) setError(null);
+
+    console.log('REGISTER_FORM_DEBUG: useEffect validation - formErrors:', errors, 'isStepValid:', valid);
+  }, [formData, currentStep, selectedPlan, registeredUserId, validatePersonalInfoStep]); // Added registeredUserId and validatePersonalInfoStep to dependencies
 
   const handleNext = async () => {
     setError(null); // Clear previous general errors
