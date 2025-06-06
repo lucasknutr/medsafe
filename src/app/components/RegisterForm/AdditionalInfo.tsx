@@ -294,7 +294,11 @@ export default function AdditionalInfo({ formData, onInputChange }: AdditionalIn
               />
             </label>
           </div>
-          {/* Removed line trying to access .name on formData.comprovanteResidencia */}
+          {formData.comprovanteResidencia && (
+            <p className="text-xs text-gray-500 mt-1">
+              Arquivo selecionado: {formData.comprovanteResidencia.name}
+            </p>
+          )}
         </div>
       </div>
     </div>
