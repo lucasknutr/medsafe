@@ -230,8 +230,8 @@ export default function RegisterForm(): React.ReactElement {
     const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
     // Basic CPF validation: 11 digits (can be improved with actual CPF validation algorithm)
     const cpfRegex = /^\d{11}$/;
-    // Basic date validation YYYY-MM-DD
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    // Date validation for DD/MM/YYYY or DD-MM-YYYY
+    const dateRegex = /^(\d{2})[-/.](\d{2})[-/.](\d{4})$/;
 
     switch (currentStep) {
       case 1: // Informações Pessoais
@@ -245,7 +245,7 @@ export default function RegisterForm(): React.ReactElement {
         if (!formData.birthDate?.trim()) {
           newErrors.birthDate = 'Data de nascimento é obrigatória.';
         } else if (!dateRegex.test(formData.birthDate)) {
-          newErrors.birthDate = 'Formato de data inválido. Use YYYY-MM-DD.';
+          newErrors.birthDate = 'Formato de data inválido. Use DD/MM/AAAA ou DD-MM-AAAA.';
         }
         if (!formData.rg?.trim()) newErrors.rg = 'RG é obrigatório.';
         if (!formData.orgaoExpedidor?.trim()) newErrors.orgaoExpedidor = 'Órgão expedidor é obrigatório.';
