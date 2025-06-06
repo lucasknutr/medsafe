@@ -45,11 +45,11 @@ interface FormData {
   endereco: string;
   numero: string;
   complemento: string;
-  email: string;
   telefone: string;
   role: string;
-  password: string;
-  confirmPassword: string;
+  emailLogin: string;
+  passwordLogin: string;
+  confirmPasswordLogin: string;
   penalRestritiva: string;
   penaAdministrativa: string;
   dependenteQuimico: string;
@@ -90,9 +90,6 @@ interface FormData {
   estadoResidencial: string;
   telefoneCelular: string;
   telefoneFixo: string;
-  emailLogin: string;
-  passwordLogin: string;
-  confirmPasswordLogin: string;
   contractAgreed: boolean; // Added for contract agreement
   graduationYear: string; // Added for new graduate discount
   couponCode?: string; // ADDED FOR COUPON
@@ -121,11 +118,11 @@ const initialFormData: FormData = {
   endereco: '',
   numero: '',
   complemento: '',
-  email: '',
   telefone: '',
   role: 'SEGURADO', // Default role
-  password: '',
-  confirmPassword: '',
+  emailLogin: '',
+  passwordLogin: '',
+  confirmPasswordLogin: '',
   penalRestritiva: 'NAO',
   penaAdministrativa: 'NAO',
   dependenteQuimico: 'NAO',
@@ -166,9 +163,6 @@ const initialFormData: FormData = {
   estadoResidencial: '',
   telefoneCelular: '',
   telefoneFixo: '',
-  emailLogin: '',
-  passwordLogin: '',
-  confirmPasswordLogin: '',
   contractAgreed: false,
   graduationYear: '',
   couponCode: '',
@@ -383,8 +377,12 @@ export default function RegisterForm() {
     if (!formData.numero) errors.numero = 'Número é obrigatório';
     // Email and telefone are often part of personal info but also sometimes validated in credentials or contact steps
     // For now, including basic checks here. Adjust if they are primarily validated elsewhere.
-    if (!formData.email) errors.email = 'Email é obrigatório';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email inválido';
+    if (!formData.emailLogin) errors.emailLogin = 'Email de login é obrigatório';
+    else if (!/\S+@\S+\.\S+/.test(formData.emailLogin)) errors.emailLogin = 'Email de login inválido';
+    if (!formData.passwordLogin) errors.passwordLogin = 'Senha é obrigatória';
+    else if (formData.passwordLogin.length < 6) errors.passwordLogin = 'Senha deve ter no mínimo 6 caracteres';
+    if (!formData.confirmPasswordLogin) errors.confirmPasswordLogin = 'Confirmação de senha é obrigatória';
+    else if (formData.passwordLogin !== formData.confirmPasswordLogin) errors.confirmPasswordLogin = 'As senhas não coincidem';
     if (!formData.telefone) errors.telefone = 'Telefone é obrigatório';
     // Role is validated separately in handleNext, but could be added here too if preferred
     return errors;
@@ -394,22 +392,22 @@ export default function RegisterForm() {
     const newErrors: Partial<Record<'email' | 'password' | 'confirmPassword', string>> = {};
     // Email validation can be duplicated here if this step is solely for credentials
     // Or rely on PersonalInfo validation if email is set there and not editable here
-    if (!formData.email) {
-      newErrors.email = 'E-mail é obrigatório.';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Formato de e-mail inválido.';
+    if (!formData.emailLogin) {
+      newErrors.emailLogin = 'E-mail de login é obrigatório.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.emailLogin)) {
+      newErrors.emailLogin = 'Formato de e-mail de login inválido.';
     }
 
-    if (!formData.password) {
-      newErrors.password = 'Senha é obrigatória.';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'A senha deve ter pelo menos 8 caracteres.';
+    if (!formData.passwordLogin) {
+      newErrors.passwordLogin = 'Senha é obrigatória.';
+    } else if (formData.passwordLogin.length < 6) {
+      newErrors.passwordLogin = 'Senha deve ter no mínimo 6 caracteres.';
     }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Confirmação de senha é obrigatória.';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'As senhas não coincidem.';
+    if (!formData.confirmPasswordLogin) {
+      newErrors.confirmPasswordLogin = 'Confirmação de senha é obrigatória.';
+    } else if (formData.passwordLogin !== formData.confirmPasswordLogin) {
+      newErrors.confirmPasswordLogin = 'As senhas não coincidem.';
     }
     return newErrors;
   };
@@ -419,8 +417,8 @@ export default function RegisterForm() {
     // Construct the payload with correct field names and transformations for the API
     // This should align with what your /api/register endpoint expects
     const payloadForApi = {
-      email: userData.email,
-      password: userData.password,
+      email: userData.emailLogin,
+      password: userData.passwordLogin,
       // API expects 'name', 'profession', 'phone', 'address', 'city', 'state', 'zip_code'
       name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
       profession: userData.atividadeProfissional || userData.especialidadeAtual || userData.role || '', // Choose the most appropriate field or combine
@@ -433,7 +431,7 @@ export default function RegisterForm() {
       // Original fields that might also be needed by the API directly, or are correctly named:
       firstName: userData.firstName, // Keep if API also uses it separately
       lastName: userData.lastName,   // Keep if API also uses it separately
-      cpf: userData.cpf?.replace(/\D/g, ''), 
+      cpf: userData.cpf?.replace(/\D/g, ''),
       birthDate: userData.birthDate, 
       rg: userData.rg,
       orgaoExpedidor: userData.orgaoExpedidor,
@@ -488,27 +486,6 @@ export default function RegisterForm() {
       errors = { ...errors, ...personalInfoErrors };
       if (Object.keys(personalInfoErrors).length > 0) valid = false;
 
-      // Credentials validation (only if not yet registered)
-      if (!registeredUserId) {
-        if (!formData.emailLogin) {
-          errors.emailLogin = 'E-mail de login é obrigatório.';
-          valid = false;
-        } else if (!/\S+@\S+\.\S+/.test(formData.emailLogin)) {
-          errors.emailLogin = 'E-mail de login inválido.';
-          valid = false;
-        }
-        if (!formData.passwordLogin) {
-          errors.passwordLogin = 'Senha é obrigatória.';
-          valid = false;
-        } else if (formData.passwordLogin.length < 6) {
-          errors.passwordLogin = 'Senha deve ter no mínimo 6 caracteres.';
-          valid = false;
-        }
-        if (formData.passwordLogin !== formData.confirmPasswordLogin) {
-          errors.confirmPasswordLogin = 'As senhas não coincidem.';
-          valid = false;
-        }
-      }
       console.log('REGISTER_FORM_DEBUG: Step 1 Validation - Errors:', errors, 'Valid:', valid); // <<< ADDED THIS LOG
 
     } else if (currentStep === 2) { // INFORMAÇÕES ADICIONAIS
@@ -657,8 +634,8 @@ export default function RegisterForm() {
 
       try {
         const userData = await registerUser({
-          email: formData.email,
-          password: formData.password,
+          email: formData.emailLogin,
+          password: formData.passwordLogin,
           // Pass all other necessary fields from formData for registration
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -771,7 +748,7 @@ export default function RegisterForm() {
         paymentMethod: formData.paymentMethod,
         customer: {
           name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
+          email: formData.emailLogin,
           cpfCnpj: formData.cpf.replace(/\D/g, ''),
           phone: formData.telefone.replace(/\D/g, ''),
           mobilePhone: formData.telefone.replace(/\D/g, ''), 
@@ -793,7 +770,7 @@ export default function RegisterForm() {
           ccv: formData.cardCcv,
           cpfCnpj: formData.cardCpfCnpj?.replace(/\D/g, ''), 
           phone: formData.cardPhone?.replace(/\D/g, ''), 
-          email: formData.email, 
+          email: formData.emailLogin, 
         };
       }
       console.log('Sending paymentData to /api/payments:', JSON.stringify(paymentData, null, 2));
@@ -907,7 +884,6 @@ export default function RegisterForm() {
       <h1>Register Form Diagnostic Test</h1>
       <p>Current Step: {currentStep}</p>
       <p>Loading: {loading ? 'Yes' : 'No'}</p>
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
     </div>
   );
   */

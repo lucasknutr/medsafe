@@ -28,6 +28,9 @@ interface PersonalInfoProps {
     email: string;
     telefone: string;
     role: string;
+    emailLogin: string;
+    passwordLogin: string;
+    confirmPasswordLogin: string;
   };
   onInputChange: (field: string, value: string | string[]) => void;
   errors?: {
@@ -38,6 +41,9 @@ interface PersonalInfoProps {
     graduationYear?: string;
     email?: string;
     telefone?: string;
+    emailLogin?: string;
+    passwordLogin?: string;
+    confirmPasswordLogin?: string;
   };
 }
 
@@ -513,6 +519,48 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
               required
             />
             {errors?.telefone && <p className="text-red-500 text-xs mt-1">{errors.telefone}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              E-MAIL DE LOGIN *
+            </label>
+            <input
+              type="email"
+              value={formData.emailLogin}
+              onChange={(e) => onInputChange('emailLogin', e.target.value)}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.emailLogin ? 'border-red-500' : 'border-gray-300'}`}
+              required
+            />
+            {errors?.emailLogin && <p className="text-red-500 text-xs mt-1">{errors.emailLogin}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              SENHA *
+            </label>
+            <input
+              type="password"
+              value={formData.passwordLogin}
+              onChange={(e) => onInputChange('passwordLogin', e.target.value)}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.passwordLogin ? 'border-red-500' : 'border-gray-300'}`}
+              required
+            />
+            {errors?.passwordLogin && <p className="text-red-500 text-xs mt-1">{errors.passwordLogin}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              CONFIRMAR SENHA *
+            </label>
+            <input
+              type="password"
+              value={formData.confirmPasswordLogin}
+              onChange={(e) => onInputChange('confirmPasswordLogin', e.target.value)}
+              className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.confirmPasswordLogin ? 'border-red-500' : 'border-gray-300'}`}
+              required
+            />
+            {errors?.confirmPasswordLogin && <p className="text-red-500 text-xs mt-1">{errors.confirmPasswordLogin}</p>}
           </div>
         </div>
       </div>
