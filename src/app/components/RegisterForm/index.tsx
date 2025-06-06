@@ -45,6 +45,7 @@ interface FormData {
   endereco: string;
   numero: string;
   complemento: string;
+  email: string; // REINSTATED: For contact email
   telefone: string;
   role: string;
   emailLogin: string;
@@ -118,6 +119,7 @@ const initialFormData: FormData = {
   endereco: '',
   numero: '',
   complemento: '',
+  email: '', // REINSTATED: For contact email
   telefone: '',
   role: 'SEGURADO', // Default role
   emailLogin: '',
@@ -168,7 +170,7 @@ const initialFormData: FormData = {
   couponCode: '',
 };
 
-const initialFormErrors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = {};
+const initialFormErrors: Partial<Record<keyof FormData, string>> = {};
 
 const steps = [
   { label: 'CADASTRO', icon: '📝' },
@@ -245,12 +247,38 @@ const plano500Custom: InsurancePlan = {
   customQuote: true,
 };
 
+type UserRegistrationInput = Pick<
+  FormData,
+  |
+  'emailLogin' |
+  'passwordLogin' |
+  'confirmPasswordLogin' |
+  'firstName' |
+  'lastName' |
+  'cpf' |
+  'birthDate' |
+  'rg' |
+  'orgaoExpedidor' |
+  'entidadeExerce' |
+  'atividadeProfissional' |
+  'pais' |
+  'estado' |
+  'cep' |
+  'cidade' |
+  'bairro' |
+  'endereco' |
+  'numero' |
+  'complemento' |
+  'telefone' |
+  'role'
+>;
+
 export default function RegisterForm() {
   console.log('REGISTER_FORM_DEBUG: RegisterForm component function CALLED'); // <<< ADDED THIS LOG
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>>>(initialFormErrors); 
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>(initialFormErrors); 
   const router = useRouter();
   // const [cookies, setCookie, removeCookie] = useCookies([
   //   'selected_plan', // CHANGED: Was 'selected_plan_id', now stores the object
@@ -265,7 +293,7 @@ export default function RegisterForm() {
   const [finalPrice, setFinalPrice] = useState<number | null>(null); // State to hold the price after all discounts
   const [appliedCouponDiscount, setAppliedCouponDiscount] = useState<number>(0); // e.g., 0.10 for 10%
   const [couponMessage, setCouponMessage] = useState<string>(''); // To give feedback on coupon application
-  const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
+  const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false); 
   const [loadingCoupon, setLoadingCoupon] = useState(false); // ADDED
   const [isClientMounted, setIsClientMounted] = useState(false);
@@ -377,6 +405,8 @@ export default function RegisterForm() {
     if (!formData.numero) errors.numero = 'Número é obrigatório';
     // Email and telefone are often part of personal info but also sometimes validated in credentials or contact steps
     // For now, including basic checks here. Adjust if they are primarily validated elsewhere.
+    if (!formData.email) errors.email = 'Email de contato é obrigatório'; // VALIDATE formData.email here
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email de contato inválido';
     if (!formData.emailLogin) errors.emailLogin = 'Email de login é obrigatório';
     else if (!/\S+@\S+\.\S+/.test(formData.emailLogin)) errors.emailLogin = 'Email de login inválido';
     if (!formData.passwordLogin) errors.passwordLogin = 'Senha é obrigatória';
@@ -388,10 +418,8 @@ export default function RegisterForm() {
     return errors;
   };
 
-  const validateCredentialsStep = (): Partial<Record<'email' | 'password' | 'confirmPassword', string>> => {
-    const newErrors: Partial<Record<'email' | 'password' | 'confirmPassword', string>> = {};
-    // Email validation can be duplicated here if this step is solely for credentials
-    // Or rely on PersonalInfo validation if email is set there and not editable here
+  const validateCredentialsStep = (): Partial<Record<'emailLogin' | 'passwordLogin' | 'confirmPasswordLogin', string>> => {
+    const newErrors: Partial<Record<'emailLogin' | 'passwordLogin' | 'confirmPasswordLogin', string>> = {}; // CORRECTED TYPE
     if (!formData.emailLogin) {
       newErrors.emailLogin = 'E-mail de login é obrigatório.';
     } else if (!/\S+@\S+\.\S+/.test(formData.emailLogin)) {
@@ -413,71 +441,56 @@ export default function RegisterForm() {
   };
 
   // Function to handle user registration API call
-  const registerUser = async (userData: Partial<FormData>) => {
-    // Construct the payload with correct field names and transformations for the API
-    // This should align with what your /api/register endpoint expects
+  const registerUser = async (userData: UserRegistrationInput): Promise<{ id: string, user?: { id: string; email: string; role: string} }> => {
     const payloadForApi = {
-      email: userData.emailLogin,
-      password: userData.passwordLogin,
-      // API expects 'name', 'profession', 'phone', 'address', 'city', 'state', 'zip_code'
+      email: userData.emailLogin, // API expects 'email'
+      password: userData.passwordLogin, // API expects 'password'
+      // confirmPassword is typically not sent to backend, password rules are re-validated.
       name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
-      profession: userData.atividadeProfissional || userData.especialidadeAtual || userData.role || '', // Choose the most appropriate field or combine
-      phone: userData.telefone?.replace(/\D/g, ''), // Cleaned phone number
-      address: `${userData.endereco || ''}${userData.numero ? ', ' + userData.numero : ''}${userData.complemento ? ' - ' + userData.complemento : ''}`.trim(),
+      cpf: userData.cpf.replace(/\D/g, ''),
+      birth_date: userData.birthDate ? convertDateToYMD(userData.birthDate) : undefined,
+      rg: userData.rg,
+      // orgao_expedidor: userData.orgaoExpedidor, // Uncomment if API expects this
+      // entidade_exerce: userData.entidadeExerce, // Uncomment if API expects this
+      profession: userData.atividadeProfissional || userData.entidadeExerce || userData.role || '',
+      address: `${userData.endereco || ''}, ${userData.numero || ''}${userData.complemento ? ' - ' + userData.complemento : ''}`.trim(),
       city: userData.cidade,
       state: userData.estado,
-      zip_code: userData.cep?.replace(/\D/g, ''), // Cleaned CEP
-
-      // Original fields that might also be needed by the API directly, or are correctly named:
-      firstName: userData.firstName, // Keep if API also uses it separately
-      lastName: userData.lastName,   // Keep if API also uses it separately
-      cpf: userData.cpf?.replace(/\D/g, ''),
-      birthDate: userData.birthDate, 
-      rg: userData.rg,
-      orgaoExpedidor: userData.orgaoExpedidor,
-      entidadeExerce: userData.entidadeExerce,
-      atividadeProfissional: userData.atividadeProfissional,
-      pais: userData.pais,
-      // estado, cep, cidade, bairro, endereco, numero, complemento are used in combined fields above
-      // telefone is now 'phone'
+      zip_code: userData.cep.replace(/\D/g, ''),
+      phone: userData.telefone.replace(/\D/g, ''),
       role: userData.role,
-      // Ensure all other necessary fields expected by your API are included here
-      // For example, if 'bairro' is needed separately by API:
-      // bairro: userData.bairro, 
+      // Include any other fields the /api/register endpoint expects, mapped from userData
     };
 
-    // Clean up payload: remove undefined/null to avoid sending empty fields if API doesn't like them
-    Object.keys(payloadForApi).forEach(key => {
-      const K = key as keyof typeof payloadForApi;
-      if (payloadForApi[K] === undefined || payloadForApi[K] === null || payloadForApi[K] === '') {
-        // Consider if API prefers null or empty string, or field to be absent
-        // delete payloadForApi[K]; // if API prefers fields to be absent
-      }
-    });
-
-    console.log('Sending to API:', payloadForApi); // DEBUG: Log the payload
+    console.log('REGISTER_FORM_DEBUG: Sending to /api/register:', JSON.stringify(payloadForApi, null, 2));
 
     const response = await fetch('/api/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payloadForApi),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      // Try to extract a more specific error message if available
-      const message = errorData.message || errorData.error || 'Erro ao cadastrar usuário';
-      throw new Error(message);
+      const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido ao tentar registrar.' }));
+      console.error('REGISTER_FORM_DEBUG: Registration API error response:', errorData);
+      throw new Error(errorData.message || `Erro ao registrar usuário: ${response.statusText}`);
     }
 
-    return response.json(); // Returns the user data from the API, including user.id
+    const responseData = await response.json();
+    console.log('REGISTER_FORM_DEBUG: Registration API success response:', responseData);
+
+    // Adjust based on actual API response structure for user ID
+    if (!responseData || (!responseData.id && (!responseData.user || !responseData.user.id))) {
+      console.error('REGISTER_FORM_DEBUG: Registration response missing essential ID:', responseData);
+      throw new Error('Resposta da API de registro inválida ou ID do usuário ausente.');
+    }
+    // Prefer top-level id if available, otherwise from nested user object
+    return { id: responseData.id || responseData.user.id, user: responseData.user };
   };
 
   useEffect(() => {
     console.log(`REGISTER_FORM_DEBUG: useEffect for validation CALLED - currentStep: ${currentStep}`); // <<< ADDED THIS LOG
-    let errors: Partial<Record<keyof FormData | 'email' | 'password' | 'confirmPassword', string>> = {};
+    let errors: Partial<Record<keyof FormData, string>> = {};
     let valid = true;
 
     if (currentStep === 1) { // CADASTRO
@@ -633,65 +646,47 @@ export default function RegisterForm() {
       }
 
       try {
-        const userData = await registerUser({
-          email: formData.emailLogin,
-          password: formData.passwordLogin,
-          // Pass all other necessary fields from formData for registration
+        const registrationData: UserRegistrationInput = {
+          emailLogin: formData.emailLogin,
+          passwordLogin: formData.passwordLogin,
+          confirmPasswordLogin: formData.confirmPasswordLogin,
           firstName: formData.firstName,
           lastName: formData.lastName,
-          cpf: formData.cpf.replace(/\D/g, ''), 
-          birthDate: formData.birthDate, 
+          cpf: formData.cpf, // Raw value, formatting for API is in registerUser
+          birthDate: formData.birthDate,
           rg: formData.rg,
           orgaoExpedidor: formData.orgaoExpedidor,
           entidadeExerce: formData.entidadeExerce,
           atividadeProfissional: formData.atividadeProfissional,
           pais: formData.pais,
           estado: formData.estado,
-          cep: formData.cep.replace(/\D/g, ''), 
+          cep: formData.cep, // Raw value
           cidade: formData.cidade,
           bairro: formData.bairro,
           endereco: formData.endereco,
           numero: formData.numero,
           complemento: formData.complemento,
-          telefone: formData.telefone.replace(/\D/g, ''), 
+          telefone: formData.telefone, // Raw value
           role: formData.role,
-          // Include any other fields from AdditionalInfo if they are part of initial registration
-          // e.g., residenceSince, fezResidencia, etc., if your API needs them at this stage.
-        });
+        };
 
-        if (!userData || !userData.user || !userData.user.id || !userData.user.email || !userData.user.role) {
-          // Ensure role is also present for cookie setting
-          console.error('Registration response missing essential user data:', userData);
-          throw new Error('Usuário não foi criado corretamente ou dados essenciais (id, email, role) não retornados.');
-        }
-        setRegisteredUserId(userData.user.id);
+        const apiResponse = await registerUser(registrationData);
 
-        // Manually set cookies, similar to the login page logic
-        try {
-          console.log('Attempting to set cookies for user:', userData.user.email, 'ID:', userData.user.id, 'Role:', userData.user.role);
-          // setCookie('user_id', userData.user.id, { path: '/' });
-          // setCookie('email', userData.user.email, { path: '/' });
-          // setCookie('role', userData.user.role, { path: '/' }); // Crucial for session consistency
-          console.log('Cookies set successfully.');
+        console.log('REGISTER_FORM_DEBUG: User registered, API Response ID:', apiResponse.id);
+        setRegisteredUserId(apiResponse.id); // Store registered user ID
 
-          // NEW LOGIC: Check if a plan was selected during registration
-          if (selectedPlan && selectedPlan.id) {
-            console.log(`Plan selected (ID: ${selectedPlan.id}), redirecting to /pagamento`);
-            router.push(`/pagamento?planId=${selectedPlan.id}`);
-            // setLoading(false) is not strictly necessary here if navigating away immediately,
-            // but good practice if there's any delay or potential for not navigating.
-            // However, since router.push can take a moment, we might not want to set loading false yet.
-            return; // Important to prevent setCurrentStep if redirecting
-          } else {
-            // No plan selected, proceed to simplified Step 3
-            console.log('No plan selected during registration, proceeding to simplified Step 3.');
-            setCurrentStep(currentStep + 1);
-          }
-
-        } catch (cookieError) {
-          console.error('Error setting cookies:', cookieError);
-          setError('Falha ao configurar a sessão após o registro. Por favor, tente fazer login manualmente.');
-          // Do not proceed to next step if cookies can't be set
+        // NEW LOGIC: Check if a plan was selected during registration
+        if (selectedPlan && selectedPlan.id) {
+          console.log(`Plan selected (ID: ${selectedPlan.id}), redirecting to /pagamento`);
+          router.push(`/pagamento?planId=${selectedPlan.id}`);
+          // setLoading(false) is not strictly necessary here if navigating away immediately,
+          // but good practice if there's any delay or potential for not navigating.
+          // However, since router.push can take a moment, we might not want to set loading false yet.
+          return; // Important to prevent setCurrentStep if redirecting
+        } else {
+          // No plan selected, proceed to simplified Step 3
+          console.log('No plan selected during registration, proceeding to simplified Step 3.');
+          setCurrentStep(currentStep + 1);
         }
 
       } catch (error) {
@@ -748,7 +743,7 @@ export default function RegisterForm() {
         paymentMethod: formData.paymentMethod,
         customer: {
           name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.emailLogin,
+          email: formData.email, // Use contact email for payment customer info
           cpfCnpj: formData.cpf.replace(/\D/g, ''),
           phone: formData.telefone.replace(/\D/g, ''),
           mobilePhone: formData.telefone.replace(/\D/g, ''), 
@@ -770,7 +765,7 @@ export default function RegisterForm() {
           ccv: formData.cardCcv,
           cpfCnpj: formData.cardCpfCnpj?.replace(/\D/g, ''), 
           phone: formData.cardPhone?.replace(/\D/g, ''), 
-          email: formData.emailLogin, 
+          email: formData.email, // Use contact email for card holder info
         };
       }
       console.log('Sending paymentData to /api/payments:', JSON.stringify(paymentData, null, 2));

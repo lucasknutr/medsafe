@@ -10,12 +10,26 @@ interface InsurancePlan {
   is_active: boolean;
 }
 
+// Define the expected structure for the part of formData this component uses
+interface PlanPaymentFormData {
+  paymentMethod?: 'BOLETO' | 'CARTAO' | string; // Allow string for flexibility
+  cardHolderName?: string;
+  cardNumber?: string;
+  cardExpiryMonth?: string;
+  cardExpiryYear?: string;
+  cardCcv?: string;
+  // couponCode is handled as a direct prop and via onInputChange('couponCode', ...)
+}
+
 interface PlanAndPaymentProps {
   availablePlans: InsurancePlan[];
   selectedPlan: InsurancePlan | null;
   onPlanChange: (plan: InsurancePlan | null) => void;
-  formData: any;
-  onInputChange: (field: string, value: any) => void;
+  formData: PlanPaymentFormData; // Use the specific type
+  onInputChange: (
+    field: keyof PlanPaymentFormData | 'couponCode', // 'couponCode' is special here
+    value: string // Assuming values for these fields are strings
+  ) => void;
   finalPrice: number | null;
   couponCode?: string;
   onApplyCoupon: () => void;

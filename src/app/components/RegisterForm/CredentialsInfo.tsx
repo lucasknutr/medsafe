@@ -3,15 +3,15 @@ import { TextField } from '@mui/material';
 
 interface CredentialsInfoProps {
   formData: {
-    email: string;
-    password: string;
-    confirmPassword: string;
+    emailLogin: string;
+    passwordLogin: string;
+    confirmPasswordLogin: string;
   };
-  onInputChange: (field: string, value: string) => void;
+  onInputChange: (field: 'emailLogin' | 'passwordLogin' | 'confirmPasswordLogin', value: string) => void;
   errors?: {
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
+    emailLogin?: string;
+    passwordLogin?: string;
+    confirmPasswordLogin?: string;
   };
 }
 
@@ -23,14 +23,14 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
       <div>
         <TextField
           fullWidth
-          label="E-mail"
+          label="E-mail de Login"
           type="email"
-          name="email"
-          value={formData.email}
-          onChange={(e) => onInputChange('email', e.target.value)}
+          name="emailLogin"
+          value={formData.emailLogin}
+          onChange={(e) => onInputChange('emailLogin', e.target.value)}
           required
-          error={!!errors?.email}
-          helperText={errors?.email || ''}
+          error={!!errors?.emailLogin}
+          helperText={errors?.emailLogin || ''}
         />
       </div>
 
@@ -39,12 +39,12 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
           fullWidth
           label="Senha"
           type="password"
-          name="password"
-          value={formData.password}
-          onChange={(e) => onInputChange('password', e.target.value)}
+          name="passwordLogin"
+          value={formData.passwordLogin}
+          onChange={(e) => onInputChange('passwordLogin', e.target.value)}
           required
-          error={!!errors?.password}
-          helperText={errors?.password || ''}
+          error={!!errors?.passwordLogin}
+          helperText={errors?.passwordLogin || ''}
           // You might want to style helperText directly if MUI default red is not what you want
           // FormHelperTextProps={{ style: { color: 'red' } }} // Example
         />
@@ -55,12 +55,12 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
           fullWidth
           label="Confirmar Senha"
           type="password"
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={(e) => onInputChange('confirmPassword', e.target.value)}
+          name="confirmPasswordLogin"
+          value={formData.confirmPasswordLogin}
+          onChange={(e) => onInputChange('confirmPasswordLogin', e.target.value)}
           required
-          error={!!errors?.confirmPassword}
-          helperText={errors?.confirmPassword || ''}
+          error={!!errors?.confirmPasswordLogin}
+          helperText={errors?.confirmPasswordLogin || ''}
         />
       </div>
     </div>
