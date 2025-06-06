@@ -204,20 +204,52 @@ export async function createPayment(data: PaymentData) {
     const asaasPayment: AsaasPaymentResponse = await asaasClient.createPayment(paymentPayload);
     console.log('[createPayment] Asaas payment created:', asaasPayment);
 
+    // Determine initial insurance status based on payment method and Asaas response
+    let insuranceStatus: string;
+    if (data.paymentMethod === 'BOLETO') {
+      insuranceStatus = 'PENDING_PAYMENT';
+    } else if (data.paymentMethod === 'CREDIT_CARD') {
+      switch (asaasPayment.status) {
+        case 'CONFIRMED':
+        case 'RECEIVED':
+        case 'RECEIVED_IN_CASH':
+          insuranceStatus = 'PENDING_DOCUMENT'; // Payment successful, awaiting document
+          break;
+        case 'PENDING': // Payment is pending confirmation from acquirer/bank
+          insuranceStatus = 'PENDING_PAYMENT';
+          break;
+        default:
+          // For FAILED, CANCELED, OVERDUE, etc., or unexpected statuses
+          insuranceStatus = 'PENDING_PAYMENT'; // Default to a pending state, requires review/webhook update
+          console.warn(`[createPayment] Credit card payment Asaas status: ${asaasPayment.status}. Setting insurance to PENDING_PAYMENT.`);
+          break;
+      }
+    } else {
+      insuranceStatus = 'PENDING'; // Fallback for unknown payment methods
+      console.warn(`[createPayment] Unknown payment method: ${data.paymentMethod}. Setting insurance to PENDING.`);
+    }
+
     // --- START: Upsert User's Insurance Policy ---
-    console.log(`[createPayment] Upserting insurance policy for user ${user.id} with plan ${plan.name}`);
+    console.log(`[createPayment] Upserting insurance policy for user ${user.id} with plan ${plan.name} and status ${insuranceStatus}`);
     const userInsurancePolicy = await prisma.insurance.upsert({
       where: {
         userId: user.id, // userId is @unique in Insurance model
       },
       update: {
         plan: plan.name, // Update to the new plan's name from InsurancePlan
-        status: 'ACTIVE', // Set status (can be refined based on asaasPayment.status later)
+        status: insuranceStatus, // Use dynamically determined status
+        planPriceSnapshot: priceSnapshot, // Store the price at the time of subscription
+        asaasPaymentId: asaasPayment.id, // Link to the Asaas payment
+        startDate: new Date(), // Set start date, can be adjusted by admin/webhook
       },
       create: {
         userId: user.id,
         plan: plan.name, // Set to the new plan's name from InsurancePlan
-        status: 'ACTIVE', // Set status
+        status: insuranceStatus, // Use dynamically determined status
+        planPriceSnapshot: priceSnapshot,
+        asaasPaymentId: asaasPayment.id,
+        startDate: new Date(),
+        // endDate and other fields can be set later or have defaults
       },
     });
     console.log('[createPayment] User insurance policy upserted:', userInsurancePolicy);

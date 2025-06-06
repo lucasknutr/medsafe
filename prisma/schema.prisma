@@ -35,14 +35,17 @@ model User {
 }
 
 model Insurance {
-  id           Int           @id @default(autoincrement())
-  userId       Int           @unique
-  plan         String
-  status       String
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  user         User          @relation(fields: [userId], references: [id])
-  transactions Transaction[]
+  id                Int           @id @default(autoincrement())
+  userId            Int           @unique
+  user              User          @relation(fields: [userId], references: [id])
+  plan              String
+  status            String
+  planPriceSnapshot Decimal?
+  asaasPaymentId    String?
+  startDate         DateTime?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  transactions      Transaction[]
   @@schema("public")
 }
 
