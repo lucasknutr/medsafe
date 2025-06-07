@@ -61,6 +61,10 @@ interface FormData {
   comprovanteResidencia: File | null;
   crmFile: File | null;
   termsAgreed: boolean;
+  areaAtuacao?: string; 
+  especialidade?: string;
+  anoConclusaoCurso?: string;
+  instituicaoEnsino?: string;
 }
 
 const initialFormData: FormData = {
@@ -105,6 +109,10 @@ const initialFormData: FormData = {
   comprovanteResidencia: null,
   crmFile: null,
   termsAgreed: false,
+  areaAtuacao: '',
+  especialidade: '',
+  anoConclusaoCurso: '',
+  instituicaoEnsino: '',
 };
 
 const initialFormErrors: Partial<Record<keyof FormData, string>> = {};
@@ -264,13 +272,24 @@ export default function RegisterForm(): React.ReactElement {
         if (!formData.cidade?.trim()) newErrors.cidade = 'Cidade é obrigatória.';
         if (!formData.estado?.trim()) newErrors.estado = 'Estado é obrigatório.';
         // formData.pais has a default, so validation might not be strictly needed unless it can be cleared
-        if (!formData.carteiraProfissional?.trim()) newErrors.carteiraProfissional = 'Número do conselho (CRM, CRO, etc.) é obrigatório.';
         
         console.log('REGISTER_FORM_DEBUG: Step 1 newErrors:', JSON.parse(JSON.stringify(newErrors))); // Log errors for step 1
         break;
 
-      case 2: // Informações Adicionais - Placeholder for now
-        // Example: if (formData.fezResidencia === 'SIM' && !formData.especialidadeAtual?.trim()) newErrors.especialidadeAtual = 'Especialidade é obrigatória se fez residência.';
+      case 2: // Informações Adicionais
+        // Example validations for Step 2 - adapt as needed
+        if (!formData.areaAtuacao?.trim()) newErrors.areaAtuacao = 'Área de atuação é obrigatória.';
+        if (!formData.especialidade?.trim()) newErrors.especialidade = 'Especialidade é obrigatória.';
+        if (!formData.anoConclusaoCurso?.trim()) {
+          newErrors.anoConclusaoCurso = 'Ano de conclusão do curso é obrigatório.';
+        } else if (!/^\d{4}$/.test(formData.anoConclusaoCurso)) {
+          newErrors.anoConclusaoCurso = 'Ano de conclusão inválido. Use AAAA.';
+        }
+        if (!formData.instituicaoEnsino?.trim()) newErrors.instituicaoEnsino = 'Instituição de ensino é obrigatória.';
+        if (!formData.carteiraProfissional?.trim()) newErrors.carteiraProfissional = 'Número do conselho (CRM, CRO, etc.) é obrigatório.'; // MOVED HERE
+
+        // Add other validations for Step 2 as they are defined
+        console.log('REGISTER_FORM_DEBUG: Step 2 newErrors:', JSON.parse(JSON.stringify(newErrors)));
         break;
 
       case 3: // Credenciais de Acesso
