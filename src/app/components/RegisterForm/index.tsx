@@ -278,14 +278,14 @@ export default function RegisterForm(): React.ReactElement {
 
       case 2: // Informações Adicionais
         // Example validations for Step 2 - adapt as needed
-        if (!formData.areaAtuacao?.trim()) newErrors.areaAtuacao = 'Área de atuação é obrigatória.';
-        if (!formData.especialidade?.trim()) newErrors.especialidade = 'Especialidade é obrigatória.';
-        if (!formData.anoConclusaoCurso?.trim()) {
-          newErrors.anoConclusaoCurso = 'Ano de conclusão do curso é obrigatório.';
-        } else if (!/^\d{4}$/.test(formData.anoConclusaoCurso)) {
-          newErrors.anoConclusaoCurso = 'Ano de conclusão inválido. Use AAAA.';
-        }
-        if (!formData.instituicaoEnsino?.trim()) newErrors.instituicaoEnsino = 'Instituição de ensino é obrigatória.';
+        // if (!formData.areaAtuacao?.trim()) newErrors.areaAtuacao = 'Área de atuação é obrigatória.'; // Optional for now
+        // if (!formData.especialidade?.trim()) newErrors.especialidade = 'Especialidade é obrigatória.'; // Optional for now
+        // if (!formData.anoConclusaoCurso?.trim()) { // Optional for now
+        //   newErrors.anoConclusaoCurso = 'Ano de conclusão do curso é obrigatório.';
+        // } else if (!/^\d{4}$/.test(formData.anoConclusaoCurso)) {
+        //   newErrors.anoConclusaoCurso = 'Ano de conclusão inválido. Use AAAA.';
+        // }
+        // if (!formData.instituicaoEnsino?.trim()) newErrors.instituicaoEnsino = 'Instituição de ensino é obrigatória.'; // Optional for now
         if (!formData.carteiraProfissional?.trim()) newErrors.carteiraProfissional = 'Número do conselho (CRM, CRO, etc.) é obrigatório.'; // MOVED HERE
 
         // Add other validations for Step 2 as they are defined
