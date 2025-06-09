@@ -176,7 +176,7 @@ export default function RegisterForm(): React.ReactElement {
       name: `${data.firstName} ${data.lastName}`,
       email: data.email,
       cpf: data.cpf,
-      profession: data.especialidade || '',
+      profession: data.especialidadeAtual,
       phone: data.telefone,
       address: `${data.endereco}, ${data.numero}${data.complemento ? `, ${data.complemento}` : ''} - ${data.bairro}`,
       city: data.cidade,
