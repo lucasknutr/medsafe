@@ -1,15 +1,14 @@
 import React from 'react';
-import { TextField } from '@mui/material';
+import { TextField, Typography } from '@mui/material';
 
 interface CredentialsInfoProps {
   formData: {
-    emailLogin: string;
+    email: string;
     passwordLogin: string;
     confirmPasswordLogin: string;
   };
-  onInputChange: (field: 'emailLogin' | 'passwordLogin' | 'confirmPasswordLogin', value: string) => void;
+  onInputChange: (field: 'passwordLogin' | 'confirmPasswordLogin', value: string) => void;
   errors?: {
-    emailLogin?: string;
     passwordLogin?: string;
     confirmPasswordLogin?: string;
   };
@@ -21,16 +20,17 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
       <h2 className="text-2xl font-semibold mb-6">Credenciais de Acesso</h2>
       
       <div>
+        <Typography variant="subtitle1" gutterBottom>
+          E-mail para Login (definido no Passo 1):
+        </Typography>
         <TextField
           fullWidth
           label="E-mail de Login"
           type="email"
-          name="emailLogin"
-          value={formData.emailLogin}
-          onChange={(e) => onInputChange('emailLogin', e.target.value)}
+          name="email"
+          value={formData.email}
+          disabled
           required
-          error={!!errors?.emailLogin}
-          helperText={errors?.emailLogin || ''}
         />
       </div>
 
@@ -45,8 +45,6 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
           required
           error={!!errors?.passwordLogin}
           helperText={errors?.passwordLogin || ''}
-          // You might want to style helperText directly if MUI default red is not what you want
-          // FormHelperTextProps={{ style: { color: 'red' } }} // Example
         />
       </div>
 

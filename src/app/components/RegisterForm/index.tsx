@@ -46,7 +46,6 @@ interface FormData {
   email: string; 
   telefone: string;
   role: string; 
-  emailLogin: string; 
   passwordLogin: string;
   confirmPasswordLogin: string;
   penalRestritiva: string;
@@ -94,7 +93,6 @@ const initialFormData: FormData = {
   email: '', 
   telefone: '',
   role: 'SEGURADO', 
-  emailLogin: '', 
   passwordLogin: '',
   confirmPasswordLogin: '',
   penalRestritiva: 'NAO',
@@ -164,7 +162,7 @@ export default function RegisterForm(): React.ReactElement {
   const registerUser = async (data: UserRegistrationInput, planId: string | null): Promise<any> => {
     console.log('REGISTER_FORM_DEBUG: registerUser called with data:', data, 'and planId:', planId);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    return { success: true, userId: 'mock-user-id', user: { email: data.emailLogin } }; 
+    return { success: true, userId: 'mock-user-id', user: { email: data.email } }; 
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -200,7 +198,7 @@ export default function RegisterForm(): React.ReactElement {
 
         const signInResponse = await signIn('credentials', {
           redirect: false,
-          email: formData.emailLogin,
+          email: formData.email,
           password: formData.passwordLogin,
         });
         console.log('REGISTER_FORM_DEBUG: Sign-in response:', signInResponse);
@@ -293,11 +291,6 @@ export default function RegisterForm(): React.ReactElement {
         break;
 
       case 3: // Credenciais de Acesso
-        if (!formData.emailLogin?.trim()) {
-          newErrors.emailLogin = 'Email de login é obrigatório.';
-        } else if (!emailRegex.test(formData.emailLogin)) {
-          newErrors.emailLogin = 'Formato de email de login inválido.';
-        }
         if (!formData.passwordLogin?.trim()) {
           newErrors.passwordLogin = 'Senha é obrigatória.';
         } else if (formData.passwordLogin.length < 6) { // Example: min 6 chars

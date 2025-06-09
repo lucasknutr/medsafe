@@ -39,10 +39,7 @@ export default function ComunicarProcessoPage() {
         setContactPhone('');
         setDescription('');
         setFile(null);
-        const fileInput = e.target as HTMLFormElement;
-        fileInput.reset();
-      } else {
-        const errorData = await response.json().catch(() => null);
+        const fileInput = e.target as HTMLFormElement; fileInput.reset(); } else { const errorData = await response.json().catch(() => null);
         alert(`Erro ao comunicar processo: ${errorData?.message || response.statusText}`);
       }
     } catch (error) {
