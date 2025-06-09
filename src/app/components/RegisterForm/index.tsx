@@ -66,6 +66,15 @@ interface FormData {
   instituicaoEnsino?: string;
 }
 
+interface RegistrationResponse {
+  success: boolean;
+  userId?: string;
+  user?: { email: string };
+  message?: string;
+  error?: string;
+  missingFields?: string[];
+}
+
 const initialFormData: FormData = {
   firstName: '',
   lastName: '',
@@ -159,10 +168,56 @@ export default function RegisterForm(): React.ReactElement {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, [setFormData]);
 
-  const registerUser = async (data: UserRegistrationInput, planId: string | null): Promise<any> => {
-    console.log('REGISTER_FORM_DEBUG: registerUser called with data:', data, 'and planId:', planId);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { success: true, userId: 'mock-user-id', user: { email: data.email } }; 
+  const registerUser = async (data: UserRegistrationInput): Promise<RegistrationResponse> => {
+    console.log('REGISTER_FORM_DEBUG: Received data for registration:', data);
+
+    // Transform frontend data to backend payload structure
+    const payload = {
+      name: `${data.firstName} ${data.lastName}`,
+      email: data.email,
+      cpf: data.cpf,
+      profession: data.especialidade || '',
+      phone: data.telefone,
+      address: `${data.endereco}, ${data.numero}${data.complemento ? `, ${data.complemento}` : ''} - ${data.bairro}`,
+      city: data.cidade,
+      state: data.estado,
+      zip_code: data.cep,
+      password: data.passwordLogin,
+    };
+
+    console.log('REGISTER_FORM_DEBUG: Sending payload to backend /api/register:', payload);
+
+    try {
+      const response = await fetch('/api/register', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload), 
+      });
+
+      const responseData: RegistrationResponse = await response.json();
+
+      if (!response.ok) {
+        console.error('REGISTER_FORM_DEBUG: Registration API error response:', responseData);
+        return {
+          success: false,
+          message: responseData.message || responseData.error || `Error: ${response.status} ${response.statusText}`,
+          error: responseData.error,
+          missingFields: responseData.missingFields,
+        };
+      }
+
+      console.log('REGISTER_FORM_DEBUG: Registration API success response:', responseData);
+      return responseData; 
+
+    } catch (error: any) {
+      console.error('REGISTER_FORM_DEBUG: Network or parsing error during registration:', error);
+      return {
+        success: false,
+        message: error.message || 'An unexpected error occurred during registration.',
+      };
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -181,7 +236,6 @@ export default function RegisterForm(): React.ReactElement {
     setError(null);
 
     try {
-      // Prepare data for registration, excluding unnecessary fields
       const {
         comprovanteResidencia, 
         crmFile, 
@@ -190,7 +244,7 @@ export default function RegisterForm(): React.ReactElement {
         ...registrationData 
       } = formData;
 
-      const registrationResponse = await registerUser(registrationData, planIdFromUrl);
+      const registrationResponse = await registerUser(registrationData);
       console.log('REGISTER_FORM_DEBUG: Registration response:', registrationResponse);
 
       if (registrationResponse && registrationResponse.success && registrationResponse.userId) {
@@ -232,16 +286,13 @@ export default function RegisterForm(): React.ReactElement {
 
   useEffect(() => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
-    // Basic email validation regex
     const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-    // Basic CPF validation: 11 digits (can be improved with actual CPF validation algorithm)
     const cpfRegex = /^\d{11}$/;
-    // Date validation for DD/MM/YYYY or DD-MM-YYYY
     const dateRegex = /^(\d{2})[-/.](\d{2})[-/.](\d{4})$/;
 
     switch (currentStep) {
-      case 1: // Informações Pessoais
-        console.log('REGISTER_FORM_DEBUG: Validating Step 1. formData:', JSON.parse(JSON.stringify(formData))); // Log formData for step 1
+      case 1: 
+        console.log('REGISTER_FORM_DEBUG: Validating Step 1. formData:', JSON.parse(JSON.stringify(formData)));
 
         if (!formData.firstName?.trim()) newErrors.firstName = 'Nome é obrigatório.';
         if (!formData.lastName?.trim()) newErrors.lastName = 'Sobrenome é obrigatório.';
@@ -262,38 +313,27 @@ export default function RegisterForm(): React.ReactElement {
         } else if (!emailRegex.test(formData.email)) {
           newErrors.email = 'Formato de email inválido.';
         }
-        if (!formData.telefone?.trim()) newErrors.telefone = 'Telefone é obrigatório.'; // Add more specific phone validation if needed
+        if (!formData.telefone?.trim()) newErrors.telefone = 'Telefone é obrigatório.';
         if (!formData.cep?.trim()) newErrors.cep = 'CEP é obrigatório.';
         if (!formData.endereco?.trim()) newErrors.endereco = 'Endereço é obrigatório.';
         if (!formData.numero?.trim()) newErrors.numero = 'Número é obrigatório.';
         if (!formData.bairro?.trim()) newErrors.bairro = 'Bairro é obrigatório.';
         if (!formData.cidade?.trim()) newErrors.cidade = 'Cidade é obrigatória.';
         if (!formData.estado?.trim()) newErrors.estado = 'Estado é obrigatório.';
-        // formData.pais has a default, so validation might not be strictly needed unless it can be cleared
         
-        console.log('REGISTER_FORM_DEBUG: Step 1 newErrors:', JSON.parse(JSON.stringify(newErrors))); // Log errors for step 1
+        console.log('REGISTER_FORM_DEBUG: Step 1 newErrors:', JSON.parse(JSON.stringify(newErrors)));
         break;
 
-      case 2: // Informações Adicionais
-        // Example validations for Step 2 - adapt as needed
-        // if (!formData.areaAtuacao?.trim()) newErrors.areaAtuacao = 'Área de atuação é obrigatória.'; // Optional for now
-        // if (!formData.especialidade?.trim()) newErrors.especialidade = 'Especialidade é obrigatória.'; // Optional for now
-        // if (!formData.anoConclusaoCurso?.trim()) { // Optional for now
-        //   newErrors.anoConclusaoCurso = 'Ano de conclusão do curso é obrigatório.';
-        // } else if (!/^\d{4}$/.test(formData.anoConclusaoCurso)) {
-        //   newErrors.anoConclusaoCurso = 'Ano de conclusão inválido. Use AAAA.';
-        // }
-        // if (!formData.instituicaoEnsino?.trim()) newErrors.instituicaoEnsino = 'Instituição de ensino é obrigatória.'; // Optional for now
-        if (!formData.carteiraProfissional?.trim()) newErrors.carteiraProfissional = 'Número do conselho (CRM, CRO, etc.) é obrigatório.'; // MOVED HERE
-
-        // Add other validations for Step 2 as they are defined
+      case 2: 
+        if (!formData.carteiraProfissional?.trim()) newErrors.carteiraProfissional = 'Número do conselho (CRM, CRO, etc.) é obrigatório.';
+        
         console.log('REGISTER_FORM_DEBUG: Step 2 newErrors:', JSON.parse(JSON.stringify(newErrors)));
         break;
 
-      case 3: // Credenciais de Acesso
+      case 3: 
         if (!formData.passwordLogin?.trim()) {
           newErrors.passwordLogin = 'Senha é obrigatória.';
-        } else if (formData.passwordLogin.length < 6) { // Example: min 6 chars
+        } else if (formData.passwordLogin.length < 6) { 
           newErrors.passwordLogin = 'Senha deve ter no mínimo 6 caracteres.';
         }
         if (!formData.confirmPasswordLogin?.trim()) {
@@ -303,19 +343,20 @@ export default function RegisterForm(): React.ReactElement {
         }
         break;
 
-      case 4: // Termos e Condições
+      case 4: 
         console.log('REGISTER_FORM_DEBUG: Validating Step 4. formData.termsAgreed:', formData.termsAgreed);
         if (!formData.termsAgreed) {
           newErrors.termsAgreed = 'Você deve aceitar os Termos e Condições para continuar.';
         }
         break;
 
-      // No validation needed for step 5 (Concluído)
+      default:
+        break;
     }
 
     setFormErrors(newErrors);
     setIsStepValid(Object.keys(newErrors).length === 0);
-    console.log('REGISTER_FORM_DEBUG: Final isStepValid:', Object.keys(newErrors).length === 0, 'Errors:', JSON.parse(JSON.stringify(newErrors))); // Log final validation status
+    console.log('REGISTER_FORM_DEBUG: Final isStepValid:', Object.keys(newErrors).length === 0, 'Errors:', JSON.parse(JSON.stringify(newErrors)));
   }, [formData, currentStep]);
 
   useEffect(() => {
@@ -329,9 +370,9 @@ export default function RegisterForm(): React.ReactElement {
           console.log('REGISTER_FORM_DEBUG: Redirecting to /');
           router.push('/');
         }
-      }, 3000); // 3-second delay
+      }, 3000); 
 
-      return () => clearTimeout(timer); // Cleanup timer
+      return () => clearTimeout(timer); 
     }
   }, [currentStep, planIdFromUrl, router, MAX_STEPS]);
 
@@ -450,7 +491,7 @@ export default function RegisterForm(): React.ReactElement {
             >
               Anterior
             </Button>
-            {currentStep < MAX_STEPS - 1 && ( // Steps 1, 2, 3
+            {currentStep < MAX_STEPS - 1 && ( 
               <Button
                 variant="contained"
                 color="primary"
@@ -460,7 +501,7 @@ export default function RegisterForm(): React.ReactElement {
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Próximo'}
               </Button>
             )}
-            {currentStep === MAX_STEPS - 1 && ( // Step 4 (Termos e Condições)
+            {currentStep === MAX_STEPS - 1 && ( 
               <Button
                 type="submit"
                 variant="contained"
@@ -470,7 +511,6 @@ export default function RegisterForm(): React.ReactElement {
                 {loading ? <CircularProgress size={24} color="inherit" /> : 'Finalizar Cadastro e Aceitar Termos'}
               </Button>
             )}
-            {/* No next/submit button on Concluído step (currentStep === MAX_STEPS) */}
           </Box>
         </form>
       </Paper>
