@@ -66,10 +66,16 @@ interface FormData {
   instituicaoEnsino?: string;
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  name?: string;
+}
+
 interface RegistrationResponse {
   success: boolean;
   userId?: string;
-  user?: { email: string };
+  user?: UserData;
   message?: string;
   error?: string;
   missingFields?: string[];
@@ -196,7 +202,7 @@ export default function RegisterForm(): React.ReactElement {
         body: JSON.stringify(payload), 
       });
 
-      const responseData: RegistrationResponse = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
         console.error('REGISTER_FORM_DEBUG: Registration API error response:', responseData);
@@ -209,7 +215,12 @@ export default function RegisterForm(): React.ReactElement {
       }
 
       console.log('REGISTER_FORM_DEBUG: Registration API success response:', responseData);
-      return responseData; 
+      return {
+        success: true,
+        message: responseData.message,
+        user: responseData.user as UserData,
+        userId: responseData.user?.id,
+      };
 
     } catch (error: any) {
       console.error('REGISTER_FORM_DEBUG: Network or parsing error during registration:', error);
