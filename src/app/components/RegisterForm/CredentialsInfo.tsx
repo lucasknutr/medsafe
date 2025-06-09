@@ -25,7 +25,7 @@ const CredentialsInfo: React.FC<CredentialsInfoProps> = ({ formData, onInputChan
         </Typography>
         <TextField
           fullWidth
-          label="E-mail de Login"
+          label="E-mail"
           type="email"
           name="email"
           value={formData.email}

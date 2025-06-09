@@ -304,6 +304,7 @@ export default function RegisterForm(): React.ReactElement {
         break;
 
       case 4: // Termos e Condições
+        console.log('REGISTER_FORM_DEBUG: Validating Step 4. formData.termsAgreed:', formData.termsAgreed);
         if (!formData.termsAgreed) {
           newErrors.termsAgreed = 'Você deve aceitar os Termos e Condições para continuar.';
         }
