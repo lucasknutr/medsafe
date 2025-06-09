@@ -261,28 +261,42 @@ export default function RegisterForm(): React.ReactElement {
       if (registrationResponse && registrationResponse.success && registrationResponse.userId) {
         setRegisteredUserId(registrationResponse.userId);
 
-        const signInResponse = await signIn('credentials', {
-          redirect: false,
-          email: formData.email,
-          password: formData.passwordLogin,
-        });
-        console.log('REGISTER_FORM_DEBUG: Sign-in response:', signInResponse);
+        // Send documents via email
+        const documentsFormData = new FormData();
+        if (formData.crmFile) {
+          documentsFormData.append('crmFile', formData.crmFile);
+        }
+        if (formData.comprovanteResidencia) {
+          documentsFormData.append('comprovanteResidencia', formData.comprovanteResidencia);
+        }
+        documentsFormData.append('userName', `${formData.firstName} ${formData.lastName}`);
+        documentsFormData.append('userEmail', formData.email);
+        documentsFormData.append('userId', registrationResponse.userId);
 
-        if (signInResponse && !signInResponse.error) {
-          console.log('REGISTER_FORM_DEBUG: Sign-in successful, proceeding to next step/redirect.');
-          if (currentStep === MAX_STEPS -1) { 
-            setCurrentStep(currentStep + 1);
-          } else {
-            if (planIdFromUrl) {
-              router.push(`/pagamento?planId=${planIdFromUrl}`);
+        // Only attempt to send if there are files to send
+        if (formData.crmFile || formData.comprovanteResidencia) {
+          try {
+            const sendDocsResponse = await fetch('/api/send-registration-documents', {
+              method: 'POST',
+              body: documentsFormData,
+            });
+            const sendDocsResult = await sendDocsResponse.json();
+            if (!sendDocsResponse.ok) {
+              console.error('REGISTER_FORM_DEBUG: Error sending documents:', sendDocsResult.error || sendDocsResult.message);
+              // Optionally, set an error state here or notify the user, 
+              // but for now, we'll just log it and proceed to the success step.
             } else {
-              router.push('/');
+              console.log('REGISTER_FORM_DEBUG: Documents sent successfully:', sendDocsResult.message);
             }
+          } catch (docError: any) {
+            console.error('REGISTER_FORM_DEBUG: Failed to send documents:', docError.message);
+            // Optionally, handle this error more visibly
           }
         } else {
-          setError(`Erro ao fazer login: ${signInResponse?.error || 'Erro desconhecido'}`);
-          console.error('REGISTER_FORM_DEBUG: Sign-in error:', signInResponse?.error);
+          console.log('REGISTER_FORM_DEBUG: No documents to send.');
         }
+
+        setCurrentStep(MAX_STEPS); // Move to 'Concluído' step
       } else {
         setError(registrationResponse?.message || 'Erro ao registrar usuário. Tente novamente.');
         console.error('REGISTER_FORM_DEBUG: Registration error:', registrationResponse?.message);
@@ -292,6 +306,87 @@ export default function RegisterForm(): React.ReactElement {
       console.error('REGISTER_FORM_DEBUG: Unexpected error in handleSubmit:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNext = async () => {
+    setError(null); 
+    if (!isStepValid) {
+      setError('Por favor, corrija os erros no formulário.');
+      return;
+    }
+    if (currentStep < MAX_STEPS - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const renderStep = (): React.ReactElement | null => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <PersonalInfo
+            formData={formData}
+            onInputChange={updateFormData}
+            errors={formErrors}
+          />
+        );
+      case 2:
+        return (
+          <AdditionalInfo
+            formData={formData}
+            onInputChange={updateFormData}
+          />
+        );
+      case 3:
+        return (
+          <CredentialsInfo
+            formData={formData}
+            onInputChange={updateFormData}
+            errors={formErrors}
+          />
+        );
+      case 4:
+        return (
+          <TermsAndConditions
+            acceptedTerms={formData.termsAgreed}
+            onInputChange={updateFormData}
+          />
+        );
+      case 5:
+        return (
+          <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
+            <Typography variant="h5" className="mb-4 text-green-700">
+              Cadastro Realizado com Sucesso!
+            </Typography>
+            <Typography className="mb-2">
+              Seu ID de usuário é: {registeredUserId}
+            </Typography>
+            <Typography className="mb-4">
+              {planIdFromUrl ? 'Prossiga para o pagamento.' : 'Clique abaixo para fazer login.'}
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                if (planIdFromUrl) {
+                  router.push(`/pagamento?planId=${planIdFromUrl}`);
+                } else {
+                  signIn(undefined, { callbackUrl: '/' }); // Redirect to login, then to home
+                }
+              }}
+            >
+              {planIdFromUrl ? 'Ir para Pagamento' : 'Fazer Login'}
+            </Button>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
@@ -369,104 +464,6 @@ export default function RegisterForm(): React.ReactElement {
     setIsStepValid(Object.keys(newErrors).length === 0);
     console.log('REGISTER_FORM_DEBUG: Final isStepValid:', Object.keys(newErrors).length === 0, 'Errors:', JSON.parse(JSON.stringify(newErrors)));
   }, [formData, currentStep]);
-
-  useEffect(() => {
-    if (currentStep === MAX_STEPS) {
-      console.log('REGISTER_FORM_DEBUG: Reached Concluído step. Preparing for redirect.');
-      const timer = setTimeout(() => {
-        if (planIdFromUrl) {
-          console.log(`REGISTER_FORM_DEBUG: Redirecting to /pagamento?planId=${planIdFromUrl}`);
-          router.push(`/pagamento?planId=${planIdFromUrl}`);
-        } else {
-          console.log('REGISTER_FORM_DEBUG: Redirecting to /');
-          router.push('/');
-        }
-      }, 3000); 
-
-      return () => clearTimeout(timer); 
-    }
-  }, [currentStep, planIdFromUrl, router, MAX_STEPS]);
-
-  const handleNext = async () => {
-    setError(null); 
-    if (!isStepValid) {
-      setError('Por favor, corrija os erros no formulário.');
-      return;
-    }
-    if (currentStep < MAX_STEPS - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const renderStep = (): React.ReactElement | null => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <PersonalInfo
-            formData={formData}
-            onInputChange={updateFormData}
-            errors={formErrors}
-          />
-        );
-      case 2:
-        return (
-          <AdditionalInfo
-            formData={formData}
-            onInputChange={updateFormData}
-          />
-        );
-      case 3:
-        return (
-          <CredentialsInfo
-            formData={formData}
-            onInputChange={updateFormData}
-            errors={formErrors}
-          />
-        );
-      case 4:
-        return (
-          <TermsAndConditions
-            acceptedTerms={formData.termsAgreed}
-            onInputChange={updateFormData}
-          />
-        );
-      case 5:
-        return (
-          <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg shadow-md">
-            <Typography variant="h5" className="mb-4 text-green-700">
-              Cadastro Realizado com Sucesso!
-            </Typography>
-            <Typography className="mb-2">
-              Login automático efetuado. Seu ID de usuário é: {registeredUserId}
-            </Typography>
-            <Typography className="mb-4">
-              Você será redirecionado em alguns segundos...
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                if (planIdFromUrl) {
-                  router.push(`/pagamento?planId=${planIdFromUrl}`);
-                } else {
-                  router.push('/');
-                }
-              }}
-            >
-              {planIdFromUrl ? 'Ir para Pagamento Agora' : 'Ir para Início Agora'}
-            </Button>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
 
   return (
     <Box sx={{ maxWidth: '800px', margin: 'auto', mt: 4, mb: 4 }}>
