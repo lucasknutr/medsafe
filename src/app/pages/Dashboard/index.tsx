@@ -269,7 +269,7 @@ const Dashboard = () => {
       <div className='second-banner py-8 bg-slate-200 h-auto md:h-[100svh] grid grid-cols-1 md:grid-cols-3 text-black items-center px-4 md:px-40 gap-8'>
         <div className='flex flex-col gap-8 md:gap-16 text-xl'>
           <h1 className='text-4xl md:text-6xl font-bold'>Sobre</h1>
-          <p className="text-base md:text-xl">Uma solução para simplificar o seu dia a dia. A sua plataforma completa para gerenciar seguros, processos jurídicos e muito mais, de forma simples e eficiente.</p>
+          <p className="text-base md:text-xl">Uma solução para simplificar o seu dia a dia. A sua plataforma completa para gerenciar processos jurídicos e muito mais, de forma simples e eficiente.</p>
           <button className='mr-auto px-4 md:px-6 py-3 md:py-4 bg-black text-white rounded-md hover:bg-white hover:text-black border-2 border-black hover:scale-[1]'>Saiba mais</button>
         </div>
         <div className='relative rounded-xl overflow-hidden w-full h-[250px] md:h-full'>
