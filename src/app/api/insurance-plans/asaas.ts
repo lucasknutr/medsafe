@@ -144,12 +144,19 @@ export async function createSubscription(data: PaymentData) {
         expiryYear: data.cardInfo.expiryYear,
         ccv: data.cardInfo.ccv
       };
+
+      // Attempt to parse address number from the user's full address string.
+      // Asaas requires a valid address number for credit card transactions.
+      // Format is assumed to be like: "Rua Exemplo, 123 - Bairro"
+      const addressParts = user.address?.split(',') || [];
+      const addressNumber = addressParts.length > 1 ? addressParts[1].trim() : 'S/N'; // Default to 'S/N' (Sem Número) if not found
+
       subscriptionPayload.creditCardHolderInfo = {
         name: data.cardInfo.holderName,
         email: user.email,
         cpfCnpj: user.cpf,
         postalCode: user.zip_code,
-        addressNumber: data.cardInfo.addressNumber || 'N/A',
+        addressNumber: addressNumber,
         phone: user.phone,
       };
       subscriptionPayload.remoteIp = data.cardInfo.remoteIp || '127.0.0.1';
