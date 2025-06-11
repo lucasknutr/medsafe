@@ -130,14 +130,6 @@ const initialFormData: FormData = {
 
 const initialFormErrors: Partial<Record<keyof FormData, string>> = {};
 
-type UserRegistrationInput = Omit<
-  FormData,
-  'comprovanteResidencia' | 
-  'crmFile' | 
-  'termsAgreed' |
-  'confirmPasswordLogin'
->;
-
 const MAX_STEPS = 5; 
 
 const steps = [
@@ -174,32 +166,34 @@ export default function RegisterForm(): React.ReactElement {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, [setFormData]);
 
-  const registerUser = async (data: UserRegistrationInput): Promise<RegistrationResponse> => {
+  const registerUser = async (data: FormData): Promise<RegistrationResponse> => {
     console.log('REGISTER_FORM_DEBUG: Received data for registration:', data);
 
-    // Transform frontend data to backend payload structure
-    const payload = {
-      name: `${data.firstName} ${data.lastName}`,
-      email: data.email,
-      cpf: data.cpf,
-      profession: data.especialidadeAtual,
-      phone: data.telefone,
-      address: `${data.endereco}, ${data.numero}${data.complemento ? `, ${data.complemento}` : ''} - ${data.bairro}`,
-      city: data.cidade,
-      state: data.estado,
-      zip_code: data.cep,
-      password: data.passwordLogin,
-    };
+    const formDataPayload = new FormData();
 
-    console.log('REGISTER_FORM_DEBUG: Sending payload to backend /api/register:', payload);
+    // Append text fields
+    formDataPayload.append('name', `${data.firstName} ${data.lastName}`);
+    formDataPayload.append('email', data.email);
+    formDataPayload.append('cpf', data.cpf);
+    formDataPayload.append('profession', data.especialidadeAtual);
+    formDataPayload.append('phone', data.telefone);
+    formDataPayload.append('address', `${data.endereco}, ${data.numero}${data.complemento ? `, ${data.complemento}` : ''} - ${data.bairro}`);
+    formDataPayload.append('city', data.cidade);
+    formDataPayload.append('state', data.estado);
+    formDataPayload.append('zip_code', data.cep);
+    formDataPayload.append('password', data.passwordLogin);
+
+    // Append file if it exists
+    if (data.crmFile) {
+      formDataPayload.append('crmFile', data.crmFile);
+    }
+
+    console.log('REGISTER_FORM_DEBUG: Sending FormData to backend /api/register');
 
     try {
       const response = await fetch('/api/register', { 
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload), 
+        body: formDataPayload, // Browser will set Content-Type to multipart/form-data
       });
 
       const responseData = await response.json();
@@ -247,15 +241,7 @@ export default function RegisterForm(): React.ReactElement {
     setError(null);
 
     try {
-      const {
-        comprovanteResidencia, 
-        crmFile, 
-        termsAgreed, 
-        confirmPasswordLogin, 
-        ...registrationData 
-      } = formData;
-
-      const registrationResponse = await registerUser(registrationData);
+      const registrationResponse = await registerUser(formData);
       console.log('REGISTER_FORM_DEBUG: Registration response:', registrationResponse);
 
       if (registrationResponse && registrationResponse.success && registrationResponse.userId) {

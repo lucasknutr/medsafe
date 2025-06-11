@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import prisma from '@/app/lib/prisma';
+import nodemailer from 'nodemailer';
+
+// Nodemailer transporter setup
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    console.log('Received registration data:', body);
+    const formData = await request.formData();
+    const body = Object.fromEntries(formData.entries());
+    console.log('Received registration form data:', body);
 
     // Validate required fields
     const requiredFields = [
@@ -36,8 +49,8 @@ export async function POST(request: Request) {
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: body.email },
-          { cpf: body.cpf },
+          { email: body.email as string },
+          { cpf: body.cpf as string },
         ]
       },
       select: { email: true, cpf: true }
@@ -54,24 +67,52 @@ export async function POST(request: Request) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(body.password, 10);
+    const hashedPassword = await bcrypt.hash(body.password as string, 10);
 
     // Create user in Prisma/Postgres
     const user = await prisma.user.create({
       data: {
-        name: body.name,
-        email: body.email,
-        cpf: body.cpf,
-        profession: body.profession,
-        phone: body.phone,
-        address: body.address,
-        city: body.city,
-        state: body.state,
-        zip_code: body.zip_code,
+        name: body.name as string,
+        email: body.email as string,
+        cpf: body.cpf as string,
+        profession: body.profession as string,
+        phone: body.phone as string,
+        address: body.address as string,
+        city: body.city as string,
+        state: body.state as string,
+        zip_code: body.zip_code as string,
         password: hashedPassword,
         role: 'SEGURADO',
       }
     });
+
+    // Handle file upload and email
+    const crmFile = formData.get('crmFile') as File | null;
+    if (crmFile) {
+      console.log('CRM File found, preparing email...');
+      const fileBuffer = Buffer.from(await crmFile.arrayBuffer());
+
+      await transporter.sendMail({
+        from: `"MedSafe" <${process.env.SMTP_USER}>`,
+        to: 'medsafe.financeiro@gmail.com',
+        subject: `Novo Documento de Registro: ${body.name}`,
+        html: `
+          <p>Um novo usuário se registrou e enviou o documento CRM.</p>
+          <p><strong>Nome:</strong> ${body.name}</p>
+          <p><strong>Email:</strong> ${body.email}</p>
+          <p><strong>CPF:</strong> ${body.cpf}</p>
+          <p>O documento está anexado a este email.</p>
+        `,
+        attachments: [
+          {
+            filename: crmFile.name,
+            content: fileBuffer,
+            contentType: crmFile.type,
+          },
+        ],
+      });
+      console.log('CRM document email sent successfully.');
+    }
 
     // Remove sensitive data before sending response
     const { password, ...userWithoutPassword } = user;
