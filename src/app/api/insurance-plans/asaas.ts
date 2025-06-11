@@ -133,32 +133,41 @@ export async function createSubscription(data: PaymentData) {
     };
 
     if (data.couponCode) {
-        subscriptionPayload.description += ` (Cupom: ${data.couponCode})`;
+      subscriptionPayload.description += ` (Cupom: ${data.couponCode})`;
     }
 
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
-      subscriptionPayload.creditCard = {
-        holderName: data.cardInfo.holderName,
-        number: data.cardInfo.number,
-        expiryMonth: data.cardInfo.expiryMonth,
-        expiryYear: data.cardInfo.expiryYear,
-        ccv: data.cardInfo.ccv
-      };
+      // Check for an existing payment token first
+      const existingPaymentMethod = await prisma.paymentMethod.findFirst({
+        where: { userId: user.id, type: 'CREDIT_CARD', lastFour: data.cardInfo.number.slice(-4) },
+      });
 
-      // Attempt to parse address number from the user's full address string.
-      // Asaas requires a valid address number for credit card transactions.
-      // Format is assumed to be like: "Rua Exemplo, 123 - Bairro"
-      const addressParts = user.address?.split(',') || [];
-      const addressNumber = addressParts.length > 1 ? addressParts[1].trim() : 'S/N'; // Default to 'S/N' (Sem Número) if not found
+      if (existingPaymentMethod?.creditCardToken) {
+        console.log('[createSubscription] Found existing credit card token. Using token for payment.');
+        subscriptionPayload.creditCardToken = existingPaymentMethod.creditCardToken;
+      } else {
+        console.log('[createSubscription] No existing token found. Using full credit card details.');
+        subscriptionPayload.creditCard = {
+          holderName: data.cardInfo.holderName,
+          number: data.cardInfo.number,
+          expiryMonth: data.cardInfo.expiryMonth,
+          expiryYear: data.cardInfo.expiryYear,
+          ccv: data.cardInfo.ccv,
+        };
 
-      subscriptionPayload.creditCardHolderInfo = {
-        name: data.cardInfo.holderName,
-        email: user.email,
-        cpfCnpj: user.cpf,
-        postalCode: user.zip_code,
-        addressNumber: addressNumber,
-        phone: user.phone,
-      };
+        const addressParts = user.address?.split(',') || [];
+        const addressNumber = addressParts.length > 1 ? addressParts[1].trim().split(' ')[0] : 'S/N';
+
+        subscriptionPayload.creditCardHolderInfo = {
+          name: user.name || data.cardInfo.holderName,
+          email: user.email,
+          cpfCnpj: user.cpf,
+          postalCode: user.zip_code,
+          addressNumber: addressNumber,
+          phone: user.phone,
+          mobilePhone: user.phone, // Use phone for mobilePhone as well
+        };
+      }
       subscriptionPayload.remoteIp = data.cardInfo.remoteIp || '127.0.0.1';
     }
 
@@ -216,30 +225,56 @@ export async function createSubscription(data: PaymentData) {
 
     // 7. Upsert PaymentMethod
     const firstPayment = subscription.payments?.[0];
-    const paymentMethodRecord = await prisma.paymentMethod.upsert({
-      where: {
-        userId_type_type: {
+    const creditCardInfo = firstPayment?.creditCard;
+
+    if (data.paymentMethod === 'CREDIT_CARD' && creditCardInfo) {
+      await prisma.paymentMethod.upsert({
+        where: {
+          userId_type_type: {
+            userId: user.id,
+            type: 'CREDIT_CARD',
+          },
+        },
+        update: {
+          lastFour: creditCardInfo.creditCardNumber,
+          brand: creditCardInfo.creditCardBrand,
+          holderName: data.cardInfo.holderName,
+          creditCardToken: creditCardInfo.creditCardToken, // Save the new token
+        },
+        create: {
           userId: user.id,
-          type: data.paymentMethod,
-        }
-      },
-      update: {
-        ...(data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard ? {
-          lastFour: firstPayment.creditCard.creditCardNumber, // Asaas returns last 4 digits
-          brand: firstPayment.creditCard.creditCardBrand,
+          type: 'CREDIT_CARD',
+          lastFour: creditCardInfo.creditCardNumber,
+          brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.holderName,
-        } : {}),
-      },
-      create: {
-        userId: user.id,
-        type: data.paymentMethod,
-        ...(data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard ? {
-          lastFour: firstPayment.creditCard.creditCardNumber,
-          brand: firstPayment.creditCard.creditCardBrand,
-          holderName: data.cardInfo.holderName,
-        } : {}),
-      },
+          creditCardToken: creditCardInfo.creditCardToken, // Save the new token
+        },
+      });
+    } else if (data.paymentMethod === 'BOLETO') {
+      // Handle boleto payment method creation if needed
+      await prisma.paymentMethod.upsert({
+        where: {
+          userId_type_type: {
+            userId: user.id,
+            type: 'BOLETO',
+          },
+        },
+        update: {},
+        create: {
+          userId: user.id,
+          type: 'BOLETO',
+        },
+      });
+    }
+
+    // Find the relevant payment method ID for the transaction
+    const paymentMethodRecord = await prisma.paymentMethod.findFirst({
+      where: { userId: user.id, type: data.paymentMethod },
     });
+
+    if (!paymentMethodRecord) {
+      throw new Error('Payment method record not found for transaction creation.');
+    }
 
     // 8. Create Transaction record
     await prisma.transaction.create({

@@ -138,6 +138,7 @@ model PaymentMethod {
   holderName   String?
   expiryMonth  String?
   expiryYear   String?
+  creditCardToken String? @unique
   isDefault    Boolean       @default(false)
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
