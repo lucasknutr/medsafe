@@ -296,15 +296,6 @@ function PlanosContentWrapper() {
           {plans.map(renderPlanCard)}
         </Grid>
 
-        <Paper className="p-6 my-8" elevation={2}>
-          <Typography variant="h5" gutterBottom>Outras Especialidades</Typography>
-          <Typography variant="body1" gutterBottom>
-            Se sua especialidade não se enquadra nos planos acima, não se preocupe. Oferecemos cotações personalizadas para garantir a melhor cobertura para suas necessidades.
-          </Typography>
-          <Button variant="contained" color="secondary" onClick={() => router.push('/contato')}>
-            Solicitar Cotação Personalizada
-          </Button>
-        </Paper>
       </Container>
     </div>
   );
