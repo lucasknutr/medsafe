@@ -26,6 +26,7 @@ interface CurrentUserInsurance {
   id: number;
   plan: string;
   status: string;
+  asaasPaymentId: string;
 }
 
 // Updated Plan Definitions
@@ -86,12 +87,6 @@ function PlanosContentWrapper() {
   const router = useRouter();
   const searchParams = useSearchParams(); 
 
-  // State for pending status from payment page
-  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-  const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
-  const [pendingStatusMessage, setPendingStatusMessage] = useState<React.ReactNode | null>(null);
-
   // State for document upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -113,8 +108,8 @@ function PlanosContentWrapper() {
   };
 
   const handleFileUpload = async () => {
-    if (!selectedFile || !pendingTransactionId) {
-      setUploadError("Nenhum arquivo selecionado ou ID da transação ausente.");
+    if (!selectedFile || !currentInsurance?.asaasPaymentId) {
+      setUploadError("Nenhum arquivo selecionado ou apólice não encontrada.");
       return;
     }
     setUploading(true);
@@ -122,9 +117,10 @@ function PlanosContentWrapper() {
     setUploadSuccessMessage(null);
     const formData = new FormData();
     formData.append('contract', selectedFile);
-    formData.append('transactionId', pendingTransactionId);
-    if (pendingPlanId) formData.append('planId', pendingPlanId);
+    formData.append('transactionId', currentInsurance.asaasPaymentId);
+    formData.append('planId', currentInsurance.plan); 
     if (cookies.email) formData.append('userEmail', cookies.email);
+
     try {
       const response = await fetch('/api/upload-contract', {
         method: 'POST',
@@ -134,7 +130,6 @@ function PlanosContentWrapper() {
       if (response.ok && result.success) {
         setUploadSuccessMessage(result.message || 'Contrato enviado com sucesso! Aguarde a confirmação.');
         setSelectedFile(null); 
-        // Clear the file input visually if possible
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       } else {
@@ -154,16 +149,15 @@ function PlanosContentWrapper() {
       "ACTIVE": "Ativo",
       "PENDING_PAYMENT": "Pagamento Pendente",
       "PENDING_DOCUMENT": "Documento Pendente",
-      "PENDING_APPROVAL": "Aprovação Pendente", // Adicionando um possível futuro status
+      "PENDING_APPROVAL": "Aprovação Pendente", 
       "PENDING": "Pendente",
       "INACTIVE": "Inativo",
       "CANCELED": "Cancelado",
       "EXPIRED": "Expirado",
       "OVERDUE": "Vencido",
-      "CONFIRMED": "Confirmado", // Status comuns da ASAAS
+      "CONFIRMED": "Confirmado", 
       "RECEIVED": "Recebido",
       "RECEIVED_IN_CASH": "Recebido em Dinheiro",
-      // Adicione outros mapeamentos conforme necessário
     };
     return statusMap[status.toUpperCase()] || status;
   };
@@ -172,8 +166,6 @@ function PlanosContentWrapper() {
     const fetchUserStatus = async () => {
       setLoading(true);
       setError(null);
-      // @ts-ignore
-      console.log('Checking for user_id cookie in PlanosContentWrapper:', cookies.user_id);
       try {
         const response = await fetch('/api/user/insurance-status', { cache: 'no-store' }); 
         const data = await response.json();
@@ -197,195 +189,132 @@ function PlanosContentWrapper() {
       }
     };
 
-    // @ts-ignore
     if (cookies.user_id) {
       fetchUserStatus();
     } else {
-      // Se não há user_id, não estamos logados, então não há status para buscar.
       setLoading(false);
-      setCurrentInsurance(null); // Garante que não há plano ativo mostrado
     }
-  // @ts-ignore
-  }, [cookies.user_id]); // Adicionar cookies.user_id como dependência
+  }, [cookies.user_id]);
 
-  useEffect(() => {
-    const queryPlanId = searchParams.get('planId');
-    const queryStatus = searchParams.get('status');
-    const queryTransactionId = searchParams.get('transactionId');
+  const renderPlanCard = (plan: InsurancePlan) => {
+    const isSelected = currentInsurance?.plan === plan.name;
+    const status = isSelected ? currentInsurance?.status : undefined;
 
-    if (queryPlanId) setPendingPlanId(queryPlanId);
-    if (queryStatus) setPendingStatus(queryStatus);
-    if (queryTransactionId) setPendingTransactionId(queryTransactionId);
+    return (
+      <Grid item xs={12} md={4} key={plan.id}>
+        <Card className={`h-full flex flex-col ${isSelected ? 'border-2 border-yellow-500' : ''}`}>
+          <CardContent className="flex-grow">
+            <Typography variant="h5" component="div">{plan.name}</Typography>
+            {isSelected && status && (
+              <Typography variant="subtitle1" className="font-bold text-yellow-600">
+                Status: {translateStatus(status)}
+              </Typography>
+            )}
+            <Typography variant="h6" color="primary">R$ {plan.price.toFixed(2)}/mês</Typography>
+            <Typography variant="body2" color="text.secondary" className="mt-2">{plan.description}</Typography>
+            <ul className="mt-4 text-sm">
+              {plan.features.map((feature, index) => <li key={index}>✓ {feature}</li>)}
+            </ul>
+          </CardContent>
+          <CardActions>
+            {!currentInsurance && (
+              <Button size="small" variant="contained" onClick={() => handleSelectPlan(plan)}>
+                Contratar
+              </Button>
+            )}
+          </CardActions>
+        </Card>
+      </Grid>
+    );
+  };
 
-    if (queryPlanId && queryStatus) {
-      const planDetails = plans.find(p => p.id === queryPlanId);
-      let message = '';
-      let severity: 'info' | 'warning' | 'success' = 'info';
-
-      if (queryStatus === 'pending_payment') {
-        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} está pendente. Por favor, conclua o pagamento do boleto.`;
-        severity = 'warning';
-      } else if (queryStatus === 'pending_document') {
-        message = `Pagamento para ${planDetails?.name || 'o plano selecionado'} recebido! Agora, por favor, envie o contrato assinado para finalizar a ativação.`;
-        severity = 'info';
-      } else if (queryStatus === 'active') {
-        message = `Seu ${planDetails?.name || 'plano'} foi ativado com sucesso!`;
-        severity = 'success';
-      }
-      
-      if (message) {
-        setPendingStatusMessage(
-          <Alert severity={severity} className="mb-8">
-            <Typography variant="h6">{message}</Typography>
-          </Alert>
-        );
-      }
-    } else {
-      setPendingStatusMessage(null); 
+  const renderUploadSection = () => {
+    if (!currentInsurance || currentInsurance.status !== 'PENDING_DOCUMENT') {
+      return null;
     }
-  }, [searchParams]); 
 
-  const handleSelectPlan = (planId: string) => {
-    setCookie('selected_plan', planId, { path: '/' });
-    // @ts-ignore
+    return (
+      <Paper className="p-6 my-8" elevation={3}>
+        <Typography variant="h6" className="mb-4">Envio de Contrato</Typography>
+        <Typography variant="body1" className="mb-4">
+          Para finalizar a ativação do seu plano <strong>{currentInsurance.plan}</strong>, por favor, faça o download do contrato, assine-o digitalmente e envie o arquivo (.docx) abaixo.
+        </Typography>
+        <Button variant="outlined" href="/path/to/your/contract-template.docx" download className="mb-4">
+          Baixar Modelo do Contrato
+        </Button>
+        <Box className="flex flex-col gap-4">
+          <TextField
+            type="file"
+            onChange={handleFileChange}
+            error={!!uploadError}
+            helperText={uploadError}
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ accept: '.docx' }}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleFileUpload}
+            disabled={!selectedFile || uploading}
+            startIcon={uploading ? <CircularProgress size={20} /> : null}
+          >
+            {uploading ? 'Enviando...' : 'Enviar Contrato'}
+          </Button>
+          {uploadSuccessMessage && <Alert severity="success">{uploadSuccessMessage}</Alert>}
+        </Box>
+      </Paper>
+    );
+  };
+
+  const handleSelectPlan = (plan: InsurancePlan) => {
+    setCookie('selected_plan', plan.id, { path: '/' });
     if (cookies.user_id) {
-      router.push(`/pagamento?planId=${planId}`); 
+      router.push(`/pagamento?planId=${plan.id}`); 
     } else {
       router.push('/register'); 
     }
   };
 
-  if (loading) {
-    return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
-      </Container>
-    );
-  }
-
-  if (error && !currentInsurance) {
-    return (
-      <Container sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
-        <Typography variant="body1" sx={{ mt: 2 }}>
-          Não foi possível carregar seus dados de seguro. Por favor, tente novamente mais tarde.
-        </Typography>
-      </Container>
-    );
-  }
+  if (loading) return <Container className="mt-10 flex justify-center"><CircularProgress /></Container>;
+  if (error) return <Container className="mt-10"><Alert severity="error">{error}</Alert></Container>;
 
   return (
-    <Container sx={{ py: 8 }}>
-      <Typography variant="h4" className="text-center mb-8">
-        Planos de Seguro
-      </Typography>
+    <div>
+      <Navbar />
+      <Container className="mt-10">
+        <Typography variant="h4" gutterBottom>Nossos Planos</Typography>
 
-      {pendingStatusMessage}
+        {renderUploadSection()}
 
-      {currentInsurance && (
-        <Alert severity={currentInsurance.status === 'ACTIVE' ? 'success' : 'info'} className="mb-8">
-          <Typography variant="h6">
-            Seu plano atual: {currentInsurance.plan} (Status: {translateStatus(currentInsurance.status)})
-          </Typography>
-          {currentInsurance.status !== 'ACTIVE' &&
-            <Typography>Aguardando confirmação ou ação necessária.</Typography>
-          }
-        </Alert>
-      )}
-      {!currentInsurance && !loading && (
-        <Typography variant="body1" className="text-center mb-8">
-          Você ainda não possui um plano ativo ou estamos com dificuldades para carregar seus dados.
-        </Typography>
-      )}
+        {currentInsurance && !['PENDING_DOCUMENT'].includes(currentInsurance.status) && (
+          <Alert severity="info" className="mb-8">
+            Você já possui o <strong>{currentInsurance.plan}</strong> com status <strong>{translateStatus(currentInsurance.status)}</strong>.
+          </Alert>
+        )}
 
-      {pendingStatus === 'pending_document' && pendingTransactionId && (
-        <Box my={4} p={3} border={1} borderColor="grey.300" borderRadius={2} component={Paper} elevation={3}>
-          <Typography variant="h6" gutterBottom>
-            Envio de Contrato Assinado
-          </Typography>
+        <Grid container spacing={4}>
+          {plans.map(renderPlanCard)}
+        </Grid>
+
+        <Paper className="p-6 my-8" elevation={2}>
+          <Typography variant="h5" gutterBottom>Outras Especialidades</Typography>
           <Typography variant="body1" gutterBottom>
-            Para o plano: {plans.find(p => p.id === pendingPlanId)?.name || 'Plano Selecionado'}<br/>
-            ID da Transação: {pendingTransactionId}
+            Se sua especialidade não se enquadra nos planos acima, não se preocupe. Oferecemos cotações personalizadas para garantir a melhor cobertura para suas necessidades.
           </Typography>
-          <TextField 
-            type="file" 
-            // @ts-ignore
-            inputProps={{ accept: '.docx' }} 
-            onChange={handleFileChange} 
-            fullWidth 
-            variant="outlined"
-            sx={{ mt: 2, mb: 1 }}
-            helperText={uploadError ? uploadError : (selectedFile ? selectedFile.name : "Selecione o arquivo .docx do contrato assinado")}
-            error={!!uploadError}
-          />
-          <Button 
-            variant="contained" 
-            onClick={handleFileUpload}
-            disabled={!selectedFile || uploading}
-            fullWidth
-            sx={{ mt: 1, py: 1.5 }}
-          >
-            {uploading ? <CircularProgress size={24} /> : 'Enviar Contrato'}
+          <Button variant="contained" color="secondary" onClick={() => router.push('/contato')}>
+            Solicitar Cotação Personalizada
           </Button>
-          {uploadSuccessMessage && <Alert severity="success" sx={{ mt: 2 }}>{uploadSuccessMessage}</Alert>}
-        </Box>
-      )}
-
-      <Grid container spacing={4}>
-        {plans.map((plan) => (
-          <Grid item xs={12} sm={6} md={4} key={plan.id}>
-            <Card className="h-full flex flex-col">
-              <CardContent className="flex-grow">
-                <Typography variant="h5" component="div" gutterBottom>
-                  {plan.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {plan.description}
-                </Typography>
-                <Typography variant="h6" color="primary" sx={{ my: 2 }}>
-                  R$ {plan.price.toFixed(2).replace('.', ',')} / mês
-                </Typography>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  {plan.features.map((feature, index) => (
-                    <li key={index}>{feature}</li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardActions className="mt-auto">
-                {plan.customQuote ? (
-                  <Button size="large" variant="contained" fullWidth onClick={() => router.push('/contato?assunto=CotacaoPersonalizada')}>
-                    Solicitar Cotação
-                  </Button>
-                ) : (
-                  <Button size="large" variant="contained" fullWidth onClick={() => handleSelectPlan(plan.id)} disabled={!!currentInsurance && currentInsurance.status === 'ACTIVE'}>
-                    {!!currentInsurance && currentInsurance.status === 'ACTIVE' ? 'Plano Ativo' : 'Selecionar Plano'}
-                  </Button>
-                )}
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Container>
+        </Paper>
+      </Container>
+    </div>
   );
 }
 
 const InsurancePlansPage = () => {
   return (
-    <>
-      <Navbar />
-      <Suspense fallback={
-        <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-          <CircularProgress />
-          <Typography sx={{ ml: 2 }}>Carregando planos...</Typography>
-        </Container>
-      }>
-        {/* Apply padding to the Container wrapping PlanosContentWrapper */}
-        <Container sx={{ pt: { xs: 8, md: 10 }, pb: 8 }}> {/* xs: 64px, md: 80px padding-top */}
-          <PlanosContentWrapper />
-        </Container>
-      </Suspense>
-    </>
+    <Suspense fallback={<Container className="mt-10 flex justify-center"><CircularProgress /></Container>}>
+      <PlanosContentWrapper />
+    </Suspense>
   );
 };
 

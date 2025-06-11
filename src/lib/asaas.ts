@@ -142,6 +142,24 @@ class AsaasClient {
       throw new Error(`Failed to create customer: ${error.response?.data?.message || error.message}`);
     }
   }
+
+  async createSubscription(data: any) {
+    try {
+      console.log('Creating subscription with data:', data);
+      const response = await axios.post(
+        `${this.apiUrl}/subscriptions`,
+        data,
+        { headers: this.headers }
+      );
+      console.log('Subscription created successfully:', {
+        id: response.data.id,
+        status: response.data.status
+      });
+      return response.data;
+    } catch (error: any) {
+      this.handleError(error);
+    }
+  }
 }
 
 let asaasClient: AsaasClient | null = null;

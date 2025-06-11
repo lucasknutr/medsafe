@@ -1,16 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
-import prisma from '@/app/lib/prisma';
-import { getAsaasClient } from '@/lib/asaas'; // Assuming getAsaasClient is defined elsewhere
+import { PrismaClient } from '@prisma/client';
+import { getAsaasClient } from '@/lib/asaas';
+import axios from 'axios';
 
-// Initialize Supabase client with proper error handling
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const prisma = new PrismaClient();
 
 // This file will be used for payment-related Asaas functions
 // We'll add payment functions here when needed
@@ -39,14 +31,6 @@ interface PaymentData {
   };
 }
 
-interface AsaasCustomerData {
-  name: string;
-  email: string;
-  cpfCnpj: string; 
-  phone: string; 
-  // Add other relevant fields like address, etc.
-}
-
 interface AsaasPaymentResponse {
   id: string;
   status: string;
@@ -65,8 +49,7 @@ interface AsaasPaymentResponse {
   // ... other fields returned by Asaas
 }
 
-export async function createPayment(data: PaymentData) {
-  // Sanitize cardInfo for logging
+export async function createSubscription(data: PaymentData) {
   const logData = { ...data };
   if (logData.cardInfo && typeof logData.cardInfo.number === 'string') {
     logData.cardInfo = {
@@ -75,291 +58,233 @@ export async function createPayment(data: PaymentData) {
       ccv: '***',
     };
   }
-  console.log('[createPayment] Starting payment creation with data:', JSON.stringify(logData, null, 2));
-  const asaasClient = getAsaasClient(); // Use your Asaas client instance
+  console.log('[createSubscription] Starting subscription creation with data:', JSON.stringify(logData, null, 2));
+  const asaasClient = getAsaasClient();
 
   try {
-    // 1. Get Plan Details (still useful for description, plan name, etc.)
-    console.log(`[createPayment] Fetching plan with ID: ${data.planId}`);
+    // 1. Get Plan Details
+    console.log(`[createSubscription] Fetching plan with ID: ${data.planId}`);
     const plan = await prisma.insurancePlan.findUnique({
       where: { id: data.planId },
     });
     if (!plan) {
-      console.error(`[createPayment] Plan not found for ID: ${data.planId}`);
+      console.error(`[createSubscription] Plan not found for ID: ${data.planId}`);
       throw new Error('Plano não encontrado');
     }
-    console.log('[createPayment] Plan details (for reference):', plan);
-    // Ensure originalAmount is set if not provided, for consistency
-    const originalAmount = data.originalAmount !== undefined ? data.originalAmount : plan.price;
+    console.log('[createSubscription] Plan details:', plan);
 
-    // Log plan.price and its type
-    console.log(`[createPayment] plan.price value: ${plan.price}, typeof plan.price: ${typeof plan.price}`);
-    const priceSnapshot = Number(plan.price); // Explicit conversion
-
-    console.log(`[createPayment] Debug: plan.name = '${plan.name}', typeof plan.name = ${typeof plan.name}`);
-    console.log(`[createPayment] Debug: plan.price = ${plan.price}, typeof plan.price = ${typeof plan.price}, priceSnapshot = ${priceSnapshot}`);
-
-    // 2. Get User Details (Try by ID first, then email)
-    let userIdentifier = typeof data.customerId === 'number' ? { id: data.customerId } : { email: data.customerId };
-    console.log('[createPayment] Fetching user with identifier:', userIdentifier);
-    let user = await prisma.user.findUnique({ where: userIdentifier });
-
-    if (!user && typeof data.customerId === 'number') {
-        // If lookup by ID failed, try fetching by email using the ID (assuming ID lookup failed but email might be available)
-        // This fallback logic might need adjustment based on how customerId is truly passed
-        console.warn(`[createPayment] User not found by ID ${data.customerId}, attempting lookup by email associated with potential session`);
-        // Potentially fetch email based on ID if needed, or rely on email being passed separately
-        // For now, this fallback might not be robust without more context
-    } else if (!user && typeof data.customerId === 'string') {
-        console.log(`[createPayment] User not found by email ${data.customerId}`);
-        // Handle case where neither ID nor email match
+    // 2. Get User Details
+    let userIdentifier: { id: string } | { email: string };
+    if (typeof data.customerId === 'string' && data.customerId.includes('@')) {
+        userIdentifier = { email: data.customerId };
+    } else {
+        userIdentifier = { id: String(data.customerId) };
     }
+
+    console.log('[createSubscription] Fetching user with identifier:', userIdentifier);
+    const user = await prisma.user.findUnique({ where: userIdentifier as any });
 
     if (!user) {
-      console.error(`[createPayment] User not found for identifier: ${JSON.stringify(userIdentifier)}`);
+      console.error(`[createSubscription] User not found for identifier: ${JSON.stringify(userIdentifier)}`);
       throw new Error('Usuário não encontrado');
     }
-    console.log('[createPayment] User details:', { id: user.id, email: user.email, name: user.name, asaasCustomerId: user.asaasCustomerId });
+    console.log('[createSubscription] User details:', { id: user.id, email: user.email, name: user.name, asaasCustomerId: user.asaasCustomerId });
 
     // 3. Create or Retrieve Asaas Customer
     let asaasCustomerId = user.asaasCustomerId;
     if (!asaasCustomerId) {
-      console.log('[createPayment] Asaas customer ID not found, creating new Asaas customer for user:', user.id);
+      console.log('[createSubscription] Asaas customer ID not found, creating new Asaas customer for user:', user.id);
       
-      // Ensure user.cpf exists, as Asaas requires it for customer creation
       if (!user.cpf) {
-        console.error(`[createPayment] Cannot create Asaas customer for user ${user.id}: Missing CPF.`);
+        console.error(`[createSubscription] Cannot create Asaas customer for user ${user.id}: Missing CPF.`);
         throw new Error('CPF do usuário é necessário para criar cliente Asaas.');
       }
-      // Ensure user.phone exists, as Asaas seems to require it
       if (!user.phone) {
-        console.error(`[createPayment] Cannot create Asaas customer for user ${user.id}: Missing Phone.`);
+        console.error(`[createSubscription] Cannot create Asaas customer for user ${user.id}: Missing Phone.`);
         throw new Error('Telefone do usuário é necessário para criar cliente Asaas.');
       }
 
-      const customerPayload: AsaasCustomerData = {
+      const customerPayload = {
         name: user.name || 'Nome não fornecido',
         email: user.email,
         cpfCnpj: user.cpf, 
         phone: user.phone, 
       };
-      console.log('[createPayment] Creating Asaas customer with payload:', customerPayload);
+      console.log('[createSubscription] Creating Asaas customer with payload:', customerPayload);
       const asaasCustomer = await asaasClient.createCustomer(customerPayload); 
       asaasCustomerId = asaasCustomer.id;
-      console.log('[createPayment] Asaas customer created with ID:', asaasCustomerId, 'Updating user record.');
+      console.log('[createSubscription] Asaas customer created with ID:', asaasCustomerId, 'Updating user record.');
       await prisma.user.update({
         where: { id: user.id },
         data: { asaasCustomerId },
       });
     } else {
-      console.log('[createPayment] Found existing Asaas customer ID:', asaasCustomerId, 'for user:', user.id);
+      console.log('[createSubscription] Found existing Asaas customer ID:', asaasCustomerId, 'for user:', user.id);
     }
 
-    // 4. Prepare Payment Payload for Asaas
-    const paymentPayload: any = {
+    // 4. Prepare Subscription Payload for Asaas
+    const subscriptionPayload: any = {
       customer: asaasCustomerId,
       billingType: data.paymentMethod === 'BOLETO' ? 'BOLETO' : 'CREDIT_CARD',
-      value: data.finalAmount, // USE FINAL AMOUNT FOR THE CHARGE
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0], // Example: 5 days from now
-      description: `Pagamento do plano ${plan.name} - MedSafe`, // Use plan name from DB
-      // externalReference: `TX-${Date.now()}-${plan.id}`, // Optional: your internal transaction reference
+      value: data.finalAmount,
+      nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], // Next payment in 30 days
+      cycle: 'MONTHLY',
+      description: `Assinatura do plano ${plan.name} - MedSafe`,
     };
 
     if (data.couponCode) {
-      paymentPayload.description += ` (Cupom: ${data.couponCode})`;
+        subscriptionPayload.description += ` (Cupom: ${data.couponCode})`;
     }
 
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
-      paymentPayload.creditCard = {
+      subscriptionPayload.creditCard = {
         holderName: data.cardInfo.holderName,
-        number: data.cardInfo.number, // Asaas SDK handles this directly
+        number: data.cardInfo.number,
         expiryMonth: data.cardInfo.expiryMonth,
         expiryYear: data.cardInfo.expiryYear,
         ccv: data.cardInfo.ccv
       };
-      paymentPayload.creditCardHolderInfo = {
-        name: data.cardInfo.holderName, // Use holder name from card info
-        email: user.email, // Use user's primary email
-        cpfCnpj: user.cpf, // Use user's CPF
-        postalCode: user.zip_code, // Use user's zip code
-        addressNumber: data.cardInfo.addressNumber || 'N/A', // Use card info or fallback
-        // addressComplement: user.address_complement || data.cardInfo.addressComplement || '',
-        phone: user.phone, // Use user's primary phone
-        // mobilePhone: user.mobile_phone || user.phone, // Optional: use mobile if available
+      subscriptionPayload.creditCardHolderInfo = {
+        name: data.cardInfo.holderName,
+        email: user.email,
+        cpfCnpj: user.cpf,
+        postalCode: user.zip_code,
+        addressNumber: data.cardInfo.addressNumber || 'N/A',
+        phone: user.phone,
       };
-      // Asaas often requires remote IP for fraud prevention
-      paymentPayload.remoteIp = data.cardInfo.remoteIp || '127.0.0.1'; // Get IP from request if possible
-      console.log('[createPayment] Credit Card Payload Snippet:', { creditCard: paymentPayload.creditCard, creditCardHolderInfo: paymentPayload.creditCardHolderInfo, remoteIp: paymentPayload.remoteIp });
+      subscriptionPayload.remoteIp = data.cardInfo.remoteIp || '127.0.0.1';
     }
 
-    console.log('[createPayment] Asaas payment payload (sensitive details like full card number are NOT logged here, they are in paymentPayload object passed to Asaas):', 
-      {
-        ...paymentPayload, 
-        creditCard: paymentPayload.creditCard ? { ...paymentPayload.creditCard, number: 'REDACTED', ccv: 'REDACTED'} : undefined 
-      }
-    );
+    console.log('[createSubscription] Asaas subscription payload:', {
+      ...subscriptionPayload,
+      creditCard: subscriptionPayload.creditCard ? { ...subscriptionPayload.creditCard, number: 'REDACTED', ccv: 'REDACTED'} : undefined
+    });
 
-    // 5. Create Payment in Asaas
-    console.log('[createPayment] Creating Asaas payment with payload:', paymentPayload);
-    const asaasPayment: AsaasPaymentResponse = await asaasClient.createPayment(paymentPayload);
-    console.log('[createPayment] Asaas payment created:', asaasPayment);
+    const subscription = await asaasClient.createSubscription(subscriptionPayload);
+    console.log('[createSubscription] Asaas subscription created:', subscription);
 
-    // Determine initial insurance status based on payment method and Asaas response
+    // 5. Determine initial insurance status
     let insuranceStatus: string;
-    if (data.paymentMethod === 'BOLETO') {
+    const firstPaymentStatus = subscription.payments?.[0]?.status || subscription.status;
+
+    if (subscription.billingType === 'BOLETO') {
       insuranceStatus = 'PENDING_PAYMENT';
-    } else if (data.paymentMethod === 'CREDIT_CARD') {
-      switch (asaasPayment.status) {
+    } else if (subscription.billingType === 'CREDIT_CARD') {
+      switch (firstPaymentStatus) {
         case 'CONFIRMED':
         case 'RECEIVED':
         case 'RECEIVED_IN_CASH':
-          insuranceStatus = 'PENDING_DOCUMENT'; // Payment successful, awaiting document
+          insuranceStatus = 'PENDING_DOCUMENT';
           break;
-        case 'PENDING': // Payment is pending confirmation from acquirer/bank
+        case 'PENDING':
           insuranceStatus = 'PENDING_PAYMENT';
           break;
         default:
-          // For FAILED, CANCELED, OVERDUE, etc., or unexpected statuses
-          insuranceStatus = 'PENDING_PAYMENT'; // Default to a pending state, requires review/webhook update
-          console.warn(`[createPayment] Credit card payment Asaas status: ${asaasPayment.status}. Setting insurance to PENDING_PAYMENT.`);
+          insuranceStatus = 'PENDING_PAYMENT';
           break;
       }
     } else {
-      insuranceStatus = 'PENDING'; // Fallback for unknown payment methods
-      console.warn(`[createPayment] Unknown payment method: ${data.paymentMethod}. Setting insurance to PENDING.`);
+      insuranceStatus = 'PENDING';
     }
 
-    // --- START: Upsert User's Insurance Policy ---
-    console.log(`[createPayment] Upserting insurance policy for user ${user.id} with plan ${plan.name} and status ${insuranceStatus}`);
+    // 6. Upsert Insurance Policy
     const userInsurancePolicy = await prisma.insurance.upsert({
-      where: {
-        userId: user.id, // userId is @unique in Insurance model
-      },
+      where: { userId: user.id },
       update: {
-        plan: plan.name, // Update to the new plan's name from InsurancePlan
-        status: insuranceStatus, // Use dynamically determined status
-        planPriceSnapshot: priceSnapshot, // Store the price at the time of subscription
-        asaasPaymentId: asaasPayment.id, // Link to the Asaas payment
-        startDate: new Date(), // Set start date, can be adjusted by admin/webhook
+        plan: plan.name,
+        status: insuranceStatus,
+        planPriceSnapshot: Number(plan.price),
+        asaasPaymentId: subscription.id, // Storing subscription ID here
+        startDate: new Date(),
       },
       create: {
         userId: user.id,
-        plan: plan.name, // Set to the new plan's name from InsurancePlan
-        status: insuranceStatus, // Use dynamically determined status
-        planPriceSnapshot: priceSnapshot,
-        asaasPaymentId: asaasPayment.id,
+        plan: plan.name,
+        status: insuranceStatus,
+        planPriceSnapshot: Number(plan.price),
+        asaasPaymentId: subscription.id,
         startDate: new Date(),
-        // endDate and other fields can be set later or have defaults
       },
     });
-    console.log('[createPayment] User insurance policy upserted:', userInsurancePolicy);
-    // --- END: Upsert User's Insurance Policy ---
 
-    // --- START: Upsert PaymentMethod ---
-    console.log(`[createPayment] Upserting payment method for user ${user.id}, type ${data.paymentMethod}`);
+    // 7. Upsert PaymentMethod
+    const firstPayment = subscription.payments?.[0];
     const paymentMethodRecord = await prisma.paymentMethod.upsert({
       where: {
-        userId_type_type: { // Using the @@unique([userId, type]) constraint
+        userId_type_type: {
           userId: user.id,
           type: data.paymentMethod,
         }
       },
       update: {
-        // Update card details if it's a credit card and info is provided
-        ...(data.paymentMethod === 'CREDIT_CARD' && data.cardInfo && asaasPayment.creditCardNumber ? {
-          lastFour: asaasPayment.creditCardNumber.slice(-4), // Store last four of the card number from Asaas response
-          brand: asaasPayment.creditCardBrand,     
+        ...(data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard ? {
+          lastFour: firstPayment.creditCard.creditCardNumber, // Asaas returns last 4 digits
+          brand: firstPayment.creditCard.creditCardBrand,
           holderName: data.cardInfo.holderName,
-          // expiryMonth: data.cardInfo.expiryMonth, // If you collect these
-          // expiryYear: data.cardInfo.expiryYear,   // If you collect these
         } : {}),
       },
       create: {
-        userId: user.id, // Direct assignment for foreign key
+        userId: user.id,
         type: data.paymentMethod,
-        ...(data.paymentMethod === 'CREDIT_CARD' && data.cardInfo && asaasPayment.creditCardNumber ? {
-          lastFour: asaasPayment.creditCardNumber.slice(-4), // Store last four
-          brand: asaasPayment.creditCardBrand,
+        ...(data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard ? {
+          lastFour: firstPayment.creditCard.creditCardNumber,
+          brand: firstPayment.creditCard.creditCardBrand,
           holderName: data.cardInfo.holderName,
         } : {}),
       },
     });
-    console.log('[createPayment] Payment method upserted:', paymentMethodRecord);
-    // --- END: Upsert PaymentMethod ---
 
-    // 6. Store Transaction in your Database
-    console.log('[createPayment] Storing transaction in local database.');
-
-    // @ts-ignore // Re-added as a precaution, though this structure should be type-correct.
-    const transaction = await prisma.transaction.create({
+    // 8. Create Transaction record
+    await prisma.transaction.create({
       data: {
-        // Foreign Key IDs
-        userId: user.id, 
+        userId: user.id,
         insuranceId: userInsurancePolicy.id,
         paymentMethodId: paymentMethodRecord.id,
-
-        // Scalar fields
-        transactionId: asaasPayment.id,
-        status: asaasPayment.status,
-        amount: Number(data.finalAmount), // Ensure it's a number, matches Float schema & DB
-        couponCode: data.couponCode || null, 
-        type: data.paymentMethod, 
-        paymentDetails: JSON.stringify(asaasPayment), // Restore original value
-        planNameSnapshot: plan.name, // Restore dynamic value
-        planPriceSnapshot: null, // Set to null as requested
-        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl, 
-        boletoCode: asaasPayment.barCode || null, 
+        transactionId: firstPayment?.id || subscription.id, // Use first payment ID if available
+        status: firstPayment?.status || subscription.status,
+        amount: Number(data.finalAmount),
+        couponCode: data.couponCode || null,
+        type: data.paymentMethod,
+        paymentDetails: JSON.stringify(subscription), // Store the whole subscription object
+        planNameSnapshot: plan.name,
+        planPriceSnapshot: Number(plan.price),
+        boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl,
+        boletoCode: firstPayment?.barCode || null,
       },
     });
-    console.log('[createPayment] Transaction stored with ID:', transaction.id);
 
-    // 7. Update User's Current Insurance (if applicable)
-    // ... (rest of the code remains the same)
-
-    // Return relevant payment info to the frontend
-    return {
-        success: true,
-        transactionId: transaction.id,
-        asaasPaymentId: asaasPayment.id,
-        status: asaasPayment.status,
-        boletoUrl: asaasPayment.bankSlipUrl || asaasPayment.invoiceUrl,
-        boletoCode: asaasPayment.barCode,
-        // Add card details if needed, but be cautious
-    };
+    // Return the first payment object if it exists, or the subscription details
+    return firstPayment || subscription;
 
   } catch (error: any) {
-    console.error('!!! [createPayment] Overall Error:', error.message);
-    // Ensure the error thrown includes useful info
-    throw new Error(error.message || 'An unexpected error occurred during payment creation.');
+    console.error('!!! Asaas Subscription Error:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
+    const errorMessage = error.response?.data?.errors?.[0]?.description || error.message || 'Unknown error';
+    throw new Error(`Falha ao criar assinatura no Asaas: ${errorMessage}`);
   }
+}
+
+export async function createPayment(data: PaymentData) {
+  // All payments should now be subscriptions
+  console.log('[createPayment] Routing to createSubscription...');
+  return createSubscription(data);
 }
 
 export async function getPaymentStatus(paymentId: string) {
+  const asaasClient = getAsaasClient();
   try {
-    const asaasApiKey = process.env.ASAAS_API_KEY;
-    if (!asaasApiKey) {
-      throw new Error('Missing ASAAS_API_KEY environment variable');
-    }
-
-    const response = await fetch(`https://api.asaas.com/v3/payments/${paymentId}`, {
-      headers: {
-        'Authorization': `Bearer ${asaasApiKey}`,
-      },
+    // For a subscription, you might want to fetch the subscription status
+    // or the status of the latest charge in that subscription.
+    // Here we assume paymentId could be a charge ID.
+    const response = await axios.get(`${asaasClient['apiUrl']}/payments/${paymentId}`, {
+      headers: asaasClient['headers'],
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Erro ao buscar status do pagamento');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error getting payment status:', error);
-    throw error;
+    return response.data;
+  } catch (error: any) {
+    console.error(`Error fetching payment status for ${paymentId}:`, error.response?.data || error.message);
+    throw new Error('Failed to get payment status from Asaas');
   }
 }
 
-// Webhook handler for payment status updates
 export async function handlePaymentWebhook(payload: any) {
   try {
     const { paymentId, status } = payload;

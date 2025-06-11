@@ -138,15 +138,15 @@ export default function PaymentForm() {
             // or if we decide to not open window if fetch fails fast (less ideal)
             window.open(payment.boletoUrl, "_blank"); 
           }
-          alert("Boleto gerado com sucesso! Por favor, realize o pagamento para ativar seu plano.");
-          setShowGoToHomeButton(true); // Show the button after Boleto success
+          alert("Seu boleto foi gerado em uma nova aba. Redirecionando para a página de envio de contrato.");
+          router.push("/planos"); // Redirect to planos page
         } else {
           if (boletoWindow) boletoWindow.close(); // Close the pre-opened window if no URL
           alert("Erro: URL do boleto não encontrada na resposta.");
         }
       } else {
-        alert("Pagamento processado com sucesso! Seu plano foi ativado.");
-        router.push("/"); // Redirect to home for non-Boleto payments
+        alert("Pagamento processado com sucesso! Redirecionando para a página de envio de contrato.");
+        router.push("/planos"); // Redirect to planos page for non-Boleto payments
       }
     } catch (err: any) {
       console.error("Payment Error:", err);
