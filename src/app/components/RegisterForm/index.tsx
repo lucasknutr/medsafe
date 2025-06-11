@@ -183,9 +183,12 @@ export default function RegisterForm(): React.ReactElement {
     formDataPayload.append('zip_code', data.cep);
     formDataPayload.append('password', data.passwordLogin);
 
-    // Append file if it exists
+    // Append files if they exist
     if (data.crmFile) {
       formDataPayload.append('crmFile', data.crmFile);
+    }
+    if (data.comprovanteResidencia) {
+      formDataPayload.append('comprovanteResidencia', data.comprovanteResidencia);
     }
 
     console.log('REGISTER_FORM_DEBUG: Sending FormData to backend /api/register');

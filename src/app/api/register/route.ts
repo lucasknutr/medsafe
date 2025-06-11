@@ -86,32 +86,47 @@ export async function POST(request: Request) {
       }
     });
 
-    // Handle file upload and email
+    // Handle file uploads and email
+    const attachments = [];
     const crmFile = formData.get('crmFile') as File | null;
-    if (crmFile) {
-      console.log('CRM File found, preparing email...');
-      const fileBuffer = Buffer.from(await crmFile.arrayBuffer());
+    const comprovanteResidenciaFile = formData.get('comprovanteResidencia') as File | null;
 
+    if (crmFile) {
+      console.log('CRM File found, adding to attachments...');
+      const fileBuffer = Buffer.from(await crmFile.arrayBuffer());
+      attachments.push({
+        filename: crmFile.name,
+        content: fileBuffer,
+        contentType: crmFile.type,
+      });
+    }
+
+    if (comprovanteResidenciaFile) {
+      console.log('Proof of Residence File found, adding to attachments...');
+      const fileBuffer = Buffer.from(await comprovanteResidenciaFile.arrayBuffer());
+      attachments.push({
+        filename: comprovanteResidenciaFile.name,
+        content: fileBuffer,
+        contentType: comprovanteResidenciaFile.type,
+      });
+    }
+
+    if (attachments.length > 0) {
+      console.log('Preparing email with attachments...');
       await transporter.sendMail({
         from: `"MedSafe" <${process.env.SMTP_USER}>`,
         to: 'medsafe.financeiro@gmail.com',
-        subject: `Novo Documento de Registro: ${body.name}`,
+        subject: `Novos Documentos de Registro: ${body.name}`,
         html: `
-          <p>Um novo usuário se registrou e enviou o documento CRM.</p>
+          <p>Um novo usuário se registrou e enviou documentos.</p>
           <p><strong>Nome:</strong> ${body.name}</p>
           <p><strong>Email:</strong> ${body.email}</p>
           <p><strong>CPF:</strong> ${body.cpf}</p>
-          <p>O documento está anexado a este email.</p>
+          <p>Os documentos estão anexados a este email.</p>
         `,
-        attachments: [
-          {
-            filename: crmFile.name,
-            content: fileBuffer,
-            contentType: crmFile.type,
-          },
-        ],
+        attachments: attachments,
       });
-      console.log('CRM document email sent successfully.');
+      console.log('Registration documents email sent successfully.');
     }
 
     // Remove sensitive data before sending response
