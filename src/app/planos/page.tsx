@@ -275,38 +275,39 @@ function PlanosContentWrapper() {
     }
   };
 
-  if (loading) return <Container className="mt-10 flex justify-center"><CircularProgress /></Container>;
-  if (error) return <Container className="mt-10"><Alert severity="error">{error}</Alert></Container>;
+  if (loading) return <div className="w-full flex justify-center py-10"><CircularProgress /></div>;
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <div>
-      <Navbar />
-      <Container className="mt-10">
-        <Typography variant="h4" gutterBottom>Nossos Planos</Typography>
+    <>
+      <Typography variant="h4" gutterBottom>Nossos Planos</Typography>
 
-        {renderUploadSection()}
+      {renderUploadSection()}
 
-        {currentInsurance && !['PENDING_DOCUMENT'].includes(currentInsurance.status) && (
-          <Alert severity="info" className="mb-8">
-            Você já possui o <strong>{currentInsurance.plan}</strong> com status <strong>{translateStatus(currentInsurance.status)}</strong>.
-          </Alert>
-        )}
+      {currentInsurance && !['PENDING_DOCUMENT'].includes(currentInsurance.status) && (
+        <Alert severity="info" className="mb-8">
+          Você já possui o <strong>{currentInsurance.plan}</strong> com status <strong>{translateStatus(currentInsurance.status)}</strong>.
+        </Alert>
+      )}
 
-        <Grid container spacing={4}>
-          {plans.map(renderPlanCard)}
-        </Grid>
-
-      </Container>
-    </div>
+      <Grid container spacing={4}>
+        {plans.map(renderPlanCard)}
+      </Grid>
+    </>
   );
 }
 
-const InsurancePlansPage = () => {
+export default function PlanosPage() {
   return (
-    <Suspense fallback={<Container className="mt-10 flex justify-center"><CircularProgress /></Container>}>
-      <PlanosContentWrapper />
-    </Suspense>
+    <>
+      <Navbar />
+      <main>
+        <Container className="pt-28 pb-8">
+          <Suspense fallback={<div className="w-full flex justify-center py-10"><CircularProgress /></div>}>
+            <PlanosContentWrapper />
+          </Suspense>
+        </Container>
+      </main>
+    </>
   );
-};
-
-export default InsurancePlansPage;
+}
