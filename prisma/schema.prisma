@@ -26,6 +26,8 @@ model User {
   password       String
   role           String          @default("SEGURADO")
   asaasCustomerId String?        @unique @map("asaas_customer_id")
+  brokerId       Int?            // Foreign key for Broker
+  broker         Broker?         @relation(fields: [brokerId], references: [id])
   insurance      Insurance?
   paymentMethods PaymentMethod[]
   processes      Process[]
@@ -117,6 +119,7 @@ model Broker {
   commission_rules Json
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
+  users            User[]
   @@schema("public")
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // Define a type for the fields managed by PersonalInfo
 type PersonalInfoField = 
@@ -6,7 +6,7 @@ type PersonalInfoField =
   | 'rg' | 'orgaoExpedidor' | 'residenceSince' | 'fezResidencia' | 'especialidadeAtual'
   | 'pertenceAlgumaAssociacao' | 'socioProprietario' | 'entidadeExerce' | 'realizaProcedimento'
   | 'atividadeProfissional' | 'pais' | 'estado' | 'cep' | 'cidade' | 'bairro'
-  | 'endereco' | 'numero' | 'complemento' | 'email' | 'telefone' | 'role';
+  | 'endereco' | 'numero' | 'complemento' | 'email' | 'telefone' | 'role' | 'brokerId';
 
 interface PersonalInfoProps {
   formData: {
@@ -36,6 +36,7 @@ interface PersonalInfoProps {
     email: string;
     telefone: string;
     role: string;
+    brokerId?: number | string; // Make brokerId optional
   };
   onInputChange: (field: PersonalInfoField, value: string | string[]) => void;
   errors?: {
@@ -46,7 +47,9 @@ interface PersonalInfoProps {
     graduationYear?: string;
     email?: string;
     telefone?: string;
+    brokerId?: string;
   };
+  brokers: { id: number; name: string }[];
 }
 
 const profissoes = [
@@ -111,7 +114,7 @@ const roles = [
   { value: 'ADVOGADO', label: 'Advogado' }
 ];
 
-export default function PersonalInfo({ formData, onInputChange, errors }: PersonalInfoProps) {
+export default function PersonalInfo({ formData, onInputChange, errors, brokers }: PersonalInfoProps) {
   const fetchAddressFromCEP = async (cep: string) => {
     if (cep.length !== 8) return;
     
@@ -376,6 +379,25 @@ export default function PersonalInfo({ formData, onInputChange, errors }: Person
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            CORRETOR RESPONSÁVEL
+          </label>
+          <select
+            value={formData.brokerId || ''}
+            onChange={(e) => onInputChange('brokerId', e.target.value)}
+            className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${errors?.brokerId ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Nenhum</option>
+            {brokers.map((broker) => (
+              <option key={broker.id} value={broker.id}>
+                {broker.name}
+              </option>
+            ))}
+          </select>
+          {errors?.brokerId && <p className="text-red-500 text-xs mt-1">{errors.brokerId}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

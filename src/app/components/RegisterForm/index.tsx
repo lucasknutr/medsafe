@@ -64,6 +64,7 @@ interface FormData {
   especialidade?: string;
   anoConclusaoCurso?: string;
   instituicaoEnsino?: string;
+  brokerId?: string;
 }
 
 interface UserData {
@@ -126,6 +127,7 @@ const initialFormData: FormData = {
   especialidade: '',
   anoConclusaoCurso: '',
   instituicaoEnsino: '',
+  brokerId: '',
 };
 
 const initialFormErrors: Partial<Record<keyof FormData, string>> = {};
@@ -153,6 +155,7 @@ export default function RegisterForm(): React.ReactElement {
   const [isStepValid, setIsStepValid] = useState(false);
   const [loading, setLoading] = useState(false); 
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
+  const [brokers, setBrokers] = useState<{ id: number; name: string }[]>([]);
 
   useEffect(() => {
     const planId = searchParams.get('planId');
@@ -160,6 +163,23 @@ export default function RegisterForm(): React.ReactElement {
       setPlanIdFromUrl(planId);
       console.log('REGISTER_FORM_DEBUG: planId from URL:', planId);
     }
+
+    // Fetch brokers
+    const fetchBrokers = async () => {
+      try {
+        const response = await fetch('/api/brokers');
+        if (!response.ok) {
+          throw new Error('Failed to fetch brokers');
+        }
+        const data = await response.json();
+        setBrokers(data);
+      } catch (error) {
+        console.error(error);
+        // Handle error appropriately, maybe set an error state
+      }
+    };
+
+    fetchBrokers();
   }, [searchParams]);
 
   const updateFormData = useCallback((field: keyof FormData, value: any) => {
@@ -182,6 +202,10 @@ export default function RegisterForm(): React.ReactElement {
     formDataPayload.append('state', data.estado);
     formDataPayload.append('zip_code', data.cep);
     formDataPayload.append('password', data.passwordLogin);
+
+    if (data.brokerId) {
+      formDataPayload.append('brokerId', data.brokerId);
+    }
 
     // Append files if they exist
     if (data.crmFile) {
@@ -323,6 +347,7 @@ export default function RegisterForm(): React.ReactElement {
             formData={formData}
             onInputChange={updateFormData}
             errors={formErrors}
+            brokers={brokers}
           />
         );
       case 2:

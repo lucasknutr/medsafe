@@ -69,6 +69,8 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(body.password as string, 10);
 
+    const brokerId = body.brokerId && body.brokerId !== 'null' ? Number(body.brokerId) : null;
+
     // Create user in Prisma/Postgres
     const user = await prisma.user.create({
       data: {
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
         zip_code: body.zip_code as string,
         password: hashedPassword,
         role: 'SEGURADO',
+        ...(brokerId && { brokerId: brokerId }),
       }
     });
 
