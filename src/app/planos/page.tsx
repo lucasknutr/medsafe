@@ -197,7 +197,7 @@ function PlanosContentWrapper() {
     };
 
     fetchUserStatus();
-  }, [cookies.user_id]);
+  }, [cookies]); // Depend on the entire cookies object for robustness
 
   const renderPlanCard = (plan: InsurancePlan) => {
     const isSelected = currentInsurance?.plan === plan.name;
