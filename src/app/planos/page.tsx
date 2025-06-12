@@ -301,13 +301,15 @@ function PlanosContentWrapper() {
 }
 
 export default function PlanosPage() {
+  const [cookies] = useCookies(['user_id']);
+
   return (
     <>
       <Navbar />
       <main>
         <Container className="pt-28 pb-8">
           <Suspense fallback={<div className="w-full flex justify-center py-10"><CircularProgress /></div>}>
-            <PlanosContentWrapper />
+            <PlanosContentWrapper key={cookies.user_id || 'logged-out'} />
           </Suspense>
         </Container>
       </main>
