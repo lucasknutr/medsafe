@@ -164,6 +164,13 @@ function PlanosContentWrapper() {
 
   useEffect(() => {
     const fetchUserStatus = async () => {
+      // If no user is logged in, clear the insurance state and stop loading.
+      if (!cookies.user_id) {
+        setCurrentInsurance(null);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -189,11 +196,7 @@ function PlanosContentWrapper() {
       }
     };
 
-    if (cookies.user_id) {
-      fetchUserStatus();
-    } else {
-      setLoading(false);
-    }
+    fetchUserStatus();
   }, [cookies.user_id]);
 
   const renderPlanCard = (plan: InsurancePlan) => {
