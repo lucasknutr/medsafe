@@ -55,7 +55,7 @@ const hardcodedServiceBoxes: ServiceBox[] = [
   {
     id: 3,
     title: "Planos e Valores",
-    description: "Verifique os planos e valores de cada seguro.",
+    description: "Verifique os planos e valores dos nossos planos.",
     imageUrl: "/images/plans.jpg",
     link: "/planos",
     order: 3
