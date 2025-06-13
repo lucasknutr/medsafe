@@ -15,6 +15,7 @@ export default function AdminPage() {
     { id: 12, title: 'Cadastro de Palestras e Eventos', href: '/admin/cadastro-eventos' },
     { id: 13, title: 'Alterar Slides da Página Inicial', href: '/admin/cadastrar-slides' },
     { id: 14, title: 'Gerenciamento de Usuários', href: '/admin/users' },
+    { id: 15, title: 'Aprovar Planos Pendentes', href: '/admin/pending-approvals' },
   ];
 
   return (
