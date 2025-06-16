@@ -22,7 +22,7 @@ const validateCoupon = (code: string): number => {
       return 0.15;
     case 'MED20SAFE':
       return 0.20;
-    case 'ANDREIADERMATO10':
+    case 'FORTALEZA10':
       return 0.10;
     default:
       return 0;
