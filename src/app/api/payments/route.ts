@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     } catch (e) {}
 
     const body = await request.json();
-    const { planId, paymentMethod, cardInfoPayload, email, customerId, finalAmount, couponCode, originalAmount } = body;
+    const { planId, paymentMethod, cardInfoPayload, email, customerId, finalAmount, couponCode, originalAmount, address } = body;
 
     let cardInfo = null;
     // WAF WORKAROUND: If cardInfoPayload exists, decode it from Base64.
@@ -47,10 +47,11 @@ export async function POST(request: Request) {
       planId,
       customerId: userId,
       paymentMethod,
-      cardInfo,
+      cardInfo, 
       finalAmount,
       originalAmount,
       couponCode,
+      address, 
     });
 
     return NextResponse.json(payment);

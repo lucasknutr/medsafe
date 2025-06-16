@@ -47,6 +47,20 @@ export default function PaymentForm() {
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
 
+  // Address state variables
+  const [address, setAddress] = useState({
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+  });
+
+  // Payment error state variable
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!planId) {
       setError("Nenhum plano selecionado.");
@@ -71,6 +85,37 @@ export default function PaymentForm() {
     };
     fetchPlan();
   }, [planId]);
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (address.cep.replace(/\D/g, '').length === 8) {
+        try {
+          const response = await fetch(`https://viacep.com.br/ws/${address.cep.replace(/\D/g, '')}/json/`);
+          const data = await response.json();
+          if (!data.erro) {
+            setAddress(prev => ({
+              ...prev,
+              street: data.logradouro,
+              neighborhood: data.bairro,
+              city: data.localidade,
+              state: data.uf,
+            }));
+          }
+        } catch (error) {
+          console.error("Error fetching CEP:", error);
+        }
+      }
+    };
+    fetchAddress();
+  }, [address.cep]);
+
+  const handleAddressChange = (field: keyof typeof address, value: string) => {
+    if (field === 'cep') {
+      value = value.replace(/\D/g, '');
+      if (value.length > 8) value = value.slice(0, 8);
+    }
+    setAddress(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleApplyCoupon = () => {
     if (!plan) return;
@@ -113,6 +158,7 @@ export default function PaymentForm() {
         originalAmount: plan.price,
         finalAmount: finalPrice, // Send final price
         couponCode: appliedDiscount > 0 ? couponCode : undefined, // Send coupon if applied
+        address: address, // Include address in the payload
       };
       // Check the assigned payment method to decide whether to attach card info.
       if (paymentData.paymentMethod === "CREDIT_CARD") {
@@ -125,6 +171,9 @@ export default function PaymentForm() {
         ...paymentData,
         cardInfoPayload: paymentData.cardInfoPayload ? `Base64 encoded payload` : undefined,
       });
+
+      setLoading(true);
+      setPaymentError(null); // Reset error on new submission
 
       const paymentResponse = await fetch("/api/payments", {
         method: "POST",
@@ -162,7 +211,27 @@ export default function PaymentForm() {
       if (boletoWindow) {
         boletoWindow.close();
       }
-      alert(err.message || "Erro ao processar pagamento");
+      // If the server returns an error, display it to the user.
+      const errorDetails = err.message || 'Ocorreu um erro desconhecido.';
+      // Extract the specific error message from Asaas if available
+      const asaasErrorRegex = /Asaas API Error: \d+ - (\{.*\})'/;
+      const match = errorDetails.match(asaasErrorRegex);
+      if (match && match[1]) {
+        try {
+          const asaasError = JSON.parse(match[1]);
+          if (asaasError.errors && asaasError.errors.length > 0) {
+            setPaymentError(asaasError.errors[0].description);
+          } else {
+            setPaymentError('Erro retornado pela API de pagamentos.');
+          }
+        } catch (e) {
+          setPaymentError(errorDetails); // Fallback to raw details
+        }
+      } else {
+        setPaymentError(errorDetails);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,6 +280,14 @@ export default function PaymentForm() {
           </Typography>
         )}
       </div>
+
+      {/* Display Payment Error */}
+      {paymentError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+          <strong className="font-bold">Erro no Pagamento: </strong>
+          <span className="block sm:inline">{paymentError}</span>
+        </div>
+      )}
 
       {!showGoToHomeButton ? (
         <form onSubmit={handleSubmit}>
@@ -272,6 +349,82 @@ export default function PaymentForm() {
                   className="w-1/3 p-2 border rounded"
                   maxLength={4}
                 />
+              </div>
+            </div>
+          )}
+          {paymentMethod === "CREDIT_CARD" && (
+            <div className="mb-6 p-4 border rounded-md">
+              <h2 className="text-xl font-semibold mb-4">Endereço de Cobrança</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                  <input
+                    type="text"
+                    value={address.cep}
+                    onChange={(e) => handleAddressChange('cep', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                    maxLength={8}
+                    placeholder="Somente números"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                  <input
+                    type="text"
+                    value={address.street}
+                    onChange={(e) => handleAddressChange('street', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
+                  <input
+                    type="text"
+                    value={address.number}
+                    onChange={(e) => handleAddressChange('number', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
+                  <input
+                    type="text"
+                    value={address.complement}
+                    onChange={(e) => handleAddressChange('complement', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                  <input
+                    type="text"
+                    value={address.neighborhood}
+                    onChange={(e) => handleAddressChange('neighborhood', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                  <input
+                    type="text"
+                    value={address.city}
+                    onChange={(e) => handleAddressChange('city', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <input
+                    type="text"
+                    value={address.state}
+                    onChange={(e) => handleAddressChange('state', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
               </div>
             </div>
           )}

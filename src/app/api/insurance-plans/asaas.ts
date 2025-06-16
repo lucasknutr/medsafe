@@ -31,6 +31,30 @@ interface PaymentData {
   };
 }
 
+interface CreateSubscriptionData {
+  planId: string;
+  customerId: string | number;
+  paymentMethod: 'CREDIT_CARD' | 'BOLETO' | 'PIX';
+  cardInfo?: {
+    number: string;
+    expiry: string;
+    cvc: string;
+    name: string;
+  };
+  finalAmount: number;
+  originalAmount: number;
+  couponCode?: string;
+  address: {
+    cep: string;
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  };
+}
+
 interface AsaasPaymentResponse {
   id: string;
   status: string;
@@ -49,15 +73,8 @@ interface AsaasPaymentResponse {
   // ... other fields returned by Asaas
 }
 
-export async function createSubscription(data: PaymentData) {
-  const logData = { ...data };
-  if (logData.cardInfo && typeof logData.cardInfo.number === 'string') {
-    logData.cardInfo = {
-      ...logData.cardInfo,
-      number: '**** **** **** ' + logData.cardInfo.number.slice(-4),
-      ccv: '***',
-    };
-  }
+export async function createSubscription(data: CreateSubscriptionData) {
+  const logData = { ...data, cardInfo: 'REDACTED' };
   console.log('[createSubscription] Starting subscription creation with data:', JSON.stringify(logData, null, 2));
   const asaasClient = getAsaasClient();
 
@@ -73,7 +90,7 @@ export async function createSubscription(data: PaymentData) {
     }
     console.log('[createSubscription] Plan details:', plan);
 
-    // 2. Get User Details
+    // 2. Get User Detaeils
     let userIdentifier: { id: number } | { email: string };
     if (typeof data.customerId === 'string' && data.customerId.includes('@')) {
         userIdentifier = { email: data.customerId };
@@ -95,7 +112,7 @@ export async function createSubscription(data: PaymentData) {
     }
     console.log('[createSubscription] User details:', { id: user.id, email: user.email, name: user.name, asaasCustomerId: user.asaasCustomerId });
 
-    // 3. Create or Retrieve Asaas Customer
+    // Create or Retrieve Asaas Customer, and UPDATE their address
     let asaasCustomerId = user.asaasCustomerId;
     if (!asaasCustomerId) {
       console.log('[createSubscription] Asaas customer ID not found, creating new Asaas customer for user:', user.id);
@@ -114,9 +131,14 @@ export async function createSubscription(data: PaymentData) {
         email: user.email,
         cpfCnpj: user.cpf, 
         phone: user.phone, 
+        postalCode: data.address.cep.replace(/\D/g, ''),
+        address: data.address.street,
+        addressNumber: data.address.number,
+        complement: data.address.complement,
+        province: data.address.neighborhood,
       };
       console.log('[createSubscription] Creating Asaas customer with payload:', customerPayload);
-      const asaasCustomer = await asaasClient.createCustomer(customerPayload); 
+      const asaasCustomer = await asaasClient.createCustomer(customerPayload);
       asaasCustomerId = asaasCustomer.id;
       console.log('[createSubscription] Asaas customer created with ID:', asaasCustomerId, 'Updating user record.');
       await prisma.user.update({
@@ -125,6 +147,23 @@ export async function createSubscription(data: PaymentData) {
       });
     } else {
       console.log('[createSubscription] Found existing Asaas customer ID:', asaasCustomerId, 'for user:', user.id);
+      // Update the existing customer's address before payment
+      console.log(`[createSubscription] Updating Asaas customer ${asaasCustomerId} with new address.`);
+      try {
+        const updatePayload = {
+          postalCode: data.address.cep.replace(/\D/g, ''),
+          address: data.address.street,
+          addressNumber: data.address.number,
+          complement: data.address.complement,
+          province: data.address.neighborhood,
+        };
+        await axios.post(`${asaasClient['apiUrl']}/customers/${asaasCustomerId}`, updatePayload, {
+          headers: asaasClient['headers'],
+        });
+        console.log(`[createSubscription] Successfully updated address for Asaas customer ${asaasCustomerId}.`);
+      } catch (updateError: any) {
+        console.error(`[createSubscription] Failed to update Asaas customer address:`, updateError.response?.data || updateError.message);
+      }
     }
 
     // 4. Prepare Subscription Payload for Asaas
@@ -152,28 +191,27 @@ export async function createSubscription(data: PaymentData) {
         subscriptionPayload.creditCardToken = existingPaymentMethod.creditCardToken;
       } else {
         console.log('[createSubscription] No existing token found. Using full credit card details.');
+        const [expiryMonth, expiryYear] = data.cardInfo.expiry.split('/');
         subscriptionPayload.creditCard = {
-          holderName: data.cardInfo.holderName,
+          holderName: data.cardInfo.name,
           number: data.cardInfo.number,
-          expiryMonth: data.cardInfo.expiryMonth,
-          expiryYear: data.cardInfo.expiryYear,
-          ccv: data.cardInfo.ccv,
+          expiryMonth: expiryMonth,
+          expiryYear: `20${expiryYear}`,
+          ccv: data.cardInfo.cvc,
         };
-
-        const addressParts = user.address?.split(',') || [];
-        const addressNumber = addressParts.length > 1 ? addressParts[1].trim().split(' ')[0] : 'S/N';
 
         subscriptionPayload.creditCardHolderInfo = {
-          name: user.name || data.cardInfo.holderName,
+          name: user.name || data.cardInfo.name,
           email: user.email,
           cpfCnpj: user.cpf,
-          postalCode: user.zip_code,
-          addressNumber: addressNumber,
+          postalCode: data.address.cep.replace(/\D/g, ''),
+          addressNumber: data.address.number,
+          addressComplement: data.address.complement,
           phone: user.phone,
-          mobilePhone: user.phone, // Use phone for mobilePhone as well
+          mobilePhone: user.phone,
         };
       }
-      subscriptionPayload.remoteIp = data.cardInfo.remoteIp || '127.0.0.1';
+      subscriptionPayload.remoteIp = '127.0.0.1'; // Using a placeholder IP
     }
 
     console.log('[createSubscription] Asaas subscription payload:', {
@@ -243,7 +281,7 @@ export async function createSubscription(data: PaymentData) {
         update: {
           lastFour: creditCardInfo.creditCardNumber,
           brand: creditCardInfo.creditCardBrand,
-          holderName: data.cardInfo.holderName,
+          holderName: data.cardInfo.name,
           creditCardToken: creditCardInfo.creditCardToken, // Save the new token
         },
         create: {
@@ -251,7 +289,7 @@ export async function createSubscription(data: PaymentData) {
           type: 'CREDIT_CARD',
           lastFour: creditCardInfo.creditCardNumber,
           brand: creditCardInfo.creditCardBrand,
-          holderName: data.cardInfo.holderName,
+          holderName: data.cardInfo.name,
           creditCardToken: creditCardInfo.creditCardToken, // Save the new token
         },
       });
@@ -310,7 +348,7 @@ export async function createSubscription(data: PaymentData) {
   }
 }
 
-export async function createPayment(data: PaymentData) {
+export async function createPayment(data: CreateSubscriptionData) {
   // All payments should now be subscriptions
   console.log('[createPayment] Routing to createSubscription...');
   return createSubscription(data);
