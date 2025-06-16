@@ -309,6 +309,7 @@ export default function PlanosPage() {
       <main>
         <Container className="pt-28 pb-8">
           <Suspense fallback={<div className="w-full flex justify-center py-10"><CircularProgress /></div>}>
+            {/* Using the user_id as a key forces a full remount on login/logout, clearing all state. */}
             <PlanosContentWrapper key={cookies.user_id || 'logged-out'} />
           </Suspense>
         </Container>
