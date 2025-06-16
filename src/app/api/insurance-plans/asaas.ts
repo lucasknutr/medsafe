@@ -74,11 +74,16 @@ export async function createSubscription(data: PaymentData) {
     console.log('[createSubscription] Plan details:', plan);
 
     // 2. Get User Details
-    let userIdentifier: { id: string } | { email: string };
+    let userIdentifier: { id: number } | { email: string };
     if (typeof data.customerId === 'string' && data.customerId.includes('@')) {
         userIdentifier = { email: data.customerId };
     } else {
-        userIdentifier = { id: String(data.customerId) };
+        // Convert the string ID from the cookie to an integer for the Prisma query.
+        const userId = parseInt(String(data.customerId), 10);
+        if (isNaN(userId)) {
+            throw new Error('Invalid user ID format');
+        }
+        userIdentifier = { id: userId };
     }
 
     console.log('[createSubscription] Fetching user with identifier:', userIdentifier);
