@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createPayment, getPaymentStatus } from '@/app/api/insurance-plans/asaas';
+import { createSubscription, getPaymentStatus } from '@/app/api/insurance-plans/asaas';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const payment = await createPayment({
+    const payment = await createSubscription({
       planId,
       customerId: userId,
       paymentMethod,
