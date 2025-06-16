@@ -283,19 +283,28 @@ function PlanosContentWrapper() {
 
   return (
     <>
-      <Typography variant="h4" gutterBottom>Nossos Planos</Typography>
+      <Navbar />
+      <Container sx={{ mt: 12, mb: 4 }}>
+        {loading && <CircularProgress />}
+        {error && <Alert severity="error">{error}</Alert>}
+        {!loading && !error && (
+          <>
+            <Typography variant="h4" gutterBottom>Nossos Planos</Typography>
 
-      {renderUploadSection()}
+            {renderUploadSection()}
 
-      {currentInsurance && !['PENDING_DOCUMENT'].includes(currentInsurance.status) && (
-        <Alert severity="info" className="mb-8">
-          Você já possui o <strong>{currentInsurance.plan}</strong> com status <strong>{translateStatus(currentInsurance.status)}</strong>.
-        </Alert>
-      )}
+            {currentInsurance && !['PENDING_DOCUMENT'].includes(currentInsurance.status) && (
+              <Alert severity="info" className="mb-8">
+                Você já possui o <strong>{currentInsurance.plan}</strong> com status <strong>{translateStatus(currentInsurance.status)}</strong>.
+              </Alert>
+            )}
 
-      <Grid container spacing={4}>
-        {plans.map(renderPlanCard)}
-      </Grid>
+            <Grid container spacing={4}>
+              {plans.map(renderPlanCard)}
+            </Grid>
+          </>
+        )}
+      </Container>
     </>
   );
 }

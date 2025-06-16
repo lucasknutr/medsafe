@@ -183,7 +183,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
       // Check for an existing payment token first
       const existingPaymentMethod = await prisma.paymentMethod.findFirst({
-        where: { userId: user.id, type: 'CREDIT_CARD', lastFour: data.cardInfo.number.slice(-4) },
+        where: { userId: user.id, type: 'CREDIT_CARD' },
       });
 
       if (existingPaymentMethod?.creditCardToken) {

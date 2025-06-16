@@ -102,7 +102,6 @@ export default function PaymentForm() {
             }));
           }
         } catch (error) {
-          console.error("Error fetching CEP:", error);
         }
       }
     };
@@ -188,11 +187,6 @@ export default function PaymentForm() {
         paymentData.cardInfoPayload = cardInfoPayload;
       }
 
-      console.log('PaymentForm - Sending paymentData to /api/payments:', {
-        ...paymentData,
-        cardInfoPayload: paymentData.cardInfoPayload ? `Base64 encoded payload` : undefined,
-      });
-
       setLoading(true);
       setPaymentError(null); // Reset error on new submission
 
@@ -227,7 +221,6 @@ export default function PaymentForm() {
         router.push("/planos"); // Redirect to planos page for non-Boleto payments
       }
     } catch (err: any) {
-      console.error("Payment Error:", err);
       // If a boleto window was opened and an error occurred, close it.
       if (boletoWindow) {
         boletoWindow.close();
