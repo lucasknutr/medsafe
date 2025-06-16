@@ -114,7 +114,8 @@ export default function PaymentForm() {
         finalAmount: finalPrice, // Send final price
         couponCode: appliedDiscount > 0 ? couponCode : undefined, // Send coupon if applied
       };
-      if (paymentMethod === "CARTAO") {
+      // Check the assigned payment method to decide whether to attach card info.
+      if (paymentData.paymentMethod === "CREDIT_CARD") {
         // WAF WORKAROUND: Encode card details in Base64 to prevent firewall from blocking the request.
         // The backend will decode this payload.
         paymentData.cardInfoPayload = btoa(JSON.stringify(cardDetails));
