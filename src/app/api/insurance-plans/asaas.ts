@@ -181,58 +181,58 @@ export async function createSubscription(data: CreateSubscriptionData) {
     }
 
     if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
-      // Check for an existing payment token first
+      // Validate expiry date format MM/YY
+      if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(data.cardInfo.expiry)) {
+        throw new Error('Formato da data de validade do cartão inválido. Use MM/AA.');
+      }
+
+      // Use existing token if available
       const existingPaymentMethod = await prisma.paymentMethod.findFirst({
         where: { userId: user.id, type: 'CREDIT_CARD' },
       });
 
-      if (existingPaymentMethod?.creditCardToken) {
-        console.log('[createSubscription] Found existing credit card token. Using token for payment.');
-        subscriptionPayload.creditCardToken = existingPaymentMethod.creditCardToken;
-      } else {
-        console.log('[createSubscription] No existing token found. Using full credit card details.');
+      let asaasToken = existingPaymentMethod?.creditCardToken;
 
-        if (!data.cardInfo.expiry || !data.cardInfo.expiry.includes('/')) {
-          throw new Error('Formato da data de validade do cartão inválido. Use MM/YY.');
-        }
-
-        const [expiryMonth, expiryYear] = data.cardInfo.expiry.split('/');
-
-        if (!expiryMonth || !expiryYear || expiryYear.length !== 2) {
-          throw new Error('Formato da data de validade do cartão inválido. Use MM/YY.');
-        }
-
-        subscriptionPayload.creditCard = {
-          holderName: data.cardInfo.name,
-          number: data.cardInfo.number,
-          expiryMonth: expiryMonth,
-          expiryYear: `20${expiryYear}`,
-          ccv: data.cardInfo.cvc,
-        };
-
-        subscriptionPayload.creditCardHolderInfo = {
-          name: user.name || data.cardInfo.name,
-          email: user.email,
-          cpfCnpj: user.cpf,
-          postalCode: data.address.cep.replace(/\D/g, ''),
-          addressNumber: data.address.number,
-          addressComplement: data.address.complement,
-          phone: user.phone,
-          mobilePhone: user.phone,
-        };
+      if (!asaasToken) {
+        console.log('[createSubscription] No existing credit card token found, creating a new one.');
+        // The asaas-client does not have a method for tokenization, so we use axios
+        const tokenResponse = await axios.post(`${asaasClient['apiUrl']}/creditCard/tokenize`, {
+          customer: asaasCustomerId!,
+          creditCard: {
+            holderName: data.cardInfo.name,
+            number: data.cardInfo.number,
+            expiryMonth: data.cardInfo.expiry.split('/')[0],
+            expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
+            ccv: data.cardInfo.cvc,
+          },
+          creditCardHolderInfo: {
+            name: user.name || data.cardInfo.name,
+            email: user.email,
+            cpfCnpj: user.cpf || '',
+            postalCode: data.address.cep.replace(/\D/g, ''),
+            addressNumber: data.address.number,
+            phone: user.phone || '',
+          },
+        }, {
+          headers: asaasClient['headers'],
+        });
+        asaasToken = tokenResponse.data.creditCardToken;
+        console.log('[createSubscription] New credit card token created:', asaasToken);
       }
-      subscriptionPayload.remoteIp = '127.0.0.1'; // Using a placeholder IP
+
+      subscriptionPayload.creditCardToken = asaasToken;
     }
 
-    console.log('[createSubscription] Asaas subscription payload:', {
+    // 5. Create Subscription in Asaas
+    console.log('[createSubscription] Creating Asaas subscription with payload:', {
       ...subscriptionPayload,
-      creditCard: subscriptionPayload.creditCard ? { ...subscriptionPayload.creditCard, number: 'REDACTED', ccv: 'REDACTED'} : undefined
+      creditCard: 'REDACTED',
     });
 
     const subscription = await asaasClient.createSubscription(subscriptionPayload);
-    console.log('[createSubscription] Asaas subscription created:', subscription);
+    console.log('[createSubscription] Asaas subscription created successfully:', { id: subscription.id, status: subscription.status });
 
-    // 5. Determine initial insurance status
+    // 6. Determine initial insurance status
     let insuranceStatus: string;
     const firstPaymentStatus = subscription.payments?.[0]?.status || subscription.status;
 
@@ -245,9 +245,6 @@ export async function createSubscription(data: CreateSubscriptionData) {
         case 'RECEIVED_IN_CASH':
           insuranceStatus = 'PENDING_DOCUMENT';
           break;
-        case 'PENDING':
-          insuranceStatus = 'PENDING_PAYMENT';
-          break;
         default:
           insuranceStatus = 'PENDING_PAYMENT';
           break;
@@ -256,7 +253,8 @@ export async function createSubscription(data: CreateSubscriptionData) {
       insuranceStatus = 'PENDING';
     }
 
-    // 6. Upsert Insurance Policy
+    // 7. Create or Update Insurance Policy
+    console.log(`[createSubscription] Upserting insurance policy for user ${user.id} with status: ${insuranceStatus}`);
     const userInsurancePolicy = await prisma.insurance.upsert({
       where: { userId: user.id },
       update: {
@@ -264,7 +262,6 @@ export async function createSubscription(data: CreateSubscriptionData) {
         status: insuranceStatus,
         planPriceSnapshot: Number(plan.price),
         asaasPaymentId: subscription.id, // Storing subscription ID here
-        startDate: new Date(),
       },
       create: {
         userId: user.id,
@@ -276,41 +273,35 @@ export async function createSubscription(data: CreateSubscriptionData) {
       },
     });
 
-    // 7. Upsert PaymentMethod
+    // 8. Upsert PaymentMethod and Create Transaction
+    let paymentMethodRecord;
     const firstPayment = subscription.payments?.[0];
-    const creditCardInfo = firstPayment?.creditCard;
 
-    if (data.paymentMethod === 'CREDIT_CARD' && creditCardInfo) {
-      await prisma.paymentMethod.upsert({
+    if (data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard) {
+      const creditCardInfo = firstPayment.creditCard;
+      paymentMethodRecord = await prisma.paymentMethod.upsert({
         where: {
-          userId_type_type: {
-            userId: user.id,
-            type: 'CREDIT_CARD',
-          },
+          userId_type_type: { userId: user.id, type: 'CREDIT_CARD' },
         },
         update: {
+          creditCardToken: creditCardInfo.creditCardToken,
           lastFour: creditCardInfo.creditCardNumber,
           brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.name,
-          creditCardToken: creditCardInfo.creditCardToken, // Save the new token
         },
         create: {
           userId: user.id,
           type: 'CREDIT_CARD',
+          creditCardToken: creditCardInfo.creditCardToken,
           lastFour: creditCardInfo.creditCardNumber,
           brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.name,
-          creditCardToken: creditCardInfo.creditCardToken, // Save the new token
         },
       });
     } else if (data.paymentMethod === 'BOLETO') {
-      // Handle boleto payment method creation if needed
-      await prisma.paymentMethod.upsert({
+      paymentMethodRecord = await prisma.paymentMethod.upsert({
         where: {
-          userId_type_type: {
-            userId: user.id,
-            type: 'BOLETO',
-          },
+          userId_type_type: { userId: user.id, type: 'BOLETO' },
         },
         update: {},
         create: {
@@ -320,27 +311,24 @@ export async function createSubscription(data: CreateSubscriptionData) {
       });
     }
 
-    // Find the relevant payment method ID for the transaction
-    const paymentMethodRecord = await prisma.paymentMethod.findFirst({
-      where: { userId: user.id, type: data.paymentMethod },
-    });
-
     if (!paymentMethodRecord) {
+      console.error('[createSubscription] CRITICAL: Failed to upsert and retrieve payment method record.');
       throw new Error('Payment method record not found for transaction creation.');
     }
 
-    // 8. Create Transaction record
-    await prisma.transaction.create({
+    // 9. Create Transaction
+    console.log(`[createSubscription] Creating transaction record for user ${user.id} and policy ${userInsurancePolicy.id}`);
+    const newTransaction = await prisma.transaction.create({
       data: {
         userId: user.id,
         insuranceId: userInsurancePolicy.id,
         paymentMethodId: paymentMethodRecord.id,
-        transactionId: firstPayment?.id || subscription.id, // Use first payment ID if available
+        transactionId: firstPayment?.id || subscription.id,
         status: firstPayment?.status || subscription.status,
         amount: Number(data.finalAmount),
         couponCode: data.couponCode || null,
         type: data.paymentMethod,
-        paymentDetails: JSON.stringify(subscription), // Store the whole subscription object
+        paymentDetails: JSON.stringify(subscription),
         planNameSnapshot: plan.name,
         planPriceSnapshot: Number(plan.price),
         boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl,
@@ -348,12 +336,17 @@ export async function createSubscription(data: CreateSubscriptionData) {
       },
     });
 
-    // Return the first payment object if it exists, or the subscription details
+    console.log('[createSubscription] Transaction created successfully:', { id: newTransaction.id });
+
+    // Return the first payment object which contains details like the boleto link
     return firstPayment || subscription;
 
   } catch (error: any) {
     console.error('!!! Asaas Subscription Error:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
-    const errorMessage = error.response?.data?.errors?.[0]?.description || error.message || 'Unknown error';
+    let errorMessage = 'Falha ao criar assinatura no Asaas.';
+    if (error.response?.data?.errors?.[0]?.description) {
+      errorMessage = error.response.data.errors[0].description;
+    }
     throw new Error(`Falha ao criar assinatura no Asaas: ${errorMessage}`);
   }
 }
