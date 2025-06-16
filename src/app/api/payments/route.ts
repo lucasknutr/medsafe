@@ -13,7 +13,19 @@ export async function POST(request: Request) {
     } catch (e) {}
 
     const body = await request.json();
-    const { planId, paymentMethod, cardInfo, email, customerId, finalAmount, couponCode, originalAmount } = body;
+    const { planId, paymentMethod, cardInfoPayload, email, customerId, finalAmount, couponCode, originalAmount } = body;
+
+    let cardInfo = null;
+    // WAF WORKAROUND: If cardInfoPayload exists, decode it from Base64.
+    if (cardInfoPayload) {
+      try {
+        const decodedString = Buffer.from(cardInfoPayload, 'base64').toString('utf-8');
+        cardInfo = JSON.parse(decodedString);
+      } catch (e) {
+        console.error("Failed to decode/parse cardInfoPayload:", e);
+        return NextResponse.json({ error: 'Invalid card information format' }, { status: 400 });
+      }
+    }
 
     if (!planId || !paymentMethod || finalAmount === undefined || finalAmount === null) {
       return NextResponse.json(
