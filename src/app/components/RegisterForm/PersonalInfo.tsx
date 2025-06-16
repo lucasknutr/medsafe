@@ -163,6 +163,12 @@ export default function PersonalInfo({ formData, onInputChange, errors, brokers 
     onInputChange('cpf', value);
   };
 
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length > 8) value = value.slice(0, 8); // CEP max 8 digits
+    onInputChange('cep', value);
+  };
+
   return (
     <div className="space-y-6">
       {/* Role selector */}
@@ -446,8 +452,9 @@ export default function PersonalInfo({ formData, onInputChange, errors, brokers 
             <input
               type="text"
               value={formData.cep}
-              onChange={(e) => onInputChange('cep', e.target.value)}
-              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              onChange={handleCepChange}
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+              maxLength={8}
               required
             />
           </div>
