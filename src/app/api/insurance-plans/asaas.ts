@@ -191,7 +191,17 @@ export async function createSubscription(data: CreateSubscriptionData) {
         subscriptionPayload.creditCardToken = existingPaymentMethod.creditCardToken;
       } else {
         console.log('[createSubscription] No existing token found. Using full credit card details.');
+
+        if (!data.cardInfo.expiry || !data.cardInfo.expiry.includes('/')) {
+          throw new Error('Formato da data de validade do cartão inválido. Use MM/YY.');
+        }
+
         const [expiryMonth, expiryYear] = data.cardInfo.expiry.split('/');
+
+        if (!expiryMonth || !expiryYear || expiryYear.length !== 2) {
+          throw new Error('Formato da data de validade do cartão inválido. Use MM/YY.');
+        }
+
         subscriptionPayload.creditCard = {
           holderName: data.cardInfo.name,
           number: data.cardInfo.number,

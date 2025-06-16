@@ -150,6 +150,20 @@ export default function PaymentForm() {
         }
       }
 
+      // Frontend validation for credit card fields
+      if (paymentMethod === "CREDIT_CARD") {
+        if (!cardDetails.holderName || !cardDetails.number || !cardDetails.expiryMonth || !cardDetails.expiryYear || !cardDetails.ccv) {
+          setPaymentError("Por favor, preencha todos os campos do cartão de crédito.");
+          setLoading(false);
+          return;
+        }
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(`${cardDetails.expiryMonth}/${cardDetails.expiryYear}`)) {
+          setPaymentError("Formato da data de validade inválido. Use MM/AA.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const paymentData: any = {
         planId: plan.id,
         paymentMethod: paymentMethod === "CARTAO" ? "CREDIT_CARD" : paymentMethod,
@@ -162,9 +176,16 @@ export default function PaymentForm() {
       };
       // Check the assigned payment method to decide whether to attach card info.
       if (paymentData.paymentMethod === "CREDIT_CARD") {
-        // WAF WORKAROUND: Encode card details in Base64 to prevent firewall from blocking the request.
-        // The backend will decode this payload.
-        paymentData.cardInfoPayload = btoa(JSON.stringify(cardDetails));
+        // If the payment method is credit card, encode the card info.
+        const cardInfoPayload = btoa(
+          JSON.stringify({
+            name: cardDetails.holderName,
+            number: cardDetails.number,
+            expiry: `${cardDetails.expiryMonth}/${cardDetails.expiryYear}`,
+            cvc: cardDetails.ccv,
+          })
+        );
+        paymentData.cardInfoPayload = cardInfoPayload;
       }
 
       console.log('PaymentForm - Sending paymentData to /api/payments:', {
