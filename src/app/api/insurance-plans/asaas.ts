@@ -200,7 +200,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
         ccv: data.cardInfo.cvc,
       };
       subscriptionPayload.creditCardHolderInfo = {
-        name: user.name || data.cardInfo.name,
+        name: data.cardInfo.name,
         email: user.email,
         cpfCnpj: user.cpf || '',
         postalCode: data.address.cep.replace(/\D/g, ''),
