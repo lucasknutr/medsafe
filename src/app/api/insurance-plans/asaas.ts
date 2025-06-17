@@ -188,6 +188,30 @@ export async function createSubscription(data: CreateSubscriptionData) {
         throw new Error('Formato da data de validade do cartão inválido. Use MM/AA.');
       }
 
+      // =================================================================
+      // TEMPORARY WORKAROUND: Bypass tokenization while waiting for Asaas approval.
+      // We send the card data directly with the subscription request.
+      // =================================================================
+      subscriptionPayload.creditCard = {
+        holderName: data.cardInfo.name,
+        number: data.cardInfo.number,
+        expiryMonth: data.cardInfo.expiry.split('/')[0],
+        expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
+        ccv: data.cardInfo.cvc,
+      };
+      subscriptionPayload.creditCardHolderInfo = {
+        name: user.name || data.cardInfo.name,
+        email: user.email,
+        cpfCnpj: user.cpf || '',
+        postalCode: data.address.cep.replace(/\D/g, ''),
+        addressNumber: data.address.number,
+        phone: user.phone || '',
+      };
+
+      /*
+      // =================================================================
+      // ORIGINAL TOKENIZATION LOGIC - Restore when Asaas approves the feature
+      // =================================================================
       // Use existing token if available
       const existingPaymentMethod = await prisma.paymentMethod.findFirst({
         where: { userId: user.id, type: 'CREDIT_CARD' },
@@ -224,6 +248,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
       }
 
       subscriptionPayload.creditCardToken = asaasToken;
+      */
     }
 
     // 5. Create Subscription in Asaas
