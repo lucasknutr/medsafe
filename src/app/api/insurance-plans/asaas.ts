@@ -305,24 +305,22 @@ export async function createSubscription(data: CreateSubscriptionData) {
     let paymentMethodRecord;
     const firstPayment = subscription.payments?.[0];
 
-    if (data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard) {
-      const creditCardInfo = firstPayment.creditCard;
+    if (data.paymentMethod === 'CREDIT_CARD') {
+      // In the temporary workaround, the Asaas response doesn't contain card details.
+      // We will create/update our own record with the info we already have.
       paymentMethodRecord = await prisma.paymentMethod.upsert({
         where: {
           userId_type_type: { userId: user.id, type: 'CREDIT_CARD' },
         },
         update: {
-          creditCardToken: creditCardInfo.creditCardToken,
-          lastFour: creditCardInfo.creditCardNumber,
-          brand: creditCardInfo.creditCardBrand,
+          lastFour: data.cardInfo.number.slice(-4),
           holderName: data.cardInfo.name,
+          // NOTE: We don't get brand or token in this temporary flow.
         },
         create: {
           userId: user.id,
           type: 'CREDIT_CARD',
-          creditCardToken: creditCardInfo.creditCardToken,
-          lastFour: creditCardInfo.creditCardNumber,
-          brand: creditCardInfo.creditCardBrand,
+          lastFour: data.cardInfo.number.slice(-4),
           holderName: data.cardInfo.name,
         },
       });
