@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSubscription, getPaymentStatus } from '@/app/api/insurance-plans/asaas';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for');
+
     // Accept email from body if not using session
     let sessionUserEmail = null;
     try {
@@ -51,7 +53,8 @@ export async function POST(request: Request) {
       finalAmount,
       originalAmount,
       couponCode,
-      address, 
+      address,
+      remoteIp: ip,
     });
 
     return NextResponse.json(payment);
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

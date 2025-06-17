@@ -53,6 +53,7 @@ interface CreateSubscriptionData {
     city: string;
     state: string;
   };
+  remoteIp?: string;
 }
 
 interface AsaasPaymentResponse {
@@ -174,6 +175,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
       nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], // Next payment in 30 days
       cycle: 'MONTHLY',
       description: `Assinatura do plano ${plan.name} - MedSafe`,
+      remoteIp: data.remoteIp,
     };
 
     if (data.couponCode) {
@@ -213,6 +215,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
             addressNumber: data.address.number,
             phone: user.phone || '',
           },
+          remoteIp: data.remoteIp,
         }, {
           headers: asaasClient['headers'],
         });
