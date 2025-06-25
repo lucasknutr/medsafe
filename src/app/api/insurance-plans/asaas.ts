@@ -348,7 +348,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
         paymentDetails: JSON.stringify(subscription), // Convert object to JSON string
         planNameSnapshot: plan.name,
         planPriceSnapshot: Number(plan.price),
-        boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl,
+        boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl || null,
         boletoCode: firstPayment?.barCode || null,
       },
     });
