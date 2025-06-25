@@ -34,9 +34,9 @@ const plano100: InsurancePlan = {
   id: 'plan_plus_100_v1',
   name: 'Plano +100',
   price: 279.00,
-  description: 'Cobertura de R$ 100.000. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
+  description: 'Cobertura de R$ 100.000,00. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
   features: [
-    'Cobertura de R$ 100.000',
+    'Cobertura de R$ 100.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
     'Honorários de sucumbência',
@@ -47,11 +47,11 @@ const plano100: InsurancePlan = {
 
 const plano200: InsurancePlan = {
   id: 'cmabutev30000ec8p7nanpru7',
-  name: 'Plano +200',
+  name: 'Plano +200 (Todas as especialidades, inclusive cirúrgicas)',
   price: 449.00,
-  description: 'Cobertura de R$ 200.000. Abrange todas as especialidades médicas, exceto Cirurgia Plástica Estética.',
+  description: 'Cobertura de R$ 200.000,00. Abrange todas as especialidades médicas, exceto Cirurgia Plástica.',
   features: [
-    'Cobertura de R$ 200.000',
+    'Cobertura de R$ 200.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
     'Honorários de sucumbência',
@@ -59,14 +59,14 @@ const plano200: InsurancePlan = {
   is_active: true,
 };
 
-// New Standard Plano +500
-const plano500Standard: InsurancePlan = {
-  id: 'plan_plus_500_standard_v1',
-  name: 'Plano +500',
-  price: 458.00,
-  description: 'Cobertura de R$ 500.000. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
+// New Standard Plano +200 (Cirurgia Plástica)
+const plano200Plastica: InsurancePlan = {
+  id: 'plan_plus_500_plastica_v1',
+  name: 'Plano +200 (Cirurgia Plástica)',
+  price: 799.00,
+  description: 'Cobertura de R$ 200.000,00. Abrange apenas Cirurgia Plástica.',
   features: [
-    'Cobertura de R$ 500.000',
+    'Cobertura de R$ 200.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
     'Honorários de sucumbência',
@@ -75,7 +75,39 @@ const plano500Standard: InsurancePlan = {
   customQuote: false,
 };
 
-const plans: InsurancePlan[] = [plano100, plano200, plano500Standard];
+// New Standard Plano +500
+const plano500Standard: InsurancePlan = {
+  id: 'plan_plus_500_standard_v1',
+  name: 'Plano +500 (Especialidades Clínicas)',
+  price: 458.00,
+  description: 'Cobertura de R$ 500.000,00. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia, Cardiologia e Pediatria.',
+  features: [
+    'Cobertura de R$ 500.000,00',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+  ],
+  is_active: true,
+  customQuote: false,
+};
+
+// New Standard Plano +500 (Cirurgia Plástica)
+const plano500Plastica: InsurancePlan = {
+  id: 'plan_plus_500_plastica_v1',
+  name: 'Plano +500 (Cirurgia Plástica)',
+  price: 1099.00,
+  description: 'Cobertura de R$ 500.000,00. Abrange apenas Cirurgia Plástica.',
+  features: [
+    'Cobertura de R$ 500.000,00',
+    'Defesas em processos Éticos, Cíveis e Criminais',
+    'Perícias e custas judiciais',
+    'Honorários de sucumbência',
+  ],
+  is_active: true,
+  customQuote: false,
+};
+
+const plans: InsurancePlan[] = [plano100, plano200, plano200Plastica, plano500Standard, plano500Plastica];
 
 function PlanosContentWrapper() {
   "use client";
@@ -213,7 +245,14 @@ function PlanosContentWrapper() {
                 Status: {translateStatus(status)}
               </Typography>
             )}
-            <Typography variant="h6" color="primary">R$ {plan.price.toFixed(2)}/mês</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', my: 2 }}>
+              <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+                R$ {plan.price.toFixed(2).replace('.', ',')}
+              </Typography>
+              <Typography variant="body1" component="span" sx={{ ml: 0.5 }}>
+                /mês
+              </Typography>
+            </Box>
             <Typography variant="body2" color="text.secondary" className="mt-2">{plan.description}</Typography>
             <ul className="mt-4 text-sm">
               {plan.features.map((feature, index) => <li key={index}>✓ {feature}</li>)}
