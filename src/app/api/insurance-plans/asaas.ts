@@ -294,15 +294,15 @@ export async function createSubscription(data: CreateSubscriptionData) {
     let paymentMethodRecord;
     const firstPayment = subscription.payments?.[0];
 
-    if (data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard) {
-      const creditCardInfo = firstPayment.creditCard;
+    if (data.paymentMethod === 'CREDIT_CARD' && subscription.creditCard) {
+      const creditCardInfo = subscription.creditCard;
       paymentMethodRecord = await prisma.paymentMethod.upsert({
         where: {
           userId_type_type: { userId: user.id, type: 'CREDIT_CARD' },
         },
         update: {
           creditCardToken: creditCardInfo.creditCardToken,
-          lastFour: creditCardInfo.creditCardNumber,
+          lastFour: creditCardInfo.creditCardNumber.slice(-4),
           brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.name,
         },
@@ -310,7 +310,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
           userId: user.id,
           type: 'CREDIT_CARD',
           creditCardToken: creditCardInfo.creditCardToken,
-          lastFour: creditCardInfo.creditCardNumber,
+          lastFour: creditCardInfo.creditCardNumber.slice(-4),
           brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.name,
         },
