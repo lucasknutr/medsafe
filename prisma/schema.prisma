@@ -57,7 +57,7 @@ model Policy {
   start_date        DateTime
   end_date          DateTime
   total_insured     Int
-  total_value       Float
+  total_value       Decimal
   is_extended       Boolean  @default(false)
   new_policy_id     Int?
   created_at        DateTime @default(now())
@@ -79,10 +79,10 @@ model Process {
   status              String
   accident_date       DateTime
   contract_date       DateTime
-  case_value          Float
+  case_value          Decimal
   is_covered          Boolean  @default(false)
   probability_of_loss Int
-  total_cost          Float
+  total_cost          Decimal
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
   lawyer              Lawyer   @relation(fields: [lawyer_id], references: [id])
@@ -126,7 +126,7 @@ model Broker {
 model LegalAction {
   id         Int      @id @default(autoincrement())
   name       String
-  cost       Float
+  cost       Decimal
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   @@schema("public")
@@ -155,14 +155,14 @@ model Transaction {
   id              Int            @id @default(autoincrement())
   userId          Int
   paymentMethodId Int?
-  amount          Float
+  amount          Decimal
   status          String
   type            String
   transactionId   String?
   couponCode      String?
   paymentDetails  String? 
   planNameSnapshot String? 
-  planPriceSnapshot Float?    
+  planPriceSnapshot Decimal?    
   boletoUrl       String?
   boletoCode      String?
   insuranceId     Int?
@@ -202,7 +202,7 @@ model InsurancePlan {
   id          String   @id @default(cuid())
   name        String
   description String
-  price       Float
+  price       Decimal
   features    String[]
   isActive    Boolean  @default(true)
   asaasPlanId String?  @unique
