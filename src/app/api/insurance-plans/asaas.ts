@@ -188,73 +188,62 @@ export async function createSubscription(data: CreateSubscriptionData) {
         throw new Error('Formato da data de validade do cartão inválido. Use MM/AA.');
       }
 
-      // =================================================================
-      // TEMPORARY WORKAROUND: Bypass tokenization while waiting for Asaas approval.
-      // We send the card data directly with the subscription request.
-      // =================================================================
-      subscriptionPayload.creditCard = {
-        holderName: data.cardInfo.name,
-        number: data.cardInfo.number,
-        expiryMonth: data.cardInfo.expiry.split('/')[0],
-        expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
-        ccv: data.cardInfo.cvc,
-      };
-      subscriptionPayload.creditCardHolderInfo = {
-        name: data.cardInfo.name,
-        email: user.email,
-        cpfCnpj: user.cpf || '',
-        postalCode: data.address.cep.replace(/\D/g, ''),
-        addressNumber: data.address.number,
-        phone: user.phone || '',
-      };
-
-      /*
-      // =================================================================
-      // ORIGINAL TOKENIZATION LOGIC - Restore when Asaas approves the feature
-      // =================================================================
       // Use existing token if available
       const existingPaymentMethod = await prisma.paymentMethod.findFirst({
         where: { userId: user.id, type: 'CREDIT_CARD' },
       });
 
-      let asaasToken = existingPaymentMethod?.creditCardToken;
+      let asaasToken: string | undefined = existingPaymentMethod?.creditCardToken || undefined;
 
       if (!asaasToken) {
-        console.log('[createSubscription] No existing credit card token found, creating a new one.');
-        // The asaas-client does not have a method for tokenization, so we use axios
-        const tokenResponse = await axios.post(`${asaasClient['apiUrl']}/creditCard/tokenize`, {
-          customer: asaasCustomerId!,
-          creditCard: {
-            holderName: data.cardInfo.name,
-            number: data.cardInfo.number,
-            expiryMonth: data.cardInfo.expiry.split('/')[0],
-            expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
-            ccv: data.cardInfo.cvc,
+        console.log('[createSubscription] No existing token found. Tokenizing new card...');
+        // Tokenize the card via direct axios call
+        const tokenizationResponse = await axios.post(
+          'https://api.asaas.com/v3/creditCard/tokenize',
+          {
+            customer: asaasCustomerId,
+            creditCard: {
+              holderName: data.cardInfo.name,
+              number: data.cardInfo.number,
+              expiryMonth: data.cardInfo.expiry.split('/')[0],
+              expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
+              ccv: data.cardInfo.cvc,
+            },
+            creditCardHolderInfo: {
+              name: data.cardInfo.name,
+              email: user.email,
+              cpfCnpj: user.cpf || '',
+              postalCode: data.address.cep.replace(/\D/g, ''),
+              addressNumber: data.address.number,
+              phone: user.phone || '',
+            },
+            remoteIp: data.remoteIp,
           },
-          creditCardHolderInfo: {
-            name: user.name || data.cardInfo.name,
-            email: user.email,
-            cpfCnpj: user.cpf || '',
-            postalCode: data.address.cep.replace(/\D/g, ''),
-            addressNumber: data.address.number,
-            phone: user.phone || '',
-          },
-          remoteIp: data.remoteIp,
-        }, {
-          headers: asaasClient['headers'],
-        });
-        asaasToken = tokenResponse.data.creditCardToken;
-        console.log('[createSubscription] New credit card token created:', asaasToken);
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              access_token: process.env.ASAAS_API_KEY,
+            },
+          }
+        );
+
+        asaasToken = tokenizationResponse.data.creditCardToken;
+        console.log('[createSubscription] Card tokenized successfully. Token:', asaasToken);
+      } else {
+        console.log('[createSubscription] Using existing token:', asaasToken);
+      }
+
+      if (!asaasToken) {
+        throw new Error('Falha ao obter o token do cartão de crédito.');
       }
 
       subscriptionPayload.creditCardToken = asaasToken;
-      */
     }
 
     // 5. Create Subscription in Asaas
     console.log('[createSubscription] Creating Asaas subscription with payload:', {
       ...subscriptionPayload,
-      creditCard: 'REDACTED',
+      creditCardToken: 'REDACTED',
     });
 
     const subscription = await asaasClient.createSubscription(subscriptionPayload);
@@ -305,22 +294,24 @@ export async function createSubscription(data: CreateSubscriptionData) {
     let paymentMethodRecord;
     const firstPayment = subscription.payments?.[0];
 
-    if (data.paymentMethod === 'CREDIT_CARD') {
-      // In the temporary workaround, the Asaas response doesn't contain card details.
-      // We will create/update our own record with the info we already have.
+    if (data.paymentMethod === 'CREDIT_CARD' && firstPayment?.creditCard) {
+      const creditCardInfo = firstPayment.creditCard;
       paymentMethodRecord = await prisma.paymentMethod.upsert({
         where: {
           userId_type_type: { userId: user.id, type: 'CREDIT_CARD' },
         },
         update: {
-          lastFour: data.cardInfo.number.slice(-4),
+          creditCardToken: creditCardInfo.creditCardToken,
+          lastFour: creditCardInfo.creditCardNumber,
+          brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.name,
-          // NOTE: We don't get brand or token in this temporary flow.
         },
         create: {
           userId: user.id,
           type: 'CREDIT_CARD',
-          lastFour: data.cardInfo.number.slice(-4),
+          creditCardToken: creditCardInfo.creditCardToken,
+          lastFour: creditCardInfo.creditCardNumber,
+          brand: creditCardInfo.creditCardBrand,
           holderName: data.cardInfo.name,
         },
       });
