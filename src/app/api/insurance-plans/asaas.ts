@@ -335,6 +335,10 @@ export async function createSubscription(data: CreateSubscriptionData) {
 
     // 9. Create Transaction
     console.log(`[createSubscription] Creating transaction record for user ${user.id} and policy ${userInsurancePolicy.id}`);
+
+    // DEBUG: Verifying deployment. If you see this log, the code is up to date.
+    console.log('<<<<< DEPLOYMENT CHECK v4 - Attempting to create transaction >>>>>');
+
     const newTransaction = await prisma.transaction.create({
       data: {
         userId: user.id,
@@ -348,8 +352,8 @@ export async function createSubscription(data: CreateSubscriptionData) {
         paymentDetails: JSON.stringify(subscription), // Convert object to JSON string
         planNameSnapshot: plan.name,
         planPriceSnapshot: Number(plan.price),
-        // boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl || null, // Temporarily removed for debugging
-        // boletoCode: firstPayment?.barCode || null, // Temporarily removed for debugging
+        boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl || null, 
+        boletoCode: firstPayment?.barCode || null, 
       },
     });
 
