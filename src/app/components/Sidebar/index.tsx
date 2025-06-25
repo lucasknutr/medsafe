@@ -13,7 +13,7 @@ export default function Sidebar() {
         <FaFacebook size={35} />
       </a>
       <a
-        href="https://instagram.com"
+        href="https://instagram.com/medsafe.consultoria"
         target="_blank"
         rel="noopener noreferrer"
         className="text-white hover:text-pink-500 transition-colors"
