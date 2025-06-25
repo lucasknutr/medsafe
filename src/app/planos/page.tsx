@@ -36,6 +36,7 @@ const plano100: InsurancePlan = {
   price: 279.00,
   description: 'Cobertura de R$ 100.000,00. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia (clínica), Cardiologia e Pediatria.',
   features: [
+    'Consultoria preventiva',
     'Cobertura de R$ 100.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
@@ -51,6 +52,7 @@ const plano200: InsurancePlan = {
   price: 449.00,
   description: 'Cobertura de R$ 200.000,00. Abrange todas as especialidades médicas, exceto Cirurgia Plástica.',
   features: [
+    'Consultoria preventiva',
     'Cobertura de R$ 200.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
@@ -63,9 +65,10 @@ const plano200: InsurancePlan = {
 const plano200Plastica: InsurancePlan = {
   id: 'plan_plus_500_plastica_v1',
   name: 'Plano +200 (Cirurgia Plástica)',
-  price: 799.00,
+  price: 749.00,
   description: 'Cobertura de R$ 200.000,00. Abrange apenas Cirurgia Plástica.',
   features: [
+    'Consultoria preventiva',
     'Cobertura de R$ 200.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
@@ -82,6 +85,7 @@ const plano500Standard: InsurancePlan = {
   price: 458.00,
   description: 'Cobertura de R$ 500.000,00. Ideal para profissionais das especialidades: Clínica Médica, Oftalmologia, Dermatologia, Cardiologia e Pediatria.',
   features: [
+    'Consultoria preventiva',
     'Cobertura de R$ 500.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
@@ -98,6 +102,7 @@ const plano500Plastica: InsurancePlan = {
   price: 1099.00,
   description: 'Cobertura de R$ 500.000,00. Abrange apenas Cirurgia Plástica.',
   features: [
+    'Consultoria preventiva',
     'Cobertura de R$ 500.000,00',
     'Defesas em processos Éticos, Cíveis e Criminais',
     'Perícias e custas judiciais',
