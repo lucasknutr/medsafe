@@ -345,7 +345,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
         amount: Number(data.finalAmount),
         couponCode: data.couponCode || null,
         type: data.paymentMethod,
-        paymentDetails: subscription, // Pass the object directly for Prisma's Json type
+        paymentDetails: JSON.stringify(subscription), // Convert object to JSON string
         planNameSnapshot: plan.name,
         planPriceSnapshot: Number(plan.price),
         boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl,
