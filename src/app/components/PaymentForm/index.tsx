@@ -219,13 +219,15 @@ export default function PaymentForm() {
         }
       } else {
         // Handle Credit Card success
-        const isConfirmed = payment.status === 'CONFIRMED' || payment.status === 'RECEIVED';
-        const paymentStatus = isConfirmed ? 'active' : 'pending';
-
-        if (isConfirmed) {
+        const paymentStatus = payment.status === 'CONFIRMED' ? 'active' : 'pending';
+        if (payment.status === 'CONFIRMED') {
           alert("Pagamento com cartão de crédito aprovado! Redirecionando...");
+        } else if (payment.status === 'RECEIVED') {
+          alert("Pagamento recebido, aguardando confirmação. Você será notificado sobre o resultado. Redirecionando...");
+        } else if (payment.status === 'PENDING') {
+          alert("Pagamento pendente, aguardando confirmação. Você será notificado sobre o resultado. Redirecionando...");
         } else {
-          alert(`Seu pagamento está sendo processado (Status: ${payment.status}). Você será notificado sobre o resultado. Redirecionando...`);
+          alert(`Pagamento em processamento (Status: ${payment.status}). Você será notificado sobre o resultado. Redirecionando...`);
         }
         
         router.push(`/planos?status=${paymentStatus}&planId=${plan.id}`);

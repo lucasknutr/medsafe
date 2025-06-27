@@ -251,9 +251,9 @@ export async function createSubscription(data: CreateSubscriptionData) {
 
     let firstPayment = subscription.payments?.[0];
 
-    // For both boleto and credit card, the payment details might not be in the initial response. We must fetch them.
-    if (subscription.billingType === 'BOLETO' || subscription.billingType === 'CREDIT_CARD') {
-      console.log(`[createSubscription] ${subscription.billingType} subscription created. Fetching payment details for sub ID: ${subscription.id}`);
+    // For BOLETO, we must fetch the payment URL. For Credit Card, we proceed immediately to avoid timeouts.
+    if (subscription.billingType === 'BOLETO') {
+      console.log(`[createSubscription] BOLETO subscription created. Fetching payment details for sub ID: ${subscription.id}`);
       try {
         // Asaas may take a moment to generate the payment, so we wait briefly before fetching.
         const delay = 4000; // 4s delay
@@ -274,10 +274,10 @@ export async function createSubscription(data: CreateSubscriptionData) {
           firstPayment = paymentsResponse.data.data[0];
           console.log('[createSubscription] Successfully fetched first payment object:', JSON.stringify(firstPayment, null, 2));
         } else {
-          console.error(`[createSubscription] CRITICAL: No payments found for ${subscription.billingType} subscription after delay.`);
+          console.error(`[createSubscription] CRITICAL: No payments found for BOLETO subscription after delay.`);
         }
       } catch (fetchError: any) {
-        console.error(`!!! Asaas Fetch Payments Error for ${subscription.billingType}:`, fetchError.response ? JSON.stringify(fetchError.response.data, null, 2) : fetchError.message);
+        console.error(`!!! Asaas Fetch Payments Error for BOLETO:`, fetchError.response ? JSON.stringify(fetchError.response.data, null, 2) : fetchError.message);
         // Continue without throwing, the frontend will handle the missing URL or status
       }
     }
