@@ -249,13 +249,40 @@ export async function createSubscription(data: CreateSubscriptionData) {
     const subscription = await asaasClient.createSubscription(subscriptionPayload);
     console.log('[createSubscription] Asaas subscription created successfully:', { id: subscription.id, status: subscription.status });
 
-    // --- DEBUG: Log the full Asaas subscription object to inspect its structure ---
-    console.log('Full Asaas Subscription Object:', JSON.stringify(subscription, null, 2));
-    // --- END DEBUG ---
+    // For boleto, the payment details are not in the initial response. We must fetch them.
+    let firstPayment = subscription.payments?.[0];
+
+    if (subscription.billingType === 'BOLETO') {
+      console.log(`[createSubscription] Boleto subscription created. Fetching payment details for sub ID: ${subscription.id}`);
+      try {
+        // Asaas may take a moment to generate the payment, so we wait briefly before fetching.
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3-second delay
+
+        const paymentsResponse = await axios.get(
+          `https://api.asaas.com/v3/subscriptions/${subscription.id}/payments`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              access_token: process.env.ASAAS_API_KEY,
+            },
+          }
+        );
+        
+        if (paymentsResponse.data?.data?.length > 0) {
+          firstPayment = paymentsResponse.data.data[0];
+          console.log('[createSubscription] Successfully fetched first payment:', { id: firstPayment.id, bankSlipUrl: firstPayment.bankSlipUrl });
+        } else {
+          console.error('[createSubscription] CRITICAL: No payments found for Boleto subscription after delay.');
+        }
+      } catch (fetchError: any) {
+        console.error('!!! Asaas Fetch Payments Error:', fetchError.response ? JSON.stringify(fetchError.response.data, null, 2) : fetchError.message);
+        // Continue without throwing, the frontend will handle the missing URL
+      }
+    }
 
     // 6. Determine initial insurance status
     let insuranceStatus: string;
-    const firstPaymentStatus = subscription.payments?.[0]?.status || subscription.status;
+    const firstPaymentStatus = firstPayment?.status || subscription.status;
 
     if (subscription.billingType === 'BOLETO') {
       insuranceStatus = 'PENDING_PAYMENT';
@@ -296,7 +323,6 @@ export async function createSubscription(data: CreateSubscriptionData) {
 
     // 8. Upsert PaymentMethod and Create Transaction
     let paymentMethodRecord;
-    const firstPayment = subscription.payments?.[0];
 
     if (data.paymentMethod === 'CREDIT_CARD' && subscription.creditCard) {
       const creditCardInfo = subscription.creditCard;
