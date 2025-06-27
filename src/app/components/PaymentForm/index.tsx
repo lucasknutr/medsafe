@@ -24,8 +24,8 @@ const validateCoupon = (code: string): number => {
       return 0.20;
     case 'FORTALEZA10':
       return 0.10;
-    case 'TESTE95':
-      return 0.95;
+    case 'TESTE98':
+      return 0.98;
     default:
       return 0;
   }
