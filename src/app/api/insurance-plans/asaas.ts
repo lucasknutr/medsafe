@@ -249,14 +249,14 @@ export async function createSubscription(data: CreateSubscriptionData) {
     const subscription = await asaasClient.createSubscription(subscriptionPayload);
     console.log('[createSubscription] Asaas subscription created successfully:', { id: subscription.id, status: subscription.status });
 
-    // For boleto, the payment details are not in the initial response. We must fetch them.
     let firstPayment = subscription.payments?.[0];
 
-    if (subscription.billingType === 'BOLETO') {
-      console.log(`[createSubscription] Boleto subscription created. Fetching payment details for sub ID: ${subscription.id}`);
+    // For both boleto and credit card, the payment details might not be in the initial response. We must fetch them.
+    if (subscription.billingType === 'BOLETO' || subscription.billingType === 'CREDIT_CARD') {
+      console.log(`[createSubscription] ${subscription.billingType} subscription created. Fetching payment details for sub ID: ${subscription.id}`);
       try {
         // Asaas may take a moment to generate the payment, so we wait briefly before fetching.
-        const delay = 4000; // Reduced delay to 4s to avoid Vercel timeout
+        const delay = 4000; // 4s delay
         console.log(`[createSubscription] Waiting for ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -274,11 +274,11 @@ export async function createSubscription(data: CreateSubscriptionData) {
           firstPayment = paymentsResponse.data.data[0];
           console.log('[createSubscription] Successfully fetched first payment object:', JSON.stringify(firstPayment, null, 2));
         } else {
-          console.error('[createSubscription] CRITICAL: No payments found for Boleto subscription after delay.');
+          console.error(`[createSubscription] CRITICAL: No payments found for ${subscription.billingType} subscription after delay.`);
         }
       } catch (fetchError: any) {
-        console.error('!!! Asaas Fetch Payments Error:', fetchError.response ? JSON.stringify(fetchError.response.data, null, 2) : fetchError.message);
-        // Continue without throwing, the frontend will handle the missing URL
+        console.error(`!!! Asaas Fetch Payments Error for ${subscription.billingType}:`, fetchError.response ? JSON.stringify(fetchError.response.data, null, 2) : fetchError.message);
+        // Continue without throwing, the frontend will handle the missing URL or status
       }
     }
 
@@ -292,8 +292,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
       switch (firstPaymentStatus) {
         case 'CONFIRMED':
         case 'RECEIVED':
-        case 'RECEIVED_IN_CASH':
-          insuranceStatus = 'PENDING_DOCUMENT';
+          insuranceStatus = 'ACTIVE';
           break;
         default:
           insuranceStatus = 'PENDING_PAYMENT';
@@ -303,7 +302,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
       insuranceStatus = 'PENDING';
     }
 
-    // 7. Create or Update Insurance Policy
+    // 7. Upsert Insurance Policy
     console.log(`[createSubscription] Upserting insurance policy for user ${user.id} with status: ${insuranceStatus}`);
     const userInsurancePolicy = await prisma.insurance.upsert({
       where: { userId: user.id },
