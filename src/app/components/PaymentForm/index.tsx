@@ -204,18 +204,17 @@ export default function PaymentForm() {
       const payment = await paymentResponse.json();
 
       if (paymentMethod === "BOLETO") {
-        if (payment.boletoUrl) { 
+        const boletoUrl = payment.bankSlipUrl || payment.invoiceUrl;
+        if (boletoUrl) {
           if (boletoWindow) {
-            boletoWindow.location.href = payment.boletoUrl;
+            boletoWindow.location.href = boletoUrl;
           } else {
-            // Fallback if boletoWindow is somehow null (should not happen if logic above is correct)
-            // or if we decide to not open window if fetch fails fast (less ideal)
-            window.open(payment.boletoUrl, "_blank"); 
+            window.open(boletoUrl, '_blank');
           }
-          alert("Seu boleto foi gerado em uma nova aba. Redirecionando para a página de envio de contrato.");
-          router.push("/planos"); // Redirect to planos page
+          router.push(`/planos?status=pending&planId=${plan.id}`);
         } else {
-          if (boletoWindow) boletoWindow.close(); // Close the pre-opened window if no URL
+          if (boletoWindow) boletoWindow.close();
+          console.error("Boleto URL not found in response:", payment);
           alert("Erro: URL do boleto não encontrada na resposta.");
         }
       } else {
