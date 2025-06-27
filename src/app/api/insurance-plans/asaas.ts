@@ -256,7 +256,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
       console.log(`[createSubscription] Boleto subscription created. Fetching payment details for sub ID: ${subscription.id}`);
       try {
         // Asaas may take a moment to generate the payment, so we wait briefly before fetching.
-        const delay = 5000; // Reduced delay to 5 seconds to avoid Vercel timeout
+        const delay = 4000; // Reduced delay to 4s to avoid Vercel timeout
         console.log(`[createSubscription] Waiting for ${delay / 1000} seconds...`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
