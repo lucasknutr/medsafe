@@ -249,6 +249,10 @@ export async function createSubscription(data: CreateSubscriptionData) {
     const subscription = await asaasClient.createSubscription(subscriptionPayload);
     console.log('[createSubscription] Asaas subscription created successfully:', { id: subscription.id, status: subscription.status });
 
+    // --- DEBUG: Log the full Asaas subscription object to inspect its structure ---
+    console.log('Full Asaas Subscription Object:', JSON.stringify(subscription, null, 2));
+    // --- END DEBUG ---
+
     // 6. Determine initial insurance status
     let insuranceStatus: string;
     const firstPaymentStatus = subscription.payments?.[0]?.status || subscription.status;
