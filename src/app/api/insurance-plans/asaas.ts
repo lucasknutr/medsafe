@@ -256,7 +256,9 @@ export async function createSubscription(data: CreateSubscriptionData) {
       console.log(`[createSubscription] Boleto subscription created. Fetching payment details for sub ID: ${subscription.id}`);
       try {
         // Asaas may take a moment to generate the payment, so we wait briefly before fetching.
-        await new Promise(resolve => setTimeout(resolve, 3000)); // 3-second delay
+        const delay = 10000; // Increased delay to 7 seconds
+        console.log(`[createSubscription] Waiting for ${delay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
 
         const paymentsResponse = await axios.get(
           `https://api.asaas.com/v3/subscriptions/${subscription.id}/payments`,
@@ -270,7 +272,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
         
         if (paymentsResponse.data?.data?.length > 0) {
           firstPayment = paymentsResponse.data.data[0];
-          console.log('[createSubscription] Successfully fetched first payment:', { id: firstPayment.id, bankSlipUrl: firstPayment.bankSlipUrl });
+          console.log('[createSubscription] Successfully fetched first payment object:', JSON.stringify(firstPayment, null, 2));
         } else {
           console.error('[createSubscription] CRITICAL: No payments found for Boleto subscription after delay.');
         }
@@ -386,6 +388,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
 
     console.log('[createSubscription] Transaction created successfully:', { id: newTransaction.id });
 
+    console.log('[createSubscription] Returning object to frontend:', JSON.stringify(firstPayment || subscription, null, 2));
     // Return the first payment object which contains details like the boleto link
     return firstPayment || subscription;
 
