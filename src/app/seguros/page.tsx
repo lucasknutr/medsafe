@@ -67,21 +67,13 @@ export default function InsurancePlansPage() {
         {plans.map((plan) => (
           <Grid item xs={12} sm={6} md={4} key={plan.id}>
             <Card className="h-full flex flex-col">
-              <CardContent className="flex-grow">
-                <Typography variant="h5" component="h2" className="mb-4">
-                  {plan.name}
-                </Typography>
-                <Typography variant="h6" color="primary" className="mb-4">
-                  R$ {plan.price.toFixed(2)}/mês
-                </Typography>
-                <Typography variant="body1" className="mb-4">
-                  {plan.description}
-                </Typography>
-                <ul className="list-disc pl-4 mb-4">
+              <CardContent>
+                <Typography variant="h5">{plan.name}</Typography>
+                <Typography variant="h6" color="primary">R$ {Number(plan.price).toFixed(2).replace('.', ',')}/mês</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{plan.description}</Typography>
+                <ul className="mt-2 text-sm">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="mb-2">
-                      <Typography variant="body2">{feature}</Typography>
-                    </li>
+                    <li key={index}>✓ {feature}</li>
                   ))}
                 </ul>
               </CardContent>

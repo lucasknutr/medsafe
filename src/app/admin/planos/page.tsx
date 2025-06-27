@@ -349,19 +349,19 @@ export default function InsurancePlansAdminPage() {
                   {plan.name}
                 </Typography>
                 <Typography variant="h6" color="primary" className="mb-4">
-                  R$ {plan.price.toFixed(2)}/mês
+                  R$ {Number(plan.price).toFixed(2).replace('.', ',')}/mês
                 </Typography>
                 <Typography variant="body1" className="mb-4">
                   {plan.description}
                 </Typography>
                 {plan.coverage_limit && (
                   <Typography variant="body2" className="mb-2">
-                    <strong>Limite de Cobertura:</strong> R$ {plan.coverage_limit.toFixed(2)}
+                    <strong>Limite de Cobertura:</strong> R$ {Number(plan.coverage_limit).toFixed(2).replace('.', ',')}
                   </Typography>
                 )}
                 {plan.deductible && (
                   <Typography variant="body2" className="mb-2">
-                    <strong>Franquia:</strong> R$ {plan.deductible.toFixed(2)}
+                    <strong>Franquia:</strong> R$ {Number(plan.deductible).toFixed(2).replace('.', ',')}
                   </Typography>
                 )}
                 {plan.waiting_period && (

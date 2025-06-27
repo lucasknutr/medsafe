@@ -259,11 +259,11 @@ export default function PaymentForm() {
     <Paper className="p-6 max-w-xl mx-auto mt-10">
       <Typography variant="h5" className="mb-4">Pagamento do Plano: {plan.name}</Typography>
       <Typography variant="h6" color="primary" className="mb-1">
-        R$ {finalPrice.toFixed(2)}/mês
+        R$ {Number(finalPrice).toFixed(2).replace('.', ',')}/mês
       </Typography>
       {appliedDiscount > 0 && plan.price !== finalPrice && (
         <Typography variant="subtitle2" color="textSecondary" className="mb-4 line-through">
-          De: R$ {plan.price.toFixed(2)}
+          De: R$ {Number(plan.price).toFixed(2).replace('.', ',')}
         </Typography>
       )}
 

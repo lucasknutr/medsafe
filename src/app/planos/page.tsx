@@ -252,7 +252,7 @@ function PlanosContentWrapper() {
             )}
             <Box sx={{ display: 'flex', alignItems: 'baseline', my: 2 }}>
               <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                R$ {plan.price.toFixed(2).replace('.', ',')}
+                R$ {Number(plan.price).toFixed(2).replace('.', ',')}
               </Typography>
               <Typography variant="body1" component="span" sx={{ ml: 0.5 }}>
                 /mês

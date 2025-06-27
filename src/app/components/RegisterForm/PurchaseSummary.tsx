@@ -89,7 +89,7 @@ export default function PurchaseSummary({ formData, onInputChange }: PurchaseSum
               >
                 {installmentOptions.map((number) => (
                   <option key={number} value={number}>
-                    {number}x de R$ {(installmentValue / number).toFixed(2)}
+                    {number}x de R$ {Number(installmentValue / number).toFixed(2).replace('.', ',')}
                   </option>
                 ))}
               </select>
@@ -100,13 +100,13 @@ export default function PurchaseSummary({ formData, onInputChange }: PurchaseSum
             <div className="flex justify-between items-center text-lg">
               <span className="font-medium">Valor Total</span>
               <span className="font-bold text-blue-600">
-                R$ {formData.selectedPlan.price.toFixed(2)}
+                R$ {Number(formData.selectedPlan.price).toFixed(2).replace('.', ',')}
               </span>
             </div>
             {formData.paymentMethod === 'CARTAO' && formData.installments > 1 && (
               <div className="flex justify-between items-center mt-2 text-sm text-gray-600">
                 <span>Parcelas</span>
-                <span>{formData.installments}x de R$ {(formData.selectedPlan.price / formData.installments).toFixed(2)}</span>
+                <span>{formData.installments}x de R$ {Number(formData.selectedPlan.price / formData.installments).toFixed(2).replace('.', ',')}</span>
               </div>
             )}
           </div>

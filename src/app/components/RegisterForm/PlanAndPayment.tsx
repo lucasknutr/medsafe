@@ -67,7 +67,7 @@ const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
                 <CardContent>
                   <Typography variant="h6">{plan.name}</Typography>
                   <Typography variant="h5" color="primary" className="my-2">
-                    R$ {plan.price.toFixed(2)}/mês
+                    R$ {Number(plan.price).toFixed(2).replace('.', ',')}/mês
                   </Typography>
                   <ul className="list-disc pl-4">
                     {plan.features.map((feature, index) => (
@@ -140,18 +140,18 @@ const PlanAndPayment: React.FC<PlanAndPaymentProps> = ({
           </Typography>
           <div className="flex justify-between">
             <Typography variant="body1">Preço Original:</Typography>
-            <Typography variant="body1">R$ {selectedPlan.price.toFixed(2)}</Typography>
+            <Typography variant="body1">R$ {Number(selectedPlan.price).toFixed(2).replace('.', ',')}</Typography>
           </div>
           {finalPrice !== null && finalPrice !== selectedPlan.price && (
             <div className="flex justify-between text-green-600 font-semibold">
               <Typography variant="body1" color="inherit">Preço com Desconto:</Typography>
-              <Typography variant="body1" color="inherit">R$ {finalPrice.toFixed(2)}</Typography>
+              <Typography variant="body1" color="inherit">R$ {Number(finalPrice).toFixed(2).replace('.', ',')}</Typography>
             </div>
           )}
           {finalPrice !== null && finalPrice === selectedPlan.price && (
             <div className="flex justify-between">
               <Typography variant="body1">Preço Final:</Typography>
-              <Typography variant="body1">R$ {finalPrice.toFixed(2)}</Typography>
+              <Typography variant="body1">R$ {Number(finalPrice).toFixed(2).replace('.', ',')}</Typography>
             </div>
           )}
         </div>
