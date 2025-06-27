@@ -218,8 +218,11 @@ export default function PaymentForm() {
           alert("Erro: URL do boleto não encontrada na resposta.");
         }
       } else {
-        alert("Pagamento processado com sucesso! Redirecionando para a página de envio de contrato.");
-        router.push("/planos"); // Redirect to planos page for non-Boleto payments
+        // Handle Credit Card success
+        alert("Pagamento com cartão de crédito processado com sucesso! Redirecionando...");
+        // The backend returns the Asaas payment/subscription object. We can use its status.
+        const paymentStatus = (payment.status === 'CONFIRMED' || payment.status === 'RECEIVED') ? 'active' : 'pending';
+        router.push(`/planos?status=${paymentStatus}&planId=${plan.id}`);
       }
     } catch (err: any) {
       // If a boleto window was opened and an error occurred, close it.
