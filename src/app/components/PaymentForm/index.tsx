@@ -219,9 +219,15 @@ export default function PaymentForm() {
         }
       } else {
         // Handle Credit Card success
-        alert("Pagamento com cartão de crédito processado com sucesso! Redirecionando...");
-        // The backend returns the Asaas payment/subscription object. We can use its status.
-        const paymentStatus = (payment.status === 'CONFIRMED' || payment.status === 'RECEIVED') ? 'active' : 'pending';
+        const isConfirmed = payment.status === 'CONFIRMED' || payment.status === 'RECEIVED';
+        const paymentStatus = isConfirmed ? 'active' : 'pending';
+
+        if (isConfirmed) {
+          alert("Pagamento com cartão de crédito aprovado! Redirecionando...");
+        } else {
+          alert(`Seu pagamento está sendo processado (Status: ${payment.status}). Você será notificado sobre o resultado. Redirecionando...`);
+        }
+        
         router.push(`/planos?status=${paymentStatus}&planId=${plan.id}`);
       }
     } catch (err: any) {
