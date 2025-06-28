@@ -171,7 +171,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
     const subscriptionPayload: any = {
       customer: asaasCustomerId,
       billingType: data.paymentMethod === 'BOLETO' ? 'BOLETO' : 'CREDIT_CARD',
-      value: data.finalAmount,
+      value: parseFloat(data.finalAmount.toFixed(2)), // Fix: Round to 2 decimal places
       nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], // Next payment in 30 days
       cycle: 'MONTHLY',
       description: `Assinatura do plano ${plan.name} - MedSafe`,
@@ -215,7 +215,9 @@ export async function createSubscription(data: CreateSubscriptionData) {
               cpfCnpj: user.cpf || '',
               postalCode: data.address.cep.replace(/\D/g, ''),
               addressNumber: data.address.number,
+              addressComplement: data.address.complement || null,
               phone: user.phone || '',
+              mobilePhone: user.phone || '', // Asaas often requires mobilePhone
             },
             remoteIp: data.remoteIp,
           },
