@@ -200,6 +200,7 @@ export async function createSubscription(data: CreateSubscriptionData) {
         phone: user.phone?.replace(/\D/g, '') || '',
         mobilePhone: user.phone?.replace(/\D/g, '') || '',
       };
+      subscriptionPayload.chargeType = 'DETACHED'; // Force immediate charge
     }
 
     // 5. Create Subscription in Asaas
