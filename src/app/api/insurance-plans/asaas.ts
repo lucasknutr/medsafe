@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { getAsaasClient } from '@/lib/asaas';
 import axios from 'axios';
+import { getAsaasClient } from '@/lib/asaas';
 
 const prisma = new PrismaClient();
 
@@ -33,7 +33,7 @@ interface PaymentData {
 
 interface CreateSubscriptionData {
   planId: string;
-  customerId: string | number;
+  customerId: number | string;
   paymentMethod: 'CREDIT_CARD' | 'BOLETO' | 'PIX';
   cardInfo?: {
     number: string;
@@ -74,277 +74,171 @@ interface AsaasPaymentResponse {
   // ... other fields returned by Asaas
 }
 
-export async function createSubscription(data: CreateSubscriptionData) {
-  const logData = { ...data, cardInfo: 'REDACTED' };
-  console.log('[createSubscription] Starting subscription creation with data:', JSON.stringify(logData, null, 2));
+export async function createSubscription(data: CreateSubscriptionData): Promise<any> {
   const asaasClient = getAsaasClient();
+  const prisma = new PrismaClient();
+  const { customerId, planId, paymentMethod, couponCode, cardInfo, address, remoteIp } = data;
 
   try {
-    // 1. Get Plan Details
-    console.log(`[createSubscription] Fetching plan with ID: ${data.planId}`);
-    const plan = await prisma.insurancePlan.findUnique({
-      where: { id: data.planId },
-    });
-    if (!plan) {
-      console.error(`[createSubscription] Plan not found for ID: ${data.planId}`);
-      throw new Error('Plano não encontrado');
+    // 1. Fetch User and Plan details
+    const userId = parseInt(String(customerId), 10);
+    if (isNaN(userId)) {
+      throw new Error('Invalid user ID format');
     }
-    console.log('[createSubscription] Plan details:', plan);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const plan = await prisma.insurancePlan.findUnique({ where: { id: planId } });
+    if (!user || !plan) throw new Error('User or Plan not found.');
 
-    // 2. Get User Detaeils
-    let userIdentifier: { id: number } | { email: string };
-    if (typeof data.customerId === 'string' && data.customerId.includes('@')) {
-        userIdentifier = { email: data.customerId };
-    } else {
-        // Convert the string ID from the cookie to an integer for the Prisma query.
-        const userId = parseInt(String(data.customerId), 10);
-        if (isNaN(userId)) {
-            throw new Error('Invalid user ID format');
-        }
-        userIdentifier = { id: userId };
-    }
-
-    console.log('[createSubscription] Fetching user with identifier:', userIdentifier);
-    const user = await prisma.user.findUnique({ where: userIdentifier as any });
-
-    if (!user) {
-      console.error(`[createSubscription] User not found for identifier: ${JSON.stringify(userIdentifier)}`);
-      throw new Error('Usuário não encontrado');
-    }
-    console.log('[createSubscription] User details:', { id: user.id, email: user.email, name: user.name, asaasCustomerId: user.asaasCustomerId });
-
-    // Create or Retrieve Asaas Customer, and UPDATE their address
+    // 2. Get or Create Asaas Customer
     let asaasCustomerId = user.asaasCustomerId;
     if (!asaasCustomerId) {
-      console.log('[createSubscription] Asaas customer ID not found, creating new Asaas customer for user:', user.id);
-      
-      if (!user.cpf) {
-        console.error(`[createSubscription] Cannot create Asaas customer for user ${user.id}: Missing CPF.`);
-        throw new Error('CPF do usuário é necessário para criar cliente Asaas.');
-      }
-      if (!user.phone) {
-        console.error(`[createSubscription] Cannot create Asaas customer for user ${user.id}: Missing Phone.`);
-        throw new Error('Telefone do usuário é necessário para criar cliente Asaas.');
-      }
-
-      const customerPayload = {
-        name: user.name || 'Nome não fornecido',
-        email: user.email,
-        cpfCnpj: user.cpf, 
-        phone: user.phone, 
-        postalCode: data.address.cep.replace(/\D/g, ''),
-        address: data.address.street,
-        addressNumber: data.address.number,
-        complement: data.address.complement,
-        province: data.address.neighborhood,
-      };
-      console.log('[createSubscription] Creating Asaas customer with payload:', customerPayload);
-      const asaasCustomer = await asaasClient.createCustomer(customerPayload);
-      asaasCustomerId = asaasCustomer.id;
-      console.log('[createSubscription] Asaas customer created with ID:', asaasCustomerId, 'Updating user record.');
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { asaasCustomerId },
-      });
-    } else {
-      console.log('[createSubscription] Found existing Asaas customer ID:', asaasCustomerId, 'for user:', user.id);
-      // Update the existing customer's address before payment
-      console.log(`[createSubscription] Updating Asaas customer ${asaasCustomerId} with new address.`);
-      try {
-        const updatePayload = {
-          postalCode: data.address.cep.replace(/\D/g, ''),
-          address: data.address.street,
-          addressNumber: data.address.number,
-          complement: data.address.complement,
-          province: data.address.neighborhood,
-        };
-        await axios.post(`${asaasClient['apiUrl']}/customers/${asaasCustomerId}`, updatePayload, {
-          headers: asaasClient['headers'],
-        });
-        console.log(`[createSubscription] Successfully updated address for Asaas customer ${asaasCustomerId}.`);
-      } catch (updateError: any) {
-        console.error(`[createSubscription] Failed to update Asaas customer address:`, updateError.response?.data || updateError.message);
-      }
+      const customer = await asaasClient.createCustomer({ name: user.name, email: user.email, cpfCnpj: user.cpf, phone: user.phone });
+      asaasCustomerId = customer.id;
+      await prisma.user.update({ where: { id: userId }, data: { asaasCustomerId } });
     }
 
-    // 4. Prepare Subscription Payload for Asaas
-    const subscriptionPayload: any = {
-      customer: asaasCustomerId,
-      billingType: data.paymentMethod === 'BOLETO' ? 'BOLETO' : 'CREDIT_CARD',
-      value: parseFloat(data.finalAmount.toFixed(2)), // Fix: Round to 2 decimal places
-      nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], // Next payment in 30 days
-      cycle: 'MONTHLY',
-      description: `Assinatura do plano ${plan.name} - MedSafe${data.couponCode ? ` (Cupom: ${data.couponCode})` : ''}`,
-      remoteIp: data.remoteIp,
-    };
-
-    // If payment is by credit card, embed the card details directly to force an immediate charge.
-    if (data.paymentMethod === 'CREDIT_CARD') {
-      if (!data.cardInfo) {
-        throw new Error('Credit card information is missing.');
-      }
-      subscriptionPayload.creditCard = {
-        holderName: data.cardInfo.name,
-        number: data.cardInfo.number.replace(/\D/g, ''),
-        expiryMonth: data.cardInfo.expiry.split('/')[0],
-        expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
-        ccv: data.cardInfo.cvc,
-      };
-      subscriptionPayload.creditCardHolderInfo = {
-        name: data.cardInfo.name,
-        email: user.email,
-        cpfCnpj: user.cpf?.replace(/\D/g, '') || '',
-        postalCode: data.address.cep.replace(/\D/g, ''),
-        addressNumber: data.address.number,
-        addressComplement: data.address.complement || null,
-        phone: user.phone?.replace(/\D/g, '') || '',
-        mobilePhone: user.phone?.replace(/\D/g, '') || '',
-      };
-      subscriptionPayload.chargeType = 'DETACHED'; // Force immediate charge
-    }
-
-    // 5. Create Subscription in Asaas
-    console.log('[createSubscription] Creating Asaas subscription with payload:', {
-      ...subscriptionPayload,
-      creditCard: 'REDACTED',
-    });
-
-    const subscription = await asaasClient.createSubscription(subscriptionPayload);
-    console.log('[createSubscription] Asaas subscription created successfully:', { id: subscription.id, status: subscription.status });
-
-    let firstPayment = subscription.payments?.[0];
-
-    // For BOLETO, we must fetch the payment URL. For Credit Card, we proceed immediately to avoid timeouts.
-    if (subscription.billingType === 'BOLETO') {
-      console.log(`[createSubscription] BOLETO subscription created. Fetching payment details for sub ID: ${subscription.id}`);
-      try {
-        // Asaas may take a moment to generate the payment, so we wait briefly before fetching.
-        const delay = 4000; // 4s delay
-        console.log(`[createSubscription] Waiting for ${delay / 1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-
-        const paymentsResponse = await axios.get(
-          `https://api.asaas.com/v3/subscriptions/${subscription.id}/payments`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              access_token: process.env.ASAAS_API_KEY,
-            },
-          }
-        );
-        
-        if (paymentsResponse.data?.data?.length > 0) {
-          firstPayment = paymentsResponse.data.data[0];
-          console.log('[createSubscription] Successfully fetched first payment object:', JSON.stringify(firstPayment, null, 2));
-        } else {
-          console.error(`[createSubscription] CRITICAL: No payments found for BOLETO subscription after delay.`);
-        }
-      } catch (fetchError: any) {
-        console.error(`!!! Asaas Fetch Payments Error for BOLETO:`, fetchError.response ? JSON.stringify(fetchError.response.data, null, 2) : fetchError.message);
-        // Continue without throwing, the frontend will handle the missing URL or status
-      }
-    }
-
-    // 6. Determine initial insurance status
+    let initialPayment: any;
+    let subscription: any;
     let insuranceStatus: string;
-    const firstPaymentStatus = firstPayment?.status || subscription.status;
 
-    if (subscription.billingType === 'BOLETO') {
-      insuranceStatus = 'PENDING_PAYMENT';
-    } else if (subscription.billingType === 'CREDIT_CARD') {
-      switch (firstPaymentStatus) {
-        case 'CONFIRMED':
-        case 'RECEIVED':
-          insuranceStatus = 'ACTIVE';
-          break;
-        default:
-          insuranceStatus = 'PENDING_PAYMENT';
-          break;
+    if (paymentMethod === 'CREDIT_CARD') {
+      // For Credit Cards: First, create an immediate one-time payment.
+      if (!cardInfo || !address) throw new Error('Card info or address is missing.');
+
+      const paymentPayload = {
+        customer: asaasCustomerId,
+        billingType: 'CREDIT_CARD',
+        value: parseFloat(data.finalAmount.toFixed(2)),
+        dueDate: new Date().toISOString().split('T')[0],
+        description: `Pagamento inicial do plano ${plan.name} - MedSafe${couponCode ? ` (Cupom: ${couponCode})` : ''}`,
+        creditCard: {
+          holderName: cardInfo.name,
+          number: cardInfo.number.replace(/\D/g, ''),
+          expiryMonth: cardInfo.expiry.split('/')[0],
+          expiryYear: '20' + cardInfo.expiry.split('/')[1],
+          ccv: cardInfo.cvc,
+        },
+        creditCardHolderInfo: {
+          name: cardInfo.name,
+          email: user.email,
+          cpfCnpj: user.cpf?.replace(/\D/g, '') || '',
+          postalCode: address.cep.replace(/\D/g, ''),
+          addressNumber: address.number,
+          addressComplement: address.complement || null,
+          phone: user.phone?.replace(/\D/g, '') || '',
+          mobilePhone: user.phone?.replace(/\D/g, '') || '',
+        },
+        remoteIp,
+      };
+
+      console.log('[createSubscription] Creating initial credit card payment with payload:', { ...paymentPayload, creditCard: 'REDACTED' });
+      const paymentResponse = await axios.post(`https://api.asaas.com/v3/payments`, paymentPayload, {
+        headers: { 'Content-Type': 'application/json', access_token: process.env.ASAAS_API_KEY },
+      });
+      initialPayment = paymentResponse.data;
+      console.log('[createSubscription] Initial payment response:', initialPayment);
+
+      if (initialPayment.status !== 'CONFIRMED' && initialPayment.status !== 'RECEIVED') {
+        throw new Error(`Pagamento com cartão de crédito falhou. Status: ${initialPayment.status}`);
       }
+
+      insuranceStatus = 'ACTIVE';
+
+      // Now, create the subscription for future payments using the token from the initial charge.
+      const subscriptionPayload = {
+        customer: asaasCustomerId,
+        billingType: 'CREDIT_CARD',
+        value: parseFloat(data.finalAmount.toFixed(2)),
+        nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+        cycle: 'MONTHLY',
+        description: `Assinatura do plano ${plan.name} - MedSafe${couponCode ? ` (Cupom: ${couponCode})` : ''}`,
+        creditCardToken: initialPayment.creditCard.creditCardToken,
+      };
+
+      console.log('[createSubscription] Creating subscription with token...');
+      subscription = await asaasClient.createSubscription(subscriptionPayload);
+      console.log('[createSubscription] Subscription created successfully:', subscription);
+
     } else {
-      insuranceStatus = 'PENDING';
+      // For BOLETO: Use the existing subscription flow.
+      const subscriptionPayload: any = {
+        customer: asaasCustomerId,
+        billingType: 'BOLETO',
+        value: parseFloat(data.finalAmount.toFixed(2)),
+        nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+        cycle: 'MONTHLY',
+        description: `Assinatura do plano ${plan.name} - MedSafe${couponCode ? ` (Cupom: ${couponCode})` : ''}`,
+        remoteIp,
+      };
+      
+      console.log('[createSubscription] Creating BOLETO subscription...');
+      subscription = await asaasClient.createSubscription(subscriptionPayload);
+      insuranceStatus = 'PENDING_PAYMENT';
+      
+      // Fetch the payment details to get the boleto URL
+      try {
+        await new Promise(resolve => setTimeout(resolve, 4000)); // Wait for Asaas to generate payment
+        const paymentsResponse = await axios.get(`https://api.asaas.com/v3/subscriptions/${subscription.id}/payments`, {
+          headers: { 'Content-Type': 'application/json', access_token: process.env.ASAAS_API_KEY },
+        });
+        if (paymentsResponse.data?.data?.length > 0) {
+          initialPayment = paymentsResponse.data.data[0];
+        }
+      } catch (fetchError) {
+        console.error(`!!! Asaas Fetch Payments Error for BOLETO:`, fetchError);
+      }
     }
 
-    // 7. Upsert Insurance Policy
-    console.log(`[createSubscription] Upserting insurance policy for user ${user.id} with status: ${insuranceStatus}`);
+    // Database Operations
     const userInsurancePolicy = await prisma.insurance.upsert({
-      where: { userId: user.id },
-      update: {
-        plan: plan.name,
-        status: insuranceStatus,
-        asaasPaymentId: subscription.id, // Correct field from schema
-      },
+      where: { userId: userId },
+      update: { plan: plan.name, status: insuranceStatus, asaasPaymentId: subscription.id },
+      create: { userId: userId, plan: plan.name, status: insuranceStatus, asaasPaymentId: subscription.id },
+    });
+
+    const paymentMethodRecord = await prisma.paymentMethod.upsert({
+      where: { userId_type_type: { userId: userId, type: paymentMethod } },
+      update: paymentMethod === 'CREDIT_CARD' ? {
+        creditCardToken: initialPayment.creditCard.creditCardToken,
+        lastFour: initialPayment.creditCard.creditCardNumber.slice(-4),
+        brand: initialPayment.creditCard.creditCardBrand,
+        holderName: initialPayment.creditCard.holderName,
+      } : {},
       create: {
-        userId: user.id,
-        plan: plan.name,
-        status: insuranceStatus,
-        asaasPaymentId: subscription.id, // Correct field from schema
+        userId: userId,
+        type: paymentMethod,
+        creditCardToken: initialPayment?.creditCard?.creditCardToken,
+        lastFour: initialPayment?.creditCard?.creditCardNumber.slice(-4),
+        brand: initialPayment?.creditCard?.creditCardBrand,
+        holderName: initialPayment?.creditCard?.holderName,
       },
     });
 
-    // 8. Upsert PaymentMethod to link to the transaction
-    let paymentMethodRecord;
-    if (data.paymentMethod === 'CREDIT_CARD' && subscription.creditCard) {
-      const creditCardInfo = subscription.creditCard;
-      paymentMethodRecord = await prisma.paymentMethod.upsert({
-        where: { userId_type_type: { userId: user.id, type: 'CREDIT_CARD' } }, // Correct unique identifier
-        update: {
-          creditCardToken: creditCardInfo.creditCardToken,
-          lastFour: creditCardInfo.creditCardNumber.slice(-4),
-          brand: creditCardInfo.creditCardBrand,
-          holderName: data.cardInfo.name,
-        },
-        create: {
-          userId: user.id,
-          type: 'CREDIT_CARD',
-          creditCardToken: creditCardInfo.creditCardToken,
-          lastFour: creditCardInfo.creditCardNumber.slice(-4),
-          brand: creditCardInfo.creditCardBrand,
-          holderName: data.cardInfo.name,
-        },
-      });
-    } else if (data.paymentMethod === 'BOLETO') {
-      paymentMethodRecord = await prisma.paymentMethod.upsert({
-        where: { userId_type_type: { userId: user.id, type: 'BOLETO' } }, // Correct unique identifier
-        update: {},
-        create: { userId: user.id, type: 'BOLETO' },
-      });
-    }
-
-    if (!paymentMethodRecord) {
-      throw new Error('Failed to create or find payment method for transaction.');
-    }
-
-    // 9. Create Transaction Record
-    console.log(`[createSubscription] Creating transaction record for user ${user.id} and policy ${userInsurancePolicy.id}`);
-    const transaction = await prisma.transaction.create({
+    await prisma.transaction.create({
       data: {
-        userId: user.id,
+        userId: userId,
         insuranceId: userInsurancePolicy.id,
-        paymentMethodId: paymentMethodRecord.id, // Link to the payment method
+        paymentMethodId: paymentMethodRecord.id,
         amount: data.finalAmount,
-        transactionId: firstPayment?.id || subscription.id,
-        status: firstPaymentStatus,
-        type: data.paymentMethod,
-        couponCode: data.couponCode || null,
-        paymentDetails: JSON.stringify(firstPayment || subscription),
-        boletoUrl: firstPayment?.bankSlipUrl || null,
+        transactionId: initialPayment?.id || subscription.id,
+        status: initialPayment?.status || 'PENDING',
+        type: paymentMethod,
+        couponCode: couponCode || null,
+        paymentDetails: JSON.stringify(initialPayment || subscription),
+        boletoUrl: initialPayment?.bankSlipUrl || null,
       },
     });
-    console.log('[createSubscription] Transaction record created successfully:', { id: transaction.id });
 
-    // 10. Return the first payment object to the frontend
     const paymentResult = {
-      ...(firstPayment || subscription),
-      bankSlipUrl: firstPayment?.bankSlipUrl || null, // Ensure bankSlipUrl is included
+      ...(initialPayment || subscription),
+      bankSlipUrl: initialPayment?.bankSlipUrl || null,
     };
 
     console.log('[createSubscription] Returning payment object to frontend:', JSON.stringify(paymentResult, null, 2));
-    return paymentResult; // Return the object directly
+    return paymentResult;
 
   } catch (error: any) {
-    console.error('!!! Asaas Subscription Error:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
-    // Re-throw the error to be caught by the main POST handler
+    console.error('!!! Asaas Operation Error:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
     throw error;
   }
 }
