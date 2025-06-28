@@ -174,78 +174,38 @@ export async function createSubscription(data: CreateSubscriptionData) {
       value: parseFloat(data.finalAmount.toFixed(2)), // Fix: Round to 2 decimal places
       nextDueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], // Next payment in 30 days
       cycle: 'MONTHLY',
-      description: `Assinatura do plano ${plan.name} - MedSafe`,
+      description: `Assinatura do plano ${plan.name} - MedSafe${data.couponCode ? ` (Cupom: ${data.couponCode})` : ''}`,
       remoteIp: data.remoteIp,
     };
 
-    if (data.couponCode) {
-      subscriptionPayload.description += ` (Cupom: ${data.couponCode})`;
-    }
-
-    if (data.paymentMethod === 'CREDIT_CARD' && data.cardInfo) {
-      // Validate expiry date format MM/YY
-      if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(data.cardInfo.expiry)) {
-        throw new Error('Formato da data de validade do cartão inválido. Use MM/AA.');
+    // If payment is by credit card, embed the card details directly to force an immediate charge.
+    if (data.paymentMethod === 'CREDIT_CARD') {
+      if (!data.cardInfo) {
+        throw new Error('Credit card information is missing.');
       }
-
-      // Use existing token if available
-      const existingPaymentMethod = await prisma.paymentMethod.findFirst({
-        where: { userId: user.id, type: 'CREDIT_CARD' },
-      });
-
-      let asaasToken: string | undefined = existingPaymentMethod?.creditCardToken || undefined;
-
-      if (!asaasToken) {
-        console.log('[createSubscription] No existing token found. Tokenizing new card...');
-        // Tokenize the card via direct axios call
-        const tokenizationResponse = await axios.post(
-          'https://api.asaas.com/v3/creditCard/tokenize',
-          {
-            customer: asaasCustomerId,
-            creditCard: {
-              holderName: data.cardInfo.name,
-              number: data.cardInfo.number,
-              expiryMonth: data.cardInfo.expiry.split('/')[0],
-              expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
-              ccv: data.cardInfo.cvc,
-            },
-            creditCardHolderInfo: {
-              name: data.cardInfo.name,
-              email: user.email,
-              cpfCnpj: user.cpf || '',
-              postalCode: data.address.cep.replace(/\D/g, ''),
-              addressNumber: data.address.number,
-              addressComplement: data.address.complement || null,
-              phone: user.phone || '',
-              mobilePhone: user.phone || '', // Asaas often requires mobilePhone
-            },
-            remoteIp: data.remoteIp,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              access_token: process.env.ASAAS_API_KEY,
-            },
-          }
-        );
-
-        asaasToken = tokenizationResponse.data.creditCardToken;
-        console.log('[createSubscription] Card tokenized successfully. Token:', asaasToken);
-      } else {
-        console.log('[createSubscription] Using existing token:', asaasToken);
-      }
-
-      if (!asaasToken) {
-        throw new Error('Falha ao obter o token do cartão de crédito.');
-      }
-
-      subscriptionPayload.creditCardToken = asaasToken;
+      subscriptionPayload.creditCard = {
+        holderName: data.cardInfo.name,
+        number: data.cardInfo.number.replace(/\D/g, ''),
+        expiryMonth: data.cardInfo.expiry.split('/')[0],
+        expiryYear: '20' + data.cardInfo.expiry.split('/')[1],
+        ccv: data.cardInfo.cvc,
+      };
+      subscriptionPayload.creditCardHolderInfo = {
+        name: data.cardInfo.name,
+        email: user.email,
+        cpfCnpj: user.cpf?.replace(/\D/g, '') || '',
+        postalCode: data.address.cep.replace(/\D/g, ''),
+        addressNumber: data.address.number,
+        addressComplement: data.address.complement || null,
+        phone: user.phone?.replace(/\D/g, '') || '',
+        mobilePhone: user.phone?.replace(/\D/g, '') || '',
+      };
     }
 
     // 5. Create Subscription in Asaas
     console.log('[createSubscription] Creating Asaas subscription with payload:', {
       ...subscriptionPayload,
-      creditCardToken: 'REDACTED',
+      creditCard: 'REDACTED',
     });
 
     const subscription = await asaasClient.createSubscription(subscriptionPayload);
@@ -311,28 +271,22 @@ export async function createSubscription(data: CreateSubscriptionData) {
       update: {
         plan: plan.name,
         status: insuranceStatus,
-        planPriceSnapshot: Number(plan.price),
-        asaasPaymentId: subscription.id, // Storing subscription ID here
+        asaasPaymentId: subscription.id, // Correct field from schema
       },
       create: {
         userId: user.id,
         plan: plan.name,
         status: insuranceStatus,
-        planPriceSnapshot: Number(plan.price),
-        asaasPaymentId: subscription.id,
-        startDate: new Date(),
+        asaasPaymentId: subscription.id, // Correct field from schema
       },
     });
 
-    // 8. Upsert PaymentMethod and Create Transaction
+    // 8. Upsert PaymentMethod to link to the transaction
     let paymentMethodRecord;
-
     if (data.paymentMethod === 'CREDIT_CARD' && subscription.creditCard) {
       const creditCardInfo = subscription.creditCard;
       paymentMethodRecord = await prisma.paymentMethod.upsert({
-        where: {
-          userId_type_type: { userId: user.id, type: 'CREDIT_CARD' },
-        },
+        where: { userId_type_type: { userId: user.id, type: 'CREDIT_CARD' } }, // Correct unique identifier
         update: {
           creditCardToken: creditCardInfo.creditCardToken,
           lastFour: creditCardInfo.creditCardNumber.slice(-4),
@@ -350,56 +304,47 @@ export async function createSubscription(data: CreateSubscriptionData) {
       });
     } else if (data.paymentMethod === 'BOLETO') {
       paymentMethodRecord = await prisma.paymentMethod.upsert({
-        where: {
-          userId_type_type: { userId: user.id, type: 'BOLETO' },
-        },
+        where: { userId_type_type: { userId: user.id, type: 'BOLETO' } }, // Correct unique identifier
         update: {},
-        create: {
-          userId: user.id,
-          type: 'BOLETO',
-        },
+        create: { userId: user.id, type: 'BOLETO' },
       });
     }
 
     if (!paymentMethodRecord) {
-      console.error('[createSubscription] CRITICAL: Failed to upsert and retrieve payment method record.');
-      throw new Error('Payment method record not found for transaction creation.');
+      throw new Error('Failed to create or find payment method for transaction.');
     }
 
-    // 9. Create Transaction
+    // 9. Create Transaction Record
     console.log(`[createSubscription] Creating transaction record for user ${user.id} and policy ${userInsurancePolicy.id}`);
-
-    const newTransaction = await prisma.transaction.create({
+    const transaction = await prisma.transaction.create({
       data: {
         userId: user.id,
         insuranceId: userInsurancePolicy.id,
-        paymentMethodId: paymentMethodRecord.id,
+        paymentMethodId: paymentMethodRecord.id, // Link to the payment method
+        amount: data.finalAmount,
         transactionId: firstPayment?.id || subscription.id,
-        status: firstPayment?.status || subscription.status,
-        amount: Number(data.finalAmount),
-        couponCode: data.couponCode || null,
+        status: firstPaymentStatus,
         type: data.paymentMethod,
-        paymentDetails: JSON.stringify(subscription), // Convert object to JSON string
-        planNameSnapshot: plan.name,
-        planPriceSnapshot: Number(plan.price),
-        boletoUrl: firstPayment?.bankSlipUrl || firstPayment?.invoiceUrl || null,
-        boletoCode: firstPayment?.barCode || null,
+        couponCode: data.couponCode || null,
+        paymentDetails: JSON.stringify(firstPayment || subscription),
+        boletoUrl: firstPayment?.bankSlipUrl || null,
       },
     });
+    console.log('[createSubscription] Transaction record created successfully:', { id: transaction.id });
 
-    console.log('[createSubscription] Transaction created successfully:', { id: newTransaction.id });
+    // 10. Return the first payment object to the frontend
+    const paymentResult = {
+      ...(firstPayment || subscription),
+      bankSlipUrl: firstPayment?.bankSlipUrl || null, // Ensure bankSlipUrl is included
+    };
 
-    console.log('[createSubscription] Returning object to frontend:', JSON.stringify(firstPayment || subscription, null, 2));
-    // Return the first payment object which contains details like the boleto link
-    return firstPayment || subscription;
+    console.log('[createSubscription] Returning payment object to frontend:', JSON.stringify(paymentResult, null, 2));
+    return paymentResult; // Return the object directly
 
   } catch (error: any) {
     console.error('!!! Asaas Subscription Error:', error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
-    let errorMessage = 'Falha ao criar assinatura no Asaas.';
-    if (error.response?.data?.errors?.[0]?.description) {
-      errorMessage = error.response.data.errors[0].description;
-    }
-    throw new Error(`Falha ao criar assinatura no Asaas: ${errorMessage}`);
+    // Re-throw the error to be caught by the main POST handler
+    throw error;
   }
 }
 
