@@ -36,6 +36,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const numericFinalAmount = parseFloat(finalAmount);
+    if (isNaN(numericFinalAmount)) {
+      return NextResponse.json({ error: 'Invalid finalAmount. Must be a number.' }, { status: 400 });
+    }
+
     // Use customerId from body (user ID) if present, otherwise fall back to session/email
     const userId = customerId || sessionUserEmail || email;
     if (!userId) {
@@ -50,7 +55,7 @@ export async function POST(request: NextRequest) {
       customerId: userId,
       paymentMethod,
       cardInfo, 
-      finalAmount,
+      finalAmount: numericFinalAmount,
       originalAmount,
       couponCode,
       address,
