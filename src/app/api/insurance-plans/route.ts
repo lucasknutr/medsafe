@@ -50,51 +50,24 @@ export async function GET(request: Request) {
 // Protected endpoints - assumption: use Prisma for consistency
 export async function POST(request: Request) {
   try {
-    console.log('Starting POST request...');
     const body = await request.json();
-    console.log('Received request body:', body);
+    console.log('API ROUTE - POST /api/insurance-plans - Received body:', body);
 
-    if (!body.name || !body.description || !body.price || !body.features) {
-      return NextResponse.json({ error: 'Invalid request', details: 'Missing required fields' }, { status: 400 });
-    }
-    if (isNaN(Number(body.price))) {
-      return NextResponse.json({ error: 'Invalid request', details: 'Price must be a number' }, { status: 400 });
-    }
-    if (!Array.isArray(body.features)) {
-      return NextResponse.json({ error: 'Invalid request', details: 'Features must be an array' }, { status: 400 });
-    }
+    // Here we will call the new createSubscription function
+    // Note: The function name is being kept as createSubscription for consistency
+    const { createSubscription } = await import('./asaas'); 
 
-    console.log('Creating insurance plan with data:', {
-      name: body.name,
-      description: body.description,
-      price: Number(body.price),
-      features: body.features,
-      isActive: body.isActive !== undefined ? body.isActive : true,
-    });
+    const result = await createSubscription(body);
 
-    const newPlan = await prisma.insurancePlan.create({
-      data: {
-        name: body.name,
-        description: body.description,
-        price: Number(body.price),
-        features: body.features,
-        isActive: body.isActive !== undefined ? body.isActive : true,
-      },
-    });
+    console.log('API ROUTE - POST /api/insurance-plans - Subscription result:', result);
+    return NextResponse.json(result);
 
-    console.log('Insurance plan created successfully:', newPlan);
-    return NextResponse.json(newPlan, { status: 201 });
-  } catch (error) {
-    console.error('Detailed error creating insurance plan:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined,
-    });
+  } catch (error: any) {
+    console.error('!!! API ROUTE - POST /api/insurance-plans - Error:', error);
     return NextResponse.json(
       {
-        error: 'Failed to create insurance plan',
-        details: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: 'Failed to process payment',
+        details: error.response?.data?.errors?.[0]?.description || error.message || 'Unknown error occurred',
       },
       { status: 500 }
     );
