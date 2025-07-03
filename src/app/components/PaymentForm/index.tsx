@@ -58,6 +58,7 @@ export default function PaymentForm() {
     neighborhood: '',
     city: '',
     state: '',
+    phone: '', // Add phone to address state
   });
 
   // Payment error state variable
@@ -114,6 +115,8 @@ export default function PaymentForm() {
     if (field === 'cep') {
       value = value.replace(/\D/g, '');
       if (value.length > 8) value = value.slice(0, 8);
+    } else if (field === 'phone') {
+      value = value.replace(/\D/g, ''); // Allow only digits for phone
     }
     setAddress(prev => ({ ...prev, [field]: value }));
   };
@@ -391,21 +394,22 @@ export default function PaymentForm() {
                     onChange={(e) => handleAddressChange('cep', e.target.value)}
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
                     maxLength={8}
-                    placeholder="Somente números"
+                    placeholder="00000-000"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rua</label>
                   <input
                     type="text"
                     value={address.street}
                     onChange={(e) => handleAddressChange('street', e.target.value)}
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                    placeholder="Av. Exemplo"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
+                <div className="md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Número</label>
                   <input
                     type="text"
@@ -414,15 +418,18 @@ export default function PaymentForm() {
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
                   />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Complemento</label>
                   <input
                     type="text"
                     value={address.complement}
                     onChange={(e) => handleAddressChange('complement', e.target.value)}
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                    placeholder="Apto, Bloco, etc."
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
                   <input
@@ -430,6 +437,16 @@ export default function PaymentForm() {
                     value={address.neighborhood}
                     onChange={(e) => handleAddressChange('neighborhood', e.target.value)}
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                  <input
+                    type="text"
+                    value={address.phone}
+                    onChange={(e) => handleAddressChange('phone', e.target.value)}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 border-gray-300"
+                    placeholder="(00) 00000-0000"
                   />
                 </div>
               </div>

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       finalAmount: numericFinalAmount,
       originalAmount,
       couponCode,
-      address,
+      address: body.address, 
       remoteIp: ip,
     });
 
