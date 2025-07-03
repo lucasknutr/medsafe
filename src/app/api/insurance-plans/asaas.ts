@@ -37,9 +37,10 @@ interface CreateSubscriptionData {
   paymentMethod: 'CREDIT_CARD' | 'BOLETO' | 'PIX';
   cardInfo?: {
     number: string;
-    expiry: string;
+    expiryMonth: string;
+    expiryYear: string;
     cvc: string;
-    name: string;
+    holderName: string;
   };
   finalAmount: number;
   originalAmount: number;
@@ -52,6 +53,7 @@ interface CreateSubscriptionData {
     neighborhood: string;
     city: string;
     state: string;
+    phone?: string;
   };
   remoteIp?: string;
 }
@@ -112,21 +114,21 @@ export async function createSubscription(data: CreateSubscriptionData): Promise<
         dueDate: new Date().toISOString().split('T')[0],
         description: `Pagamento inicial do plano ${plan.name} - MedSafe${couponCode ? ` (Cupom: ${couponCode})` : ''}`,
         creditCard: {
-          holderName: cardInfo.name,
+          holderName: cardInfo.holderName,
           number: cardInfo.number.replace(/\D/g, ''),
-          expiryMonth: cardInfo.expiry.split('/')[0],
-          expiryYear: '20' + cardInfo.expiry.split('/')[1],
+          expiryMonth: cardInfo.expiryMonth,
+          expiryYear: cardInfo.expiryYear,
           ccv: cardInfo.cvc,
         },
         creditCardHolderInfo: {
-          name: cardInfo.name,
+          name: cardInfo.holderName,
           email: user.email,
           cpfCnpj: user.cpf?.replace(/\D/g, '') || '',
           postalCode: address.cep.replace(/\D/g, ''),
           addressNumber: address.number,
           addressComplement: address.complement || null,
-          phone: user.phone?.replace(/\D/g, '') || '',
-          mobilePhone: user.phone?.replace(/\D/g, '') || '',
+          phone: address.phone?.replace(/\D/g, '') || '',
+          mobilePhone: address.phone?.replace(/\D/g, '') || '',
         },
         remoteIp,
       };
