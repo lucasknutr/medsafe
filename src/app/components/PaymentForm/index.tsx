@@ -180,10 +180,11 @@ export default function PaymentForm() {
         // If the payment method is credit card, encode the card info.
         const cardInfoPayload = btoa(
           JSON.stringify({
-            name: cardDetails.holderName,
+            holderName: cardDetails.holderName,
             number: cardDetails.number,
-            expiry: `${cardDetails.expiryMonth}/${cardDetails.expiryYear}`,
-            cvc: cardDetails.ccv,
+            expiryMonth: cardDetails.expiryMonth,
+            expiryYear: cardDetails.expiryYear,
+            ccv: cardDetails.ccv,
           })
         );
         paymentData.cardInfoPayload = cardInfoPayload;
